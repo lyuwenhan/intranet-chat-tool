@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- <script src="jquery.js"></script> -->
+	<title>chat room</title>
+	<style>
+		.left {
+			padding: 30px 30px 0 30px;
+			top: 0px;
+			left: 0px;
+			position: fixed;
+			z-index: 10000000;
+			width: calc(30% - 60px);
+			min-width:320px;
+			/* height: 100vh; */
+		}
+
+		.right {
+			padding: 30px 30px 0 30px;
+			top: 0px;
+			right: 0px;
+			position: absolute;
+			overflow-y: auto;
+			z-index: 10000000;
+			max-width: calc(100vw - 440px);
+			width: calc(70% - 60px);
+			/* height: 100%; */
+		}
+
+		.ban{
+			color:red;
+			font-size: 2em;
+		}
+
+		#clear {
+			padding: 10px;
+			top: 0px;
+			left: 0px;
+			z-index: 10000001;
+			position: fixed;
+		}
+
+		textarea {
+			resize: none;
+			overflow: auto;
+			white-space: pre;
+		}
+
+		input {
+			overflow-x: auto;
+		}
+		[for=auto-fresh] {
+			user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+		}
+
+		html{
+			tab-size: 4;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="clear">
+		<span id="clear-nopwd">
+			<button type="button" onclick="fun_clear()">清空聊天区</button>
+		</span>
+		<span id="clear-pwd">
+			<!-- <form> -->
+				<label>Password:</label>
+				<input id="password" type="password" />
+				<button type="button" onclick="fun_clear_by_pwd()">清空聊天区</button>
+			<!-- </form> -->
+		</span>
+	</div>
+	<div class="left">
+		<br>
+		<label for="auto-fresh">自动刷新</label>
+		<input type="checkbox" id="auto-fresh">
+		<h3>用户名:&nbsp;<span id="username"></span>&nbsp;&nbsp;<button type="button" onclick="change_username()">更改</button></h3>
+		<label for="inputContent">发送内容：</label>
+		<button type="button" onclick="submitForm()">发送</button>
+		<br>
+		<input type="text" id="inputContent" name="inputContent" required>
+		<br>
+		<br>
+		<label>发送代码：</label>
+		<select id = "code-language">
+			<option value="" selected>Choose language</option>
+			<option value="plain text">plain text</option>
+			<option value="c">c</option>
+			<option value="cpp">c++</option>
+			<option value="css">css</option>
+			<option value="java">java</option>
+			<option value="json">json</option>
+			<option value="html">html</option>
+			<option value="python">python</option>
+			<option value="javascript">javascript</option>
+		</select>
+		<button type="button" onclick="submitCode()">发送</button>
+		<br>
+		<textarea rows="30" cols="40" id="code"></textarea>
+	</div>
+	<div class="right">
+		<label for="inputContent">接收内容：</label>
+		<button type="button" onclick="reload()">刷新</button>
+		<div class="chat"></div>
+	</div>
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script> -->
+	<script src="forge.js"></script>
+	<script>
+		var last_data = {chats:[]};
+		function get_key() {
+			var ret = null;
+			var inputContent = { type: "get-key", username: localStorage.getItem("username") };
+			fetch(`http://${ip}:${host}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => {
+				// console.log('收到响应');
+				return response.json();
+			})
+			.then(data => {
+				publicKey = data;
+			})
+			.catch(error => {
+				console.error('错误:', error);
+			});
+		}
+		var publicKey;
+		function isValidIPv4(str) {
+			if (str == null || str == undefined) {
+				return false;
+			}
+			let parts = str.split(".");
+			if (parts.length !== 4) {
+				return false;
+			}
+			for (let part of parts) {
+				if (!part.match(/^\d+$/)) {
+					return false;
+				}
+				let num = parseInt(part, 10);
+				if (num < 0 || num > 255) {
+					return false;
+				}
+				if (part !== num.toString()) {
+					return false;
+				}
+			}
+			return true;
+		}
+		function isValidHost(str) {
+			if (str == null || str == undefined) {
+				return false;
+			}
+			if (!str.match(/^\d+$/)) {
+				return false;
+			}
+			let num = parseInt(str, 10);
+			if (num < 0 || num > 65535) {
+				return false;
+			}
+			if (str !== num.toString()) {
+				return false;
+			}
+			return true;
+		}
+		function isValidUsername(username){
+			return username && username.length <= 20 && /^\w+$/.test(username);
+		}
+		var auto_fresh = document.querySelector("#auto-fresh").checked = (localStorage.getItem("auto-fresh") === "true");
+		document.getElementById("auto-fresh").addEventListener("change", function() {
+			localStorage.setItem("auto-fresh", auto_fresh = this.checked);
+		});
+		ip = "";
+		host = 8080;
+		async function new_username(){
+			let nename = localStorage.getItem("username");
+			let neww = false;
+			while(!isValidUsername(nename)){
+				neww = false;
+				let new_name = await prompt("输入用户名(只能包含数字字母及下划线):")
+				if(new_name){
+					neww = true;
+					if(new_name.length > 20){
+						await alert("用户名过长");
+						continue;
+					}
+					if(!isValidUsername(new_name)){
+						await alert("用户名不合法");
+						continue;
+					}
+					var inputContent = {
+						type: "check-name",
+						info: new_name
+					};
+					await fetch(`http://${ip}:${host}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({ content: inputContent })
+					})
+					.then(response => response.json())
+					.then(data => {
+						console.log('服务器返回的数据:', data)
+						if(data.message == "sucsess"){
+							nename = new_name;
+						}else{
+							alert("用户名不合法");
+						}
+					})
+					.catch(error => console.error('错误:', error));
+				}else if(new_name == ""){
+					await alert("用户名不能为空");
+					continue;
+				}
+			}
+			localStorage.setItem("username", nename);
+			if(neww){
+				location.reload();
+			}
+			get_key();
+			reload();
+		}
+		window.onload = function () {
+			document.getElementById('inputContent').addEventListener('keydown', function(event) {
+				if (event.key === "Enter") {
+					submitForm();
+				}
+			});
+			document.getElementById('code').addEventListener('keydown', function(event) {
+				if (event.key === "Enter" && event.ctrlKey) {
+					submitCode();
+				}
+			});
+			document.getElementById('password').addEventListener('keydown', function(event) {
+				if (event.key === "Enter") {
+					fun_clear_by_pwd();
+				}
+			});
+			document.querySelector("#clear-nopwd").hidden = true;
+			document.querySelector("#clear-pwd").hidden = true;
+			document.getElementById("username").innerText = localStorage.getItem("username");
+			mayip="";
+			mayip="192.168.10.106";
+			function is_by_ip() {
+				const hostname = window.location.hostname;
+				return /^[0-9]+(?:\.[0-9]+){3}$/.test(hostname);  // 简单的 IPv4 检查
+			}
+			if(is_by_ip()){
+				mayip = window.location.hostname;
+			}
+			ip = mayip;
+			if(!mayip){
+				ip = prompt("请输入服务器ipv4", mayip);
+				while (!isValidIPv4(ip)) {
+					ip = prompt("请输入合法的服务器ipv4", mayip);
+				}
+				host = prompt("请输入服务器端口号", "8080");
+				while (!isValidHost(host)) {
+					host = prompt("请输入合法的服务器端口号", "8080");
+				}
+			}
+			new_username();
+			get_cleartype();
+		}
+		async function fun_clear() {
+			// if(!confirm("确定要清空吗")){
+			// 	return;
+			// }
+			var inputContent = {
+				type: "command",
+				info: "/clear",
+				username: localStorage.getItem("username")
+			};
+			await fetch(`http://${ip}:${host}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => response.json())
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message=="sucsess"){
+					reload();
+				}
+			})
+			.catch(error => console.error('错误:', error));
+		}
+		async function encryptWithOAEP(plainText, publicKeyPem) {
+			// 1️⃣ 解析 PEM 格式公钥
+			const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
+
+			// 2️⃣ 使用 `RSA-OAEP` 加密数据
+			const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
+				md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
+			});
+
+			// 3️⃣ Base64 编码，方便传输
+			return forge.util.encode64(encrypted);
+		}
+		async function fun_clear_by_pwd() {
+			// if(!confirm("确定要清空吗")){
+			// 	return;
+			// }
+			var pwd = document.querySelector("#password");
+			if(!pwd.value){
+				return;
+			}
+			const encrypted = await encryptWithOAEP(pwd.value, publicKey);
+			pwd.value = "";
+			var inputContent = {
+				type: "command",
+				info: "/clear",
+				pwd: encrypted,
+				username: localStorage.getItem("username")
+			};
+			await fetch(`http://${ip}:${host}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => response.json())
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message=="sucsess"){
+					reload();
+				}
+			})
+			.catch(error => console.error('错误:', error));
+		}
+		async function change_username(){
+			let new_name = prompt("新用户名(只能包含数字字母及下划线):")
+			if(new_name){
+				if(!isValidUsername(new_name)){
+					alert("用户名不合法");
+					return;
+				}
+				if(new_name.length > 20){
+					alert("用户名过长");
+					return;
+				}
+				var inputContent = {
+					type: "check-name",
+					info: new_name
+				};
+				await fetch(`http://${ip}:${host}`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ content: inputContent })
+				})
+				.then(response => response.json())
+				.then(data => {
+					console.log('服务器返回的数据:', data)
+					if(data.message == "sucsess"){
+						localStorage.setItem("username", new_name);
+						document.getElementById("username").innerText = localStorage.getItem("username");
+					}else{
+						alert("用户名不合法");
+					}
+				})
+				.catch(error => console.error('错误:', error));
+			}else if(new_name == ""){
+				alert("用户名不能为空");
+				return;
+			}
+			reload();
+		}
+		function submitForm() {
+			var inputContent = {
+				type: "send",
+				info: document.getElementById("inputContent").value.trimEnd(),
+				username: localStorage.getItem("username")
+			};
+			document.getElementById("inputContent").value = "";
+			fetch(`http://${ip}:${host}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => response.json())
+				.then(data => console.log('服务器返回的数据:', data))
+				.catch(error => console.error('错误:', error));
+			reload();
+		}
+		function submitCode() {
+			if(document.getElementById("code").value == ""){
+				return;
+			}
+			var inputContent = {
+				type: "send-code",
+				info: document.getElementById("code").value.trimEnd(),
+				username: localStorage.getItem("username")
+			};
+			var lang = document.querySelector("#code-language");
+			if(lang && lang.value){
+				inputContent.language = lang.value;
+			}
+			document.getElementById("code").value = "";
+			fetch(`http://${ip}:${host}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => response.json())
+				.then(data => console.log('服务器返回的数据:', data))
+				.catch(error => console.error('错误:', error));
+			reload();
+		}
+		function reload() {
+			var inputContent = { type: "get", username: localStorage.getItem("username") };
+			fetch(`http://${ip}:${host}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => {
+					// console.log('收到响应');
+					return response.json();
+				})
+				.then(data => {
+					let li = data.chats, l2 = li.slice();
+					if(data.message == "ban"){
+						document.querySelector(".chat").innerHTML = `<a class="ban">${li[0].info}</a>`;
+						last_data = "";
+						return;
+					}
+					if(JSON.stringify(last_data.chats) === JSON.stringify(li)){
+						return;
+					}
+					while(last_data.chats.length && JSON.stringify(last_data.chats[0]) == JSON.stringify(l2[0])){
+						last_data.chats.shift();
+						l2.shift();
+					}
+					if(last_data.chats.length){
+						document.querySelector(".chat").innerHTML = "";
+						console.log('聊天记录', li);
+					}else{
+						li = l2;
+						console.log('新增聊天记录', li);
+					}
+					for (let i = 0; i < li.length; i++) {
+						if(li[i].type == "code" && li[i].language){
+							document.querySelector(".chat").insertAdjacentHTML(
+								"beforeend",
+								`<strong>[${li[i].ip}]&nbsp;${li[i].username.padEnd(8, " ")}: </strong>${li[i].language}<br>`
+							);
+						}else{
+							document.querySelector(".chat").insertAdjacentHTML(
+								"beforeend",
+								`<strong>[${li[i].ip}]&nbsp;${li[i].username.padEnd(8, " ")}: </strong>${li[i].type}<br>`
+							);
+						}
+
+						if(li[i].type == "text"){
+							let nele = document.createElement("code");
+							nele.class=`msg-text msg-${i}`;
+							nele.innerText = li[i].info;
+							document.querySelector(".chat").appendChild(nele);
+							document.querySelector(".chat").appendChild(document.createElement("br"));
+						}else{
+							let nele = document.createElement("textarea");
+							nele.classList=[`msg-code msg-${i}`];
+							nele.value = li[i].info;
+							nele.readOnly = true;
+							nele.style.maxHeight="30em";
+							nele.style.height="auto";
+							nele.style.width="auto";
+							document.querySelector(".chat").appendChild(nele);
+							document.querySelector(".chat").appendChild(document.createElement("br"));
+						}
+					}
+					const codes = document.querySelectorAll(".msg-code");
+					for(let i = 0; i < codes.length; i++){
+						codes[i].style.height = codes[i].scrollHeight + "px";
+						codes[i].style.width = codes[i].scrollWidth + "px";
+						codes[i].style.height = "auto";
+						codes[i].style.width = "auto";
+						codes[i].style.height = codes[i].scrollHeight + "px";
+						codes[i].style.width = codes[i].scrollWidth + codes[i].offsetWidth - codes[i].clientWidth + "px";
+					}
+					last_data = data;
+				})
+				.catch(error => {
+					console.error('错误:', error);
+				});
+		}
+		function get_cleartype() {
+			var inputContent = { type: "get-cleartype", username: localStorage.getItem("username") };
+			fetch(`http://${ip}:${host}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => {
+					// console.log('收到响应');
+					return response.json();
+				})
+				.then(data => {
+					var npele = document.querySelector("#clear-nopwd"), ypele = document.querySelector("#clear-pwd");
+					// console.log(npele, ypele);
+					if(data == "1"){
+						ypele.hidden = false;
+					}else if(data == '2'){
+						npele.hidden = false;
+					}
+				})
+				.catch(error => {
+					console.error('错误:', error);
+				});
+		}
+		function au_reload(){
+			if(auto_fresh){
+				reload();
+			}
+		}
+		setInterval(function(){au_reload()}, 1000);
+		</script>
+</body>
+
+</html>
