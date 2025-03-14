@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- <script src="jquery.js"></script> -->
+	<title>chat room</title>
+	<link rel="stylesheet" href="/CodeMirror/lib/codemirror.css">
+	<script src="/CodeMirror/lib/codemirror.js"></script>
+	<script src="/CodeMirror/lib/active-line.js"></script>
+	<script src="/CodeMirror/lib/javascript.js"></script>
+	<script src="/CodeMirror/lib/clike.js"></script>
+	<script src="/CodeMirror/lib/matchbrackets.js"></script>
+	<script src="/CodeMirror/lib/closebrackets.js"></script>
+	<script src="/CodeMirror/lib/closetag.js"></script>
+	<script src="/CodeMirror/lib/css.js"></script>
+	<script src="/CodeMirror/lib/markdown.js"></script>
+	<script src="/CodeMirror/lib/python.js"></script>
+	<script src="/CodeMirror/lib/shell.js"></script>
+	<script src="/CodeMirror/lib/xml.js"></script>
+	<script src="/CodeMirror/lib/sql.js"></script>
+	<script src="/CodeMirror/lib/yaml.js"></script>
+	<script src="/CodeMirror/lib/htmlmixed.js"></script>
+	<script src="/forge.js"></script>
+	<script>
+		MathJax = {
+			tex: {
+				packages: ['base'],        // extensions to use
+				inlineMath: [              // start/end delimiter pairs for in-line math
+				['$', '$'],
+				],
+				displayMath: [             // start/end delimiter pairs for display math
+				['$$', '$$'],
+				],
+				processEscapes: true,      // use \$ to produce a literal dollar sign
+				processEnvironments: true, // process \begin{xxx}...\end{xxx} outside math mode
+				processRefs: true,         // process \ref{...} outside of math mode
+				digits: /^(?:[0-9]+(?:\{,\}[0-9]{3})*(?:\.[0-9]*)?|\.[0-9]+)/,
+										// pattern for recognizing numbers
+				tags: 'none',              // or 'ams' or 'all'
+				tagSide: 'right',          // side for \tag macros
+				tagIndent: '0.8em',        // amount to indent tags
+				useLabelIds: true,         // use label name rather than tag for ids
+				multlineWidth: '85%',      // width of multline environment
+				maxMacros: 1000,           // maximum number of macro substitutions per expression
+				maxBuffer: 5 * 1024,       // maximum size for the internal TeX string (5K)
+			}
+		};
+	</script>
+	<script type="text/javascript" src="/MathJax/es5/tex-mml-chtml.js"></script>
+	<style>
+		.CodeMirror {
+			line-height: 1.3em !important;
+			min-height: calc(3.9em + 8px);
+			max-height: calc(26em + 8px);
+		}
+		.well{
+			background-color: rgb(247, 247, 247);
+			border: 1px solid rgb(227, 227, 227);
+			border-radius: 7px;
+			padding: 19px;
+		}
+		.code-cm{
+			min-height: calc(26em + 8px);
+			max-height: calc(65em + 8px);
+		}
+		.lang{
+			border: 1px solid black;
+			padding: 10px;
+			bottom: 20px;
+			right: 20px;
+			position: fixed;
+		}
+		.lang > a {
+			user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+		}
+
+		.lang-now{
+			cursor: pointer;
+			color:blue;
+		}
+
+		.lang-now:hover{
+			color:darkblue;
+		}
+
+		.lang-new{
+			cursor: pointer;
+		}
+
+		.lang-new:hover{
+			color:#3f3f3f;
+		}
+
+		.lang-new:active{
+			color:#2f2f2f;
+		}
+		.lang-left{
+			padding: 10px;
+			margin:-10px;
+			padding-right: 3px;
+			margin-right: 0;
+		}
+		.lang-right{
+			padding: 10px;
+			margin:-10px;
+			padding-left: 3px;
+			margin-left: 0;
+		}
+
+		#latex{
+			padding-left: 20px;
+		}
+
+		.left {
+			padding: 30px;
+			padding-bottom: 50px;
+			top: 0px;
+			left: 0px;
+			position: fixed;
+			width: calc(30% - 60px);
+			min-width:320px;
+			overflow: auto;
+			height: calc(100% - 80px);
+		}
+
+		.right {
+			padding: 30px;
+			padding-bottom: 50px;
+			top: 0px;
+			right: 0px;
+			position: fixed;
+			overflow-y: auto;
+			max-width: calc(100vw - 440px);
+			width: calc(70% - 60px);
+			height: calc(100% - 80px);
+		}
+
+		.ban{
+			color:red;
+			font-size: 2em;
+		}
+
+		#clear {
+			margin: -20px;
+			margin-bottom: 0;
+			top: 0px;
+			left: 0px;
+			z-index: 10000001;
+		}
+
+		#download {
+			cursor: pointer;
+			color:black;
+			text-decoration: none;
+		}
+
+		textarea {
+			resize: none;
+			overflow: auto;
+			white-space: pre;
+		}
+
+		input {
+			overflow-x: auto;
+		}
+		[for=auto-fresh] {
+			user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+		}
+
+		html{
+			tab-size: 4;
+		}
+	</style>
+</head>
+
+<body>
+	<script>
+		var usp = new URLSearchParams(window.location.search);
+		function getParam(param) {
+			return usp.get(param);
+		}
+		function setLang(lang){
+			usp.set("lang", lang);
+			window.location.search = usp.toString();
+		}
+		var gp = getParam("lang");
+		if(gp == "zh"){
+			setLang("zh-CN");
+		}
+		if(gp != "zh-CN" && gp != "en"){
+			gp = null;
+		}
+		const lang = ((gp || navigator.language || "en") == "zh-CN" ? "zh-CN" : "en");
+		if(!gp){
+			usp.set("lang", lang);
+			window.location.search = usp.toString();
+		}
+		const text = ((lang == "zh-CN") ? [`清空聊天区`, `自动刷新`, `更改`, `用户名`, `发送`, `文字：`, `代码：`, `文件：`, `上传`, `接收内容：`, `刷新`, `上传成功`, `上传失败`, `新用户名(只能包含数字字母及下划线):`, `用户名不合法`, `用户名过长`, `用户名不能为空`] : [`clear`, `auto&nbsp;refresh&nbsp;chat&nbsp;area`, `change`, `Username`, `send`, `&nbsp;text:&nbsp;`, `&nbsp;code:&nbsp;`, `&nbsp;file:&nbsp;`, `upload`, `chat&nbsp;area:`, `refresh&nbsp;chat&nbsp;area`, `uploaded successfully`, `uploaded failed`, `New username(Numbers, letters and underscores only):`, `Illegal username`, `username too long`, `user name cannot be empty`]);
+		// console.log(lang);
+		const languageModes = {
+			"plain text": [{ mode: "null" }, {  mode: "null" }],
+			"c": [{ mode: "text/x-csrc", matchBrackets: true, autoCloseBrackets: true }, {  mode: "text/x-csrc", matchBrackets: true, autoCloseBrackets: true }],
+			"cpp": [{ mode: "text/x-c++src", matchBrackets: true, autoCloseBrackets: true }, {  mode: "text/x-c++src", matchBrackets: true, autoCloseBrackets: true }],
+			"css": [{ mode: "css", autoCloseBrackets: true, autoCloseTags: true }, {  mode: "css", autoCloseBrackets: true, autoCloseTags: true }],
+			"java": [{ mode: "text/x-java", matchBrackets: true, autoCloseBrackets: true }, {  mode: "text/x-java", matchBrackets: true, autoCloseBrackets: true }],
+			"json": [{ mode: "javascript", matchBrackets: true, autoCloseBrackets: true }, {  mode: "javascript", matchBrackets: true, autoCloseBrackets: true }],
+			"html": [{ mode: "htmlmixed", matchBrackets: true, autoCloseTags: true }, {  mode: "htmlmixed", matchBrackets: true, autoCloseTags: true }],
+			"shell": [{ mode: "shell", matchBrackets: true }, {  mode: "shell", matchBrackets: true }],
+			"python": [{ mode: "python", matchBrackets: true, autoCloseBrackets: true }, {  mode: "python", matchBrackets: true, autoCloseBrackets: true }],
+			"markdown": [{ mode: "markdown" }, {  mode: "markdown" }],
+			"javascript": [{ mode: "javascript", matchBrackets: true, autoCloseBrackets: true }, {  mode: "javascript", matchBrackets: true, autoCloseBrackets: true }],
+			"yaml": [{ mode: "yaml" }, { mode: "yaml" }],
+			"sql": [{ mode: "text/x-sql", matchBrackets: true, autoCloseBrackets: true }, { mode: "text/x-sql", matchBrackets: true, autoCloseBrackets: true }]
+		};
+		function tomode(mode, ro = false){
+			return Object.assign({}, mode, {theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: ro});
+		}
+		document.body.insertAdjacentHTML(
+			"beforeend",
+			`<div class="left">
+				<div id="clear" translate="no">
+					<span id="clear-nopwd" hidden = "true" >
+						<button type="button" onclick="fun_clear()">${text[0]}</button>
+					</span>
+					<span id="clear-pwd" hidden = "true">
+						<!-- <form> -->
+							<label>Password:</label>
+							<input id="password" type="password" />
+							<button type="button" onclick="fun_clear_by_pwd()">${text[0]}</button>
+						<!-- </form> -->
+					</span>
+				</div>
+				<br>
+				<label for="auto-fresh">${text[1]}</label>
+				<input type="checkbox" id="auto-fresh">
+				<h3>${text[3]}:&nbsp;<span id="username"></span>&nbsp;&nbsp;<button type="button" onclick="change_username()">${text[2]}</button></h3>
+				<label for="inputContent">${text[4]}${text[5]}</label>
+				<button type="button" onclick="submitForm()">${text[4]}</button>
+				<br>
+				<input type="text" id="inputContent" name="inputContent" required translate="no">
+				<br>
+				<br>
+				<form id="uploadForm" enctype="multipart/form-data">
+					<label>${text[4]}${text[7]}</label>
+					<input type="file" name="file" id="file" required><br>
+					<button type="submit">${text[8]}</button>
+				</form>
+				<br>
+				<br>
+				<label>${text[4]}${text[6]}</label>
+				<select id="code-language" translate="no">
+					<option value="plain text" selected>plain text</option>
+					<option value="c">c</option>
+					<option value="cpp">c++</option>
+					<option value="css">css</option>
+					<option value="sql">sql</option>
+					<option value="java">java</option>
+					<option value="json">json</option>
+					<option value="html">html</option>
+					<option value="yaml">yaml</option>
+					<option value="shell">shell</option>
+					<option value="python">python</option>
+					<option value="markdown">markdown</option>
+					<option value="javascript">javascript</option>
+				</select>
+				<button type="button" onclick="submitCode()">${text[4]}</button>
+				<br>
+				<div class="well">
+					<textarea rows="30" cols="40" id="code"></textarea>
+				</div>
+			</div>
+			<div class="right">
+				<label for="inputContent">${text[9]}</label>
+				<button type="button" onclick="reload()">${text[10]}</button>
+				<div class="chat"></div>
+			</div>
+			<div class="lang"><a ${lang != "en" ? `onclick='setLang("en")' class="lang-new lang-left"` : "class='lang-now lang-left'"}>english</a>/<a ${lang != "zh-CN" ? `onclick='setLang("zh-CN")' class="lang-new lang-right"` : "class='lang-now lang-right'"}>简体中文</a></div>`
+		);
+	</script>
+	<script>
+		// 获取表单元素和文件输入框
+		const form = document.getElementById('uploadForm');
+		const fileInput = document.getElementById('file');
+		const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+		// 监听表单提交事件
+		form.addEventListener('submit', function(e) {
+			e.preventDefault(); // 阻止表单的默认提交行为
+
+			// 获取选中的文件
+			let formData = new FormData(form);
+			let file = formData.get("file");
+			let newFile = new File([file], btoa(unescape(encodeURIComponent(file.name))), { type: file.type });
+			console.log(newFile);
+
+			// 检查文件大小
+			if (file.size > MAX_FILE_SIZE) {
+				alert('文件大小超过限制！最大允许文件大小为 5MB');
+				fileInput.value = '';
+				return;
+			}
+			formData.set("file", newFile);
+			formData.append('content', JSON.stringify({username : localStorage.getItem("username"), type: 'file'}));
+			fetch(`http://${ip}:8080/upload`, {
+				method: 'POST',
+				body: formData,
+			})
+			.then(response => response.json())
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message == "success"){
+					reloadd(data);
+					alert(text[11]);
+				}else{
+					alert(text[12]);
+				}
+			})
+			.catch(error => {
+				alert(text[12]);
+				console.error(error);
+			});
+			fileInput.value = '';
+		});
+		function formatSize(bytes) {
+			const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+			let unitIndex = 0;
+
+			// 如果字节数大于当前单位的 75%，就转换为下一个单位
+			while (bytes >= 1024 * 0.75 && unitIndex < units.length - 1) {
+				bytes /= 1024;
+				unitIndex++;
+			}
+
+			return `${bytes.toFixed(2)} ${units[unitIndex]}`;
+		}
+
+		var last_data = {chats:[]};
+		function get_key() {
+			var ret = null;
+			var inputContent = { type: "get-key", username: localStorage.getItem("username") };
+			fetch(`http://${ip}:${port}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => {
+				return response.json();
+			})
+			.then(data => {
+				publicKey = data;
+			})
+			.catch(error => {
+				console.error('错误:', error);
+			});
+		}
+		var publicKey;
+		function isValidIPv4(str) {
+			if (str == null || str == undefined) {
+				return false;
+			}
+			let parts = str.split(".");
+			if (parts.length !== 4) {
+				return false;
+			}
+			for (let part of parts) {
+				if (!part.match(/^\d+$/)) {
+					return false;
+				}
+				let num = parseInt(part, 10);
+				if (num < 0 || num > 255) {
+					return false;
+				}
+				if (part !== num.toString()) {
+					return false;
+				}
+			}
+			return true;
+		}
+		function isValidHost(str) {
+			if (str == null || str == undefined) {
+				return false;
+			}
+			if (!str.match(/^\d+$/)) {
+				return false;
+			}
+			let num = parseInt(str, 10);
+			if (num < 0 || num > 65535) {
+				return false;
+			}
+			if (str !== num.toString()) {
+				return false;
+			}
+			return true;
+		}
+		function isValidUsername(username){
+			return username && username.length <= 20 && /^\w+$/.test(username);
+		}
+		var auto_fresh = document.querySelector("#auto-fresh").checked = (localStorage.getItem("auto-fresh") === "true");
+		document.getElementById("auto-fresh").addEventListener("change", function() {
+			localStorage.setItem("auto-fresh", auto_fresh = this.checked);
+		});
+		ip = "";
+		port = 8080;
+		window.onload = function () {
+			document.getElementById('inputContent').addEventListener('keydown', function(event) {
+				if (event.key === "Enter") {
+					submitForm();
+				}
+			});
+			document.getElementById('code').addEventListener('keydown', function(event) {
+				if (event.key === "Enter" && event.ctrlKey) {
+					submitCode();
+				}
+			});
+			document.getElementById('password').addEventListener('keydown', function(event) {
+				if (event.key === "Enter") {
+					fun_clear_by_pwd();
+				}
+			});
+			document.querySelector("#clear-nopwd").hidden = true;
+			document.querySelector("#clear-pwd").hidden = true;
+			document.getElementById("username").innerText = localStorage.getItem("username");
+			mayip="";
+			function is_by_ip() {
+				const hostname = window.location.hostname;
+				return /^[0-9]+(?:\.[0-9]+){3}$/.test(hostname);  // 简单的 IPv4 检查
+			}
+			if(is_by_ip()){
+				mayip = window.location.hostname;
+			}
+			ip = mayip;
+			if(!mayip){
+				ip = prompt("请输入服务器ipv4", mayip);
+				while (!isValidIPv4(ip)) {
+					ip = prompt("请输入合法的服务器ipv4", mayip);
+				}
+			}
+			get_cleartype();
+			reload();
+			get_key();
+		}
+		async function fun_clear() {
+			// if(!confirm("确定要清空吗")){
+			// 	return;
+			// }
+			var inputContent = {
+				type: "command",
+				info: "/clear",
+				username: localStorage.getItem("username")
+			};
+			await fetch(`http://${ip}:${port}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => response.json())
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message=="success"){
+					reloadd(data);
+				}
+			})
+			.catch(error => console.error('错误:', error));
+		}
+		async function encryptWithOAEP(plainText, publicKeyPem) {
+			// 1️⃣ 解析 PEM 格式公钥
+			const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
+
+			// 2️⃣ 使用 `RSA-OAEP` 加密数据
+			const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
+				md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
+			});
+
+			// 3️⃣ Base64 编码，方便传输
+			return forge.util.encode64(encrypted);
+		}
+		async function fun_clear_by_pwd() {
+			// if(!confirm("确定要清空吗")){
+			// 	return;
+			// }
+			var pwd = document.querySelector("#password");
+			if(!pwd.value){
+				return;
+			}
+			const encrypted = await encryptWithOAEP(pwd.value, publicKey);
+			pwd.value = "";
+			var inputContent = {
+				type: "command",
+				info: "/clear",
+				pwd: encrypted,
+				username: localStorage.getItem("username")
+			};
+			await fetch(`http://${ip}:${port}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => response.json())
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message=="success"){
+					reloadd(data);
+				}
+			})
+			.catch(error => console.error('错误:', error));
+		}
+		async function change_username(){
+			let new_name = prompt(text[13])
+			if(new_name){
+				if(new_name.length > 20){
+					alert(text[15]);
+					return;
+				}
+				if(!isValidUsername(new_name)){
+					alert(text[14]);
+					return;
+				}
+				var inputContent = {
+					type: "check-name",
+					info: new_name
+				};
+				await fetch(`http://${ip}:${port}`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ content: inputContent })
+				})
+				.then(response => response.json())
+				.then(data => {
+					console.log('服务器返回的数据:', data)
+					if(data.message == "success"){
+						localStorage.setItem("username", new_name);
+						document.getElementById("username").innerText = localStorage.getItem("username");
+					}else{
+						alert(text[14]);
+					}
+				})
+				.catch(error => console.error('错误:', error));
+			}else if(new_name == ""){
+				alert(text[16]);
+				return;
+			}
+			location.reload();
+		}
+		function submitForm() {
+			var inputContent = {
+				type: "send",
+				info: document.getElementById("inputContent").value.replace(/\n+/g, "\n").trimEnd(),
+				username: localStorage.getItem("username")
+			};
+			if(!inputContent.info.replace(/\n+/g, "\n").trimStart().trimEnd()){
+				return;
+			}
+			document.getElementById("inputContent").value = "";
+			fetch(`http://${ip}:${port}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => response.json())
+				.then(data => {
+					console.log('服务器返回的数据:', data)
+					reloadd(data);
+				})
+				.catch(error => console.error('错误:', error));
+		}
+		function submitCode() {
+			var inputContent = {
+				type: "send-code",
+				info: editor.getValue().trimStart().trimEnd(),
+				username: localStorage.getItem("username")
+			};
+			if(!inputContent.info.replace(/\n+/g, "\n").trimStart().trimEnd()){
+				return;
+			}
+			var lang = document.querySelector("#code-language");
+			if(lang && lang.value){
+				inputContent.language = lang.value.replace(/\n+/g, "\n").trimStart().trimEnd();
+			}
+			editor.setValue("");
+			fetch(`http://${ip}:${port}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => response.json())
+				.then(data => {
+					console.log('服务器返回的数据:', data)
+					reloadd(data);
+				})
+				.catch(error => console.error('错误:', error));
+		}
+		function reloadd(data) {
+			if(data.message == "ban"){
+				let li = data.chats;
+				document.querySelector(".chat").innerHTML = `<a class="ban">${li[0].info}</a>`;
+				last_data = "";
+				return;
+			}
+			if(data.message && data.message != "success"){
+				return;
+			}
+			let li = data.chats;
+			// console.log(li);
+			let l2 = li.slice();
+			if(JSON.stringify(last_data.chats) === JSON.stringify(li)){
+				return;
+			}
+			while(last_data.chats.length && JSON.stringify(last_data.chats[0]) == JSON.stringify(l2[0])){
+				last_data.chats.shift();
+				l2.shift();
+			}
+			if(last_data.chats.length){
+				document.querySelector(".chat").innerHTML = "";
+				console.log('聊天记录', li);
+			}else{
+				li = l2;
+				console.log('新增聊天记录', li);
+			}
+			for (let i = 0; i < li.length; i++) {
+				if(li[i].type == "code" && li[i].language){
+					document.querySelector(".chat").insertAdjacentHTML(
+						"beforeend",
+						`<strong>[${li[i].ip}]&nbsp;${li[i].username.padEnd(8, " ")}: </strong>${li[i].language}<br>`
+					);
+				}else{
+					document.querySelector(".chat").insertAdjacentHTML(
+						"beforeend",
+						`<strong>[${li[i].ip}]&nbsp;${li[i].username.padEnd(8, " ")}: </strong>${li[i].type}<br>`
+					);
+				}
+				if(li[i].type == "code"){
+					let ndiv = document.createElement("div");
+					ndiv.classList = "well";
+					let nele = document.createElement("textarea");
+					nele.classList=[`msg-code msg-${i}`];
+					nele.value = li[i].info;
+					nele.readOnly = true;
+					ndiv.appendChild(nele);
+					ndiv.style.width = "70%"
+					const latele = document.createElement("div");
+					latele.id = "latex";
+					latele.innerHTML = li[i].html;
+					MathJax.typesetPromise([latele]).then(() => {
+						ndiv.appendChild(latele);
+					});
+					document.querySelector(".chat").appendChild(ndiv);
+					document.querySelector(".chat").appendChild(document.createElement("br"));
+					let cm = CodeMirror.fromTextArea(nele, tomode(languageModes[li[i].language || "plain text"][1]));
+					cm.setSize("auto", `calc( ${cm.lineCount() * 1.3 + 2.6}em + 8px)`);
+					setTimeout(function(cm) {
+						cm.setOption("viewportMargin", Infinity);
+					}.bind(null, cm), 5);
+				}else if(li[i].type == "file"){
+					let nele = document.createElement("a");
+					nele.id="download";
+					nele.innerHTML=`${li[i].filename}&nbsp;&nbsp;[${formatSize(li[i].size)}]`;
+					nele.onclick=function(){
+						fetch(`https://${ip}:${port + 1}/${li[i].path}`)
+						.then(response => {
+							if (!response.ok) {
+								throw new Error('file connected err');
+							}
+							return response.blob();
+						})
+						.then(blob => {
+							const url = URL.createObjectURL(blob);
+							const a = document.createElement('a');
+							a.style.display = 'none';
+							a.href = url;
+							a.download = li[i].filename;
+							document.body.appendChild(a);
+							a.click();
+							document.body.removeChild(a);
+							URL.revokeObjectURL(url);
+						})
+						.catch(error => {
+							console.error('下载文件时出错:', error);
+						});
+					}
+					document.querySelector(".chat").appendChild(nele);
+					document.querySelector(".chat").appendChild(document.createElement("br"));
+				}else{
+					let nele = document.createElement("code");
+					nele.class=`msg-text msg-${i}`;
+					nele.innerText = li[i].info;
+					document.querySelector(".chat").appendChild(nele);
+					document.querySelector(".chat").appendChild(document.createElement("br"));
+				}
+			}
+			last_data = data;
+		}
+
+		function reload() {
+			var inputContent = { type: "get", username: localStorage.getItem("username") };
+			fetch(`http://${ip}:${port}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => {
+					return response.json();
+				})
+				.then(data => {
+					reloadd(data);
+				})
+				.catch(error => {
+					console.error('错误:', error);
+				});
+		}
+		function get_cleartype() {
+			var inputContent = { type: "get-cleartype", username: localStorage.getItem("username") };
+			fetch(`http://${ip}:${port}`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => {
+					return response.json();
+				})
+				.then(data => {
+					var npele = document.querySelector("#clear-nopwd"), ypele = document.querySelector("#clear-pwd");
+					if(data == "1" || data == '-1'){
+						ypele.hidden = false;
+					}else if(data == '2'){
+						npele.hidden = false;
+					}
+				})
+				.catch(error => {
+					console.error('错误:', error);
+				});
+		}
+		function au_reload(){
+			if(auto_fresh){
+				reload();
+			}
+		}
+		setInterval(function(){au_reload()}, 1000);
+	</script>
+	<script>
+		var editor = CodeMirror.fromTextArea(document.getElementById("code"), tomode(languageModes[document.querySelector("#code-language").value || "plain text"][0]));
+		function ed_init(){
+			editor.setOption("extraKeys", {"Ctrl-Enter": () => submitCode(editor)});
+			editor.getWrapperElement().classList.add("code-cm");
+			editor.setSize("auto", `calc(${editor.lineCount() * 1.3 + 2.6}em + 8px)`);
+			editor.on("change", function (cm) {
+				cm.setSize("auto", `calc(${cm.lineCount() * 1.3 + 2.6}em + 8px)`);
+			});
+		}
+		ed_init();
+		document.getElementById("code-language").addEventListener("change", function() {
+			editor.toTextArea();
+			editor = CodeMirror.fromTextArea(document.getElementById("code"), tomode(languageModes[this.value || "plain text"][0]));
+			ed_init();
+		});
+	</script>
+</body>
+
+</html>

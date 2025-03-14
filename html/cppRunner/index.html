@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- <script src="jquery.js"></script> -->
+	<title>chat room</title>
+	<link rel="stylesheet" href="/CodeMirror/lib/codemirror.css">
+	<script src="/CodeMirror/lib/codemirror.js"></script>
+	<script src="/CodeMirror/lib/active-line.js"></script>
+	<script src="/CodeMirror/lib/javascript.js"></script>
+	<script src="/CodeMirror/lib/clike.js"></script>
+	<script src="/CodeMirror/lib/matchbrackets.js"></script>
+	<script src="/CodeMirror/lib/closebrackets.js"></script>
+	<script src="/CodeMirror/lib/closetag.js"></script>
+	<script src="/CodeMirror/lib/css.js"></script>
+	<script src="/CodeMirror/lib/markdown.js"></script>
+	<script src="/CodeMirror/lib/python.js"></script>
+	<script src="/CodeMirror/lib/shell.js"></script>
+	<script src="/CodeMirror/lib/xml.js"></script>
+	<script src="/CodeMirror/lib/sql.js"></script>
+	<script src="/CodeMirror/lib/yaml.js"></script>
+	<script src="/CodeMirror/lib/htmlmixed.js"></script>
+	<script src="/forge.js"></script>
+	<style>
+		.CodeMirror {
+			line-height: 1.3em !important;
+			height: 100% !important;
+		}
+		.well{
+			background-color: rgb(247, 247, 247);
+			border: 1px solid rgb(227, 227, 227);
+			border-radius: 7px;
+			padding: 19px;
+		}
+		.input-we{
+			top: 0;
+			left: 0;
+			position: absolute;
+			width: calc( 100% - 40px );
+		}
+		.output-we{
+			left: 0;
+			position: absolute;
+			width: calc( 100% - 40px );
+		}
+		.error-we{
+			left: 0;
+			position: absolute;
+			width: calc( 100% - 40px );
+		}
+		.top{
+			border-radius: 7px;
+			border-bottom-left-radius: 0px;
+			border-bottom-right-radius: 0px;
+		}
+		.bottom{
+			border-radius: 7px;
+			border-top-left-radius: 0px;
+			border-top-right-radius: 0px;
+		}
+		.full{
+			border-radius: 7px;
+		}
+		.no{
+			border-radius: 0px;
+		}
+		.pla4{
+			top: 40%;
+		}
+		.pla6{
+			top: 60%;
+		}
+		.pla7{
+			top: 70%;
+		}
+		.hei3{
+			height: calc( 30% - 40px );
+		}
+		.hei4{
+			height: calc( 40% - 40px );
+		}
+		.hei5{
+			height: calc( 50% - 40px );
+		}
+		.hei6{
+			height: calc( 60% - 40px );
+		}
+		.hei10{
+			height: calc( 100% - 40px );
+		}
+		.code-cm{
+			height: 100% !important;
+		}
+		.code-we{
+			height: calc( 100% - 40px );
+		}
+		.code-bt{
+			margin-bottom: 20px;
+		}
+		.well-info{
+			position: absolute;
+			top: 2px;
+			left: 5px;
+			z-index: 100000;
+			user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+		}
+		.well-info2{
+			position: absolute;
+			top: 0px;
+			right: 25px;
+			z-index: 100000;
+			user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+		}
+		.well-info3{
+			position: absolute;
+			top: 0px;
+			right: 25px;
+			z-index: 100000;
+			user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+		}
+
+		.n-touch{
+			pointer-events: none;
+		}
+
+		.left {
+			margin: 10px;
+			top: 0px;
+			left: 0px;
+			position: fixed;
+			width: calc(60% - 20px);
+			min-width: 320px;
+			overflow: auto;
+			height: calc(100% - 20px);
+		}
+
+		.right {
+			margin: 30px;
+			top: 0px;
+			right: 0px;
+			position: fixed;
+			overflow-y: auto;
+			width: calc(40% - 60px);
+			max-width: calc(100vw - 400px);
+			height: calc(100% - 60px);
+		}
+
+		#download {
+			cursor: pointer;
+			color:black;
+			text-decoration: none;
+		}
+
+		html{
+			tab-size: 4;
+			font-size: large;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="left">
+		<div class="well code-we">
+			<button type="button" class="well-info" onclick="submitCode()">运行</button>
+			<a class="well-info2 n-touch" id="save1" hidden="true">saved</a>
+			<textarea id="code"></textarea>
+		</div>
+	</div>
+	<div class="right">
+		<div class="well input-we hei10 full">
+			<a class="well-info n-touch">input</a>
+			<a class="well-info2 n-touch" id="save2" hidden="true">saved</a>
+			<textarea id="input"></textarea>
+		</div>
+		<div class="well output-we" hidden="true">
+			<a class="well-info n-touch">output</a>
+			<a class="well-info3 download-out" id="download" hidden="true">output.txt</a>
+			<textarea id="output"></textarea>
+		</div>
+		<div class="well error-we" hidden="true">
+			<a class="well-info n-touch">error</a>
+			<a class="well-info3 download-err" id="download" hidden="true">error.txt</a>
+			<textarea id="error"></textarea>
+		</div>
+	</div>
+	<script>
+		function formatSize(bytes) {
+			const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+			let unitIndex = 0;
+
+			while (bytes >= 1024 * 0.75 && unitIndex < units.length - 1) {
+				bytes /= 1024;
+				unitIndex++;
+			}
+
+			return `${bytes.toFixed(2)} ${units[unitIndex]}`;
+		}
+		// function get_key() {
+		// 	var ret = null;
+		// 	var inputContent = { type: "get-key", username: localStorage.getItem("username") };
+		// 	fetch(`http://${ip}:${port}`, {
+		// 		method: 'POST',
+		// 		headers: {
+		// 			'Content-Type': 'application/json'
+		// 		},
+		// 		body: JSON.stringify({ content: inputContent })
+		// 	})
+		// 	.then(response => {
+		// 		return response.json();
+		// 	})
+		// 	.then(data => {
+		// 		publicKey = data;
+		// 	})
+		// 	.catch(error => {
+		// 		console.error('错误:', error);
+		// 	});
+		// }
+		// var publicKey;
+		function isValidIPv4(str) {
+			if (str == null || str == undefined) {
+				return false;
+			}
+			let parts = str.split(".");
+			if (parts.length !== 4) {
+				return false;
+			}
+			for (let part of parts) {
+				if (!part.match(/^\d+$/)) {
+					return false;
+				}
+				let num = parseInt(part, 10);
+				if (num < 0 || num > 255) {
+					return false;
+				}
+				if (part !== num.toString()) {
+					return false;
+				}
+			}
+			return true;
+		}
+		function isValidHost(str) {
+			if (str == null || str == undefined) {
+				return false;
+			}
+			if (!str.match(/^\d+$/)) {
+				return false;
+			}
+			let num = parseInt(str, 10);
+			if (num < 0 || num > 65535) {
+				return false;
+			}
+			if (str !== num.toString()) {
+				return false;
+			}
+			return true;
+		}
+		ip = "";
+		port = 8080;
+		window.onload = function () {
+			mayip="";
+			function is_by_ip() {
+				const hostname = window.location.hostname;
+				return /^[0-9]+(?:\.[0-9]+){3}$/.test(hostname);  // 简单的 IPv4 检查
+			}
+			if(is_by_ip()){
+				mayip = window.location.hostname;
+			}
+			ip = mayip;
+			if(!mayip){
+				ip = prompt("请输入服务器ipv4", mayip);
+				while (!isValidIPv4(ip)) {
+					ip = prompt("请输入合法的服务器ipv4", mayip);
+				}
+			}
+			// get_key();
+		}
+		async function encryptWithOAEP(plainText, publicKeyPem) {
+			const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
+			const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
+				md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
+			});
+			return forge.util.encode64(encrypted);
+		}
+		const inele = document.querySelector(".input-we"), outele = document.querySelector(".output-we"), errele = document.querySelector(".error-we")
+		const outdlele = document.querySelector(".download-out"), errdlele = document.querySelector(".download-err");
+		function show(out, err, outfile, errfile, outsize, errsize){
+			inele.classList = "well input-we ";
+			outele.classList = "well output-we ";
+			errele.classList = "well error-we ";
+			outele.hidden = true;
+			errele.hidden = true;
+			outdlele.hidden = true;
+			errdlele.hidden = true;
+			edi_input.refresh();
+			outdlele.onclick = null;
+			errdlele.onclick = null;
+			outdlele.innerHTML = "output.txt";
+			errdlele.innerHTML = "error.txt";
+			if(!out && !err){
+				inele.classList += "hei10 full";
+			}else if(!err){
+				inele.classList += "hei6 top";
+				outele.classList += "hei4 pla6 bottom";
+				outele.hidden = false;
+				edi_output.setValue(out);
+				edi_output.refresh();
+				console.log(outsize);
+				if(outfile){
+					outdlele.innerHTML += ` (${formatSize(outsize)})`;
+					outdlele.hidden = false;
+					outdlele.onclick=function(){
+						fetch(`https://${ip}:${port + 1}/${outfile}`)
+						.then(response => {
+							if (!response.ok) {
+								throw new Error('file connected err');
+							}
+							return response.blob();
+						})
+						.then(blob => {
+							const url = URL.createObjectURL(blob);
+							const a = document.createElement('a');
+							a.style.display = 'none';
+							a.href = url;
+							a.download = "output.txt";
+							document.body.appendChild(a);
+							a.click();
+							document.body.removeChild(a);
+							URL.revokeObjectURL(url);
+						})
+						.catch(error => {
+							console.error('下载文件时出错:', error);
+						});
+					}
+				}
+			}else if(!out){
+				inele.classList += "hei6 top";
+				errele.classList += "hei4 pla6 bottom";
+				errele.hidden = false;
+				edi_error.setValue(err);
+				edi_error.refresh();
+				if(errfile){
+					errdlele.innerHTML += ` (${formatSize(errsize)})`;
+					errdlele.hidden = false;
+					errdlele.onclick=function(){
+						fetch(`https://${ip}:${port + 1}/${errfile}`)
+						.then(response => {
+							if (!response.ok) {
+								throw new Error('file connected err');
+							}
+							return response.blob();
+						})
+						.then(blob => {
+							const url = URL.createObjectURL(blob);
+							const a = document.createElement('a');
+							a.style.display = 'none';
+							a.href = url;
+							a.download = "error.txt";
+							document.body.appendChild(a);
+							a.click();
+							document.body.removeChild(a);
+							URL.revokeObjectURL(url);
+						})
+						.catch(error => {
+							console.error('下载文件时出错:', error);
+						});
+					}
+				}
+			}else{
+				inele.classList += "hei4 top";
+				outele.classList += "hei3 pla4 bottom";
+				errele.classList += "hei3 pla7 bottom";
+				outele.hidden = false;
+				errele.hidden = false;
+				edi_output.setValue(out);
+				edi_output.refresh();
+				edi_error.setValue(err);
+				edi_error.refresh();
+				if(outfile){
+					outdlele.innerHTML += ` (${formatSize(outsize)})`;
+					errdlele.innerHTML += ` (${formatSize(errsize)})`;
+					outdlele.hidden = false;
+					outdlele.onclick=function(){
+						fetch(`https://${ip}:${port + 1}/${outfile}`)
+						.then(response => {
+							if (!response.ok) {
+								throw new Error('file connected err');
+							}
+							return response.blob();
+						})
+						.then(blob => {
+							const url = URL.createObjectURL(blob);
+							const a = document.createElement('a');
+							a.style.display = 'none';
+							a.href = url;
+							a.download = "output.txt";
+							document.body.appendChild(a);
+							a.click();
+							document.body.removeChild(a);
+							URL.revokeObjectURL(url);
+						})
+						.catch(error => {
+							console.error('下载文件时出错:', error);
+						});
+					}
+				}
+				if(errfile){
+					errdlele.hidden = false;
+					errdlele.onclick=function(){
+						fetch(`https://${ip}:${port + 1}/${errfile}`)
+						.then(response => {
+							if (!response.ok) {
+								throw new Error('file connected err');
+							}
+							return response.blob();
+						})
+						.then(blob => {
+							const url = URL.createObjectURL(blob);
+							const a = document.createElement('a');
+							a.style.display = 'none';
+							a.href = url;
+							a.download = "error.txt";
+							document.body.appendChild(a);
+							a.click();
+							document.body.removeChild(a);
+							URL.revokeObjectURL(url);
+						})
+						.catch(error => {
+							console.error('下载文件时出错:', error);
+						});
+					}
+				}
+			}
+		}
+		var running = false;
+		function submitCode() {
+			if(running){
+				return;
+			}
+			running = true;
+			var inputContent = {
+				type: "run-code",
+				code: editor.getValue().trimStart().trimEnd(),
+				input: edi_input.getValue().trimStart().trimEnd()
+			};
+			if(!inputContent.code){
+				return;
+			}
+			localStorage.setItem("code", editor.getValue())
+			save(saveele1);
+			localStorage.setItem("input", edi_input.getValue())
+			save(saveele2);
+			show("Running");
+			fetch(`http://${ip}:${port}/cpp`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+				.then(response => response.json())
+				.then(data => {
+					running = false;
+					console.log('服务器返回的数据:', data)
+					show(data.stdout, data.stderr, data.stdoutfile, data.stderrfile, data.outsize, data.errsize);
+				})
+				.catch(error => {
+					console.error('错误:', error);
+					show("", "something error");
+				});
+		}
+	</script>
+	<script>
+		var editor = CodeMirror.fromTextArea(document.getElementById("code"), { mode: "text/x-c++src", matchBrackets: true, autoCloseBrackets: true, theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true });
+		editor.setOption("extraKeys", {"Ctrl-Enter": () => submitCode(editor)});
+		editor.getWrapperElement().classList.add("code-cm");
+		// editor.on("change", function (cm) {
+		// 	localStorage.setItem("code", cm.getValue())
+		// });
+		saveele1 = document.getElementById("save1");
+		saveele2 = document.getElementById("save2");
+		function save(ele) {
+			if (!ele) return;
+			if (ele.fadeTimeout) clearTimeout(ele.fadeTimeout);
+			if (ele.fadeInterval) clearInterval(ele.fadeInterval);
+			ele.hidden = false;
+			ele.style.color = "#000000";
+			ele.style.opacity = "1";
+			ele.fadeTimeout = setTimeout(() => {
+				let opacity = 1;
+				ele.fadeInterval = setInterval(() => {
+					opacity -= 0.05;
+					ele.style.opacity = opacity;
+
+					if (opacity <= 0) {
+						clearInterval(ele.fadeInterval);
+						ele.style.color = "#000000";
+						ele.style.opacity = "1";
+						ele.hidden = true;
+					}
+				}, 100);
+			}, 1000);
+		}
+
+		editor.on("keydown", (cm, event) => {
+			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+				event.preventDefault();
+				localStorage.setItem("code", cm.getValue())
+				save(saveele1);
+			}
+		});
+		editor.setValue(localStorage.getItem("code") || "");
+		var edi_input = CodeMirror.fromTextArea(document.getElementById("input"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true });
+		var edi_output = CodeMirror.fromTextArea(document.getElementById("output"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: true });
+		var edi_error = CodeMirror.fromTextArea(document.getElementById("error"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: true });
+		edi_input.setValue(localStorage.getItem("input") || "");
+		edi_input.on("keydown", (cm, event) => {
+			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+				event.preventDefault();
+				localStorage.setItem("input", cm.getValue())
+				save(saveele2);
+			}
+		});
+	</script>
+</body>
+
+</html>
