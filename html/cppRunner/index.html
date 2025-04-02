@@ -5,24 +5,11 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<!-- <script src="jquery.js"></script> -->
-	<title>chat room</title>
-	<link rel="stylesheet" href="/CodeMirror/lib/codemirror.css">
-	<script src="/CodeMirror/lib/codemirror.js"></script>
-	<script src="/CodeMirror/lib/active-line.js"></script>
-	<script src="/CodeMirror/lib/javascript.js"></script>
-	<script src="/CodeMirror/lib/clike.js"></script>
-	<script src="/CodeMirror/lib/matchbrackets.js"></script>
-	<script src="/CodeMirror/lib/closebrackets.js"></script>
-	<script src="/CodeMirror/lib/closetag.js"></script>
-	<script src="/CodeMirror/lib/css.js"></script>
-	<script src="/CodeMirror/lib/markdown.js"></script>
-	<script src="/CodeMirror/lib/python.js"></script>
-	<script src="/CodeMirror/lib/shell.js"></script>
-	<script src="/CodeMirror/lib/xml.js"></script>
-	<script src="/CodeMirror/lib/sql.js"></script>
-	<script src="/CodeMirror/lib/yaml.js"></script>
-	<script src="/CodeMirror/lib/htmlmixed.js"></script>
-	<script src="/forge.js"></script>
+	<title>cpp runner</title>
+	<link rel="stylesheet" href="/lib/codemirror.css">
+	<script src="/lib/codemirror.js"></script>
+	<script src="/lib/forge.js"></script>
+	<script src="/lib/uuid.js"></script>
 	<style>
 		.CodeMirror {
 			line-height: 1.3em !important;
@@ -91,7 +78,10 @@
 			height: calc( 100% - 40px );
 		}
 		.code-cm{
-			height: 100% !important;
+			height: calc(100% - 1.32em - 24px) !important;
+		}
+		.code-short-cm{
+			height: calc(100% - 1.32em - 12px) !important;
 		}
 		.code-we{
 			height: calc( 100% - 40px );
@@ -111,7 +101,7 @@
 		}
 		.well-info2{
 			position: absolute;
-			top: 0px;
+			top: 3px;
 			right: 25px;
 			z-index: 100000;
 			user-select: none;
@@ -129,6 +119,16 @@
 			-moz-user-select: none;
 			-ms-user-select: none;
 		}
+		.well-info4{
+			position: absolute;
+			top: 5px;
+			left: 50%;
+			z-index: 100000;
+			user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+		}
 
 		.n-touch{
 			pointer-events: none;
@@ -136,24 +136,35 @@
 
 		.left {
 			margin: 10px;
+			margin-right: 0px;
 			top: 0px;
 			left: 0px;
 			position: fixed;
-			width: calc(60% - 20px);
+			width: calc(60% - 15px);
 			min-width: 320px;
 			overflow: auto;
 			height: calc(100% - 20px);
 		}
 
 		.right {
-			margin: 30px;
+			margin: 10px;
+			margin-left: 0px;
 			top: 0px;
 			right: 0px;
 			position: fixed;
 			overflow-y: auto;
-			width: calc(40% - 60px);
+			width: calc(40% - 15px);
 			max-width: calc(100vw - 400px);
-			height: calc(100% - 60px);
+			height: calc(100% - 20px);
+		}
+		.run{
+			background-color: transparent;
+			border: 1px solid black;
+			cursor: pointer;
+			padding: 5px;
+			display: flex;
+			align-items: center;
+			border-radius: 5px;
 		}
 
 		#download {
@@ -166,35 +177,243 @@
 			tab-size: 4;
 			font-size: large;
 		}
+
+		svg, .copy{
+			user-select: none;
+			-webkit-user-select: none;
+			-moz-user-select: none;
+			-ms-user-select: none;
+		}
+
+		.transblack{
+			background-color: rgba(0, 0, 0, 0.2);
+			position: fixed;
+			left: 0;
+			top: 0;
+			height: 100vh;
+			width: 100vw;
+			overflow: hidden;
+			z-index: 100001;
+			/* display: grid; */
+			align-items: center;
+		}
+
+		.trans{
+			/* position: relative; */
+			position: absolute;
+			background-color: white;
+			height: 300px;
+			width: 500px;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			margin: auto;
+			max-height: calc(100vh - 40px);
+			max-width: calc(100vw - 40px);
+			border-radius: 10px;
+			border: 2px solid rgb(79, 79, 79);
+			padding: 18px;
+			overflow: hidden;
+			z-index: 100002;
+		}
+		.close-btn {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			width: 20px;
+			height: 20px;
+			cursor: pointer;
+			background: transparent;
+			padding: 10px;
+			margin: -5px;
+		}
+
+		.close-btn::before, .close-btn::after {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 20px;
+			height: 2px;
+			background-color: black;
+		}
+
+		.close-btn::before {
+			transform: translate(-50%, -50%) rotate(45deg);
+		}
+
+		.close-btn::after {
+			transform: translate(-50%, -50%) rotate(-45deg);
+		}
+
+		.copy{
+			cursor: pointer;
+		}
+
+		.noborder-bt {
+			background: none;
+			border: none;
+			padding: 0;
+			cursor: pointer;
+		}
+
+		.bt-grey{
+			color:black;
+		}
+		.bt-grey:hover{
+			opacity: 0.7;
+		}
+		.bt-grey:active{
+			opacity: 0.8;
+		}
+		.bt-grey-text{
+			color:black;
+		}
+		.bt-grey-text:hover{
+			color:#4c4c4c;
+		}
+		.bt-grey-text:active{
+			color:#333333;
+		}
 	</style>
 </head>
 
 <body>
 	<div class="left">
 		<div class="well code-we">
-			<button type="button" class="well-info" onclick="submitCode()">运行</button>
-			<a class="well-info2 n-touch" id="save1" hidden="true">saved</a>
+			<div style="height:calc(1.2em + 12px);line-height:1em;display: flex;justify-content: space-around;padding-bottom: 10px;">
+				<button type="button" class="run bt-grey-text" onclick="submitCode()" title="run   Ctrl+enter">
+					<span style="font-size: 1.2em; line-height:1em;">运行</span>
+					&nbsp;
+					<svg xmlns="https://www.w3.org/2000/svg" style="width: 1.2em; height: 1.2em;" viewBox="0 0 24 24" fill="none" stroke="green" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<circle cx="12" cy="12" r="10" fill="none" stroke="green"/>
+						<polygon points="10 8 16 12 10 16 10 8" fill="green"/>
+					</svg>
+				</button>
+				<button type="button" class="bt-grey noborder-bt" onclick="location.href='/';" title="back to home page">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M8 28 L32 8 L56 28" />
+						<rect x="16" y="28" width="32" height="28" rx="2" />
+						<rect x="28" y="40" width="8" height="16" stroke-width="4" />
+					</svg>
+				</button>
+				<button type="button" class="bt-grey noborder-bt" onclick="tolast()" title="back to last save">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" viewBox="0 0 5 5" xmlns="http://www.w3.org/2000/svg">
+						<path fill="black" d="M 2,4 L 0,2 L 2,0 Z M 5,4 A 3,3 0 0 0 2,1 L 2,3 A 1,1 0 0 1 3,4 Z M 3,4 A 1,1 0 0 0 5,4 Z"></path>
+					</svg>
+				</button>
+				<!-- <button type="button" class="bt-grey noborder-bt" onclick="tonext()">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" viewBox="0 0 5 5" xmlns="http://www.w3.org/2000/svg">
+						<path fill="black" d="M 3,4 L 5,2 L 3,0 Z M 0,4 A 3,3 0 0 1 3,1 L 3,3 A 1,1 0 0 0 2,4 Z M 2,4 A 1,1 0 0 1 0,4 Z"></path>
+					</svg>
+				</button> -->
+				<button type="button" class="bt-grey noborder-bt" onclick="editor.undo()" title="undo   Ctrl+Z">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
+						<path fill="black" d="M6,1 L3,5 L6,9" stroke="black" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+				</button>
+				<button type="button" class="bt-grey noborder-bt save-bt1" onclick="savecode()" title="save   Ctrl+s">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+						<polyline points="17 21 17 13 7 13 7 21" />
+						<polyline points="7 3 7 8 15 8 15 3" />
+					</svg>
+				</button>
+				<button id="save1" hidden="true" class="noborder-bt n-touch">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" xmlns="https://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M27 21H13a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+						<polyline points="25 21 25 13 15 13 15 21" />
+						<polyline points="15 3 15 8 23 8 23 3" />
+						<text id="savetext1" x="50%" y="25.5" dominant-baseline="hanging" text-anchor="middle" font-size="11" stroke-width="0" fill="currentColor" font-weight="0">SAVED</text>
+					</svg>
+				</button>
+				<button type="button" class="bt-grey noborder-bt" onclick="editor.redo()" title="redo   Ctrl+Y/Ctrl+shift+Z">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" viewBox="0 0 10 10" xmlns="http://www.w3.org/2000/svg">
+						<path fill="black" d="M4,1 L7,5 L4,9" stroke="black" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+					  </svg>
+				</button>
+				<button type="button" class="run bt-grey-text" onclick="opentsm()" title="share">
+					<span style="font-size: 1.2em; line-height:1em;">分享</span>
+					&nbsp;
+					<svg style="width: 1.2em; height: 1.2em;" xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 64 64" fill="none">
+						<path d="M18,26 H4 A2,2 0 0 0 2,28 V60 A2,2 0 0 0 4,62 H50 A2,2 0 0 0 52,60 V28 A2,2 0 0 0 50,26 H42 " fill="none" stroke="#2e7d32" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+						<path d="M22,52 C24,30 30,24 36,20 S46,16 48,12 " stroke="#2e7d32" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+						<path d="M43,5.4 L55,2 A3,3 0 0 1 58,5 L56.2 18 Q56,21 54.1,18.7 L48,12 L42.4,8.8 Q40,7 43,5.4 Z " stroke="#2e7d32" fill="#2e7d32"/>
+					</svg>
+				</button>
+			</div>
 			<textarea id="code"></textarea>
 		</div>
 	</div>
 	<div class="right">
 		<div class="well input-we hei10 full">
-			<a class="well-info n-touch">input</a>
-			<a class="well-info2 n-touch" id="save2" hidden="true">saved</a>
+			<div style="height:calc(1.2em + 12px);line-height:1em;display: flex;justify-content: space-between; align-items: center; padding-bottom: 10px;">
+				<a class="n-touch">input</a>
+				<button type="button" class="bt-grey noborder-bt save-bt2" onclick="saveinput()" title="save   Ctrl+s">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" xmlns="https://www.w3.org/2000/svg" style="width: 30px; height: 30px;" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+						<polyline points="17 21 17 13 7 13 7 21" />
+						<polyline points="7 3 7 8 15 8 15 3" />
+					</svg>
+				</button>
+				<button id="save2" hidden="true" class="noborder-bt n-touch">
+					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" xmlns="https://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M27 21H13a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+						<polyline points="25 21 25 13 15 13 15 21" />
+						<polyline points="15 3 15 8 23 8 23 3" />
+						<text id="savetext2" x="50%" y="25.5" dominant-baseline="hanging" text-anchor="middle" font-size="11" stroke-width="0" fill="currentColor" font-weight="0">SAVED</text>
+					</svg>
+				</button>
+			</div>
 			<textarea id="input"></textarea>
 		</div>
 		<div class="well output-we" hidden="true">
-			<a class="well-info n-touch">output</a>
-			<a class="well-info3 download-out" id="download" hidden="true">output.txt</a>
+			<div style="height:1.2em;line-height:1em;display: flex;justify-content: space-between; align-items: center; padding-bottom: 10px;">
+				<a class="n-touch">output</a>
+				<a class="download-out" id="download" hidden="true" title="touch to download">output.txt</a>
+			</div>
 			<textarea id="output"></textarea>
 		</div>
 		<div class="well error-we" hidden="true">
-			<a class="well-info n-touch">error</a>
-			<a class="well-info3 download-err" id="download" hidden="true">error.txt</a>
+			<div style="height:1.2em;line-height:1em;display: flex;justify-content: space-between; align-items: center; padding-bottom: 10px;">
+				<a class="n-touch">error</a>
+				<a class="download-err" id="download" hidden="true" title="touch to download">error.txt</a>
+			</div>
 			<textarea id="error"></textarea>
 		</div>
 	</div>
-	<script>
+	<div class="transmit" hidden>
+		<div class="transblack" onclick="closetsm()">
+		</div>
+		<div class="trans">
+			<div class="close-btn" onclick="closetsm()"></div>
+			<a onclick="copy(this, window.location.href)" class="copy">复制当前链接<span hidden>&nbsp;copied</span></a>
+			<br>
+			<br>
+			<a onclick="cprolink(this)" class="copy">复制只读链接<span hidden>&nbsp;copied</span></a>
+			<br>
+		</div>
+	</div>
+	<script>'use strict';
+		function isValidUUIDv4(uuid) {
+			const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+			return regex.test(uuid);
+		}
+		var usp = new URLSearchParams(window.location.search);
+		function getParam(param) {
+			return usp.get(param);
+		}
+		function setParam(param, lang){
+			usp.set(param, lang);
+			window.location.search = usp.toString();
+		}
+		if(!isValidUUIDv4(getParam("uuid"))){
+			setParam("uuid", uuid.v4());
+		}
+		const link = getParam("uuid");
+	</script>
+	<script>'use strict';
 		function formatSize(bytes) {
 			const units = ['B', 'KB', 'MB', 'GB', 'TB'];
 			let unitIndex = 0;
@@ -207,9 +426,8 @@
 			return `${bytes.toFixed(2)} ${units[unitIndex]}`;
 		}
 		// function get_key() {
-		// 	var ret = null;
-		// 	var inputContent = { type: "get-key", username: localStorage.getItem("username") };
-		// 	fetch(`http://${ip}:${port}`, {
+		// 	let inputContent = { type: "get-key", username: localStorage.getItem("username") };
+		// 	fetch(`https://${ip}:`, {
 		// 		method: 'POST',
 		// 		headers: {
 		// 			'Content-Type': 'application/json'
@@ -231,6 +449,9 @@
 			if (str == null || str == undefined) {
 				return false;
 			}
+			if(str === "localhost"){
+				return true;
+			}
 			let parts = str.split(".");
 			if (parts.length !== 4) {
 				return false;
@@ -249,31 +470,10 @@
 			}
 			return true;
 		}
-		function isValidHost(str) {
-			if (str == null || str == undefined) {
-				return false;
-			}
-			if (!str.match(/^\d+$/)) {
-				return false;
-			}
-			let num = parseInt(str, 10);
-			if (num < 0 || num > 65535) {
-				return false;
-			}
-			if (str !== num.toString()) {
-				return false;
-			}
-			return true;
-		}
-		ip = "";
-		port = 8080;
+		var ip = "";
 		window.onload = function () {
-			mayip="";
-			function is_by_ip() {
-				const hostname = window.location.hostname;
-				return /^[0-9]+(?:\.[0-9]+){3}$/.test(hostname);  // 简单的 IPv4 检查
-			}
-			if(is_by_ip()){
+			let mayip="";
+			if(isValidIPv4(window.location.hostname)){
 				mayip = window.location.hostname;
 			}
 			ip = mayip;
@@ -284,6 +484,7 @@
 				}
 			}
 			// get_key();
+			readcodes();
 		}
 		async function encryptWithOAEP(plainText, publicKeyPem) {
 			const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
@@ -315,12 +516,11 @@
 				outele.hidden = false;
 				edi_output.setValue(out);
 				edi_output.refresh();
-				console.log(outsize);
 				if(outfile){
 					outdlele.innerHTML += ` (${formatSize(outsize)})`;
 					outdlele.hidden = false;
 					outdlele.onclick=function(){
-						fetch(`https://${ip}:${port + 1}/${outfile}`)
+						fetch(`https://${ip}/${outfile}`)
 						.then(response => {
 							if (!response.ok) {
 								throw new Error('file connected err');
@@ -353,7 +553,7 @@
 					errdlele.innerHTML += ` (${formatSize(errsize)})`;
 					errdlele.hidden = false;
 					errdlele.onclick=function(){
-						fetch(`https://${ip}:${port + 1}/${errfile}`)
+						fetch(`https://${ip}/${errfile}`)
 						.then(response => {
 							if (!response.ok) {
 								throw new Error('file connected err');
@@ -372,13 +572,17 @@
 							URL.revokeObjectURL(url);
 						})
 						.catch(error => {
+							const newWindow = window.open(`https://${ip}/${outfile}`, '_blank', 'noopener,noreferrer');
+							if (newWindow) {
+								newWindow.opener = null;
+							}
 							console.error('下载文件时出错:', error);
 						});
 					}
 				}
 			}else{
 				inele.classList += "hei4 top";
-				outele.classList += "hei3 pla4 bottom";
+				outele.classList += "hei3 pla4 no";
 				errele.classList += "hei3 pla7 bottom";
 				outele.hidden = false;
 				errele.hidden = false;
@@ -391,7 +595,7 @@
 					errdlele.innerHTML += ` (${formatSize(errsize)})`;
 					outdlele.hidden = false;
 					outdlele.onclick=function(){
-						fetch(`https://${ip}:${port + 1}/${outfile}`)
+						fetch(`https://${ip}/${outfile}`)
 						.then(response => {
 							if (!response.ok) {
 								throw new Error('file connected err');
@@ -417,7 +621,7 @@
 				if(errfile){
 					errdlele.hidden = false;
 					errdlele.onclick=function(){
-						fetch(`https://${ip}:${port + 1}/${errfile}`)
+						fetch(`https://${ip}/${errfile}`)
 						.then(response => {
 							if (!response.ok) {
 								throw new Error('file connected err');
@@ -442,13 +646,20 @@
 				}
 			}
 		}
+		function tolast(){
+			let now = editor.getValue();
+			editor.setValue(lasave);
+			editor.clearHistory()
+			editor.setValue(now);
+			editor.undo();
+		}
 		var running = false;
 		function submitCode() {
 			if(running){
 				return;
 			}
 			running = true;
-			var inputContent = {
+			let inputContent = {
 				type: "run-code",
 				code: editor.getValue().trimStart().trimEnd(),
 				input: edi_input.getValue().trimStart().trimEnd()
@@ -456,12 +667,10 @@
 			if(!inputContent.code){
 				return;
 			}
-			localStorage.setItem("code", editor.getValue())
-			save(saveele1);
-			localStorage.setItem("input", edi_input.getValue())
-			save(saveele2);
 			show("Running");
-			fetch(`http://${ip}:${port}/cpp`, {
+			savecode();
+			saveinput();
+			fetch(`https://${ip}:/cpp-run`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
@@ -480,57 +689,306 @@
 				});
 		}
 	</script>
-	<script>
+	<script>'use strict';
 		var editor = CodeMirror.fromTextArea(document.getElementById("code"), { mode: "text/x-c++src", matchBrackets: true, autoCloseBrackets: true, theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true });
 		editor.setOption("extraKeys", {"Ctrl-Enter": () => submitCode(editor)});
 		editor.getWrapperElement().classList.add("code-cm");
-		// editor.on("change", function (cm) {
-		// 	localStorage.setItem("code", cm.getValue())
-		// });
-		saveele1 = document.getElementById("save1");
-		saveele2 = document.getElementById("save2");
-		function save(ele) {
-			if (!ele) return;
+		var saveele1 = document.getElementById("save1");
+		var saveele2 = document.getElementById("save2");
+		var saveele12 = document.getElementById("savetext1");
+		var saveele22 = document.getElementById("savetext2");
+		var savebtele1 = document.querySelector(".save-bt1");
+		var savebtele2 = document.querySelector(".save-bt2");
+		function save(ele, ele2, ele3) {
+			if (!ele || !ele2) return;
 			if (ele.fadeTimeout) clearTimeout(ele.fadeTimeout);
 			if (ele.fadeInterval) clearInterval(ele.fadeInterval);
 			ele.hidden = false;
-			ele.style.color = "#000000";
-			ele.style.opacity = "1";
+			ele2.hidden = true;
+			ele3.setAttribute("fill-opacity", 1);
 			ele.fadeTimeout = setTimeout(() => {
 				let opacity = 1;
 				ele.fadeInterval = setInterval(() => {
 					opacity -= 0.05;
-					ele.style.opacity = opacity;
-
+					ele3.setAttribute("fill-opacity", opacity);
 					if (opacity <= 0) {
 						clearInterval(ele.fadeInterval);
-						ele.style.color = "#000000";
-						ele.style.opacity = "1";
 						ele.hidden = true;
+						ele2.hidden = false;
+						ele3.setAttribute("fill-opacity", 1);
 					}
 				}, 100);
-			}, 1000);
+			}, 500);
 		}
 
-		editor.on("keydown", (cm, event) => {
-			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-				event.preventDefault();
-				localStorage.setItem("code", cm.getValue())
-				save(saveele1);
-			}
-		});
-		editor.setValue(localStorage.getItem("code") || "");
 		var edi_input = CodeMirror.fromTextArea(document.getElementById("input"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true });
 		var edi_output = CodeMirror.fromTextArea(document.getElementById("output"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: true });
 		var edi_error = CodeMirror.fromTextArea(document.getElementById("error"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: true });
-		edi_input.setValue(localStorage.getItem("input") || "");
+		var save_unsave = null, lacode = null;
+		edi_input.getWrapperElement().classList.add("code-cm");
+		edi_output.getWrapperElement().classList.add("code-short-cm");
+		edi_error.getWrapperElement().classList.add("code-short-cm");
+		editor.on("keydown", (cm, event) => {
+			if(save_unsave){
+				clearTimeout(save_unsave);
+			}
+			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+				event.preventDefault();
+				lacode = cm.getValue();
+				savecode();
+				return;
+			}
+			if(lacode !== cm.getValue()){
+				lacode = cm.getValue();
+			}else{
+				return;
+			}
+			save_unsave = setTimeout(function(){
+				save_unsave = null;
+				let inputContent = { type: "savecpp-unsave", link, code: editor.getValue() };
+				fetch(`https://${ip}:/cpp-save`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ content: inputContent })
+				})
+				.then(response => {
+					return response.json();
+				})
+				.then(data => {
+					console.log('服务器返回的数据:', data)
+					// if(data.message != "success"){
+					// 	alert("代码保存失败");
+					// }else{
+					// 	save(saveele1, savebtele1);
+					// }
+				})
+				.catch(error => {
+					console.error('错误:', error);
+				});
+			},200);
+		});
 		edi_input.on("keydown", (cm, event) => {
 			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
 				event.preventDefault();
-				localStorage.setItem("input", cm.getValue())
-				save(saveele2);
+				saveinput();
 			}
 		});
+		var lacode, lainput;
+		function savecode(){
+			if(editor.getValue() === lacode){
+				save(saveele1, savebtele1, saveele12);
+				return;
+			}
+			lacode = editor.getValue();
+			let inputContent = { type: "savecpp", link, code: lacode };
+			fetch(`https://${ip}:/cpp-save`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => {
+				return response.json();
+			})
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message != "success"){
+					alert("代码保存失败");
+				}else{
+					save(saveele1, savebtele1, saveele12);
+				}
+			})
+			.catch(error => {
+				console.error('错误:', error);
+			});
+		}
+		function saveinput(){
+			if(edi_input.getValue() === lainput){
+				save(saveele2, savebtele2, saveele22);
+				return;
+			}
+			lainput = edi_input.getValue();
+			let inputContent = { type: "saveinput", link, code: lainput };
+			fetch(`https://${ip}:/cpp-save`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => {
+				return response.json();
+			})
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message != "success"){
+					alert("输入文件保存失败");
+				}else{
+					save(saveele2, savebtele2, saveele22);
+				}
+			})
+			.catch(error => {
+				console.error('错误:', error);
+			});
+		}
+		function makeonly(){
+			let inputContent = { type: "cpro", link };
+			return fetch(`https://${ip}:/cpp-save`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => {
+				return response.json();
+			})
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message == "success"){
+					return data.link;
+				}else{
+					alert("复制失败");
+					return null;
+				}
+			})
+			.catch(error => {
+				console.error('错误:', error);
+			});
+		}
+		var rolink;
+		function makenonly(){
+			let inputContent = { type: "cp", link1: link, link2: uuid.v4() };
+			return fetch(`https://${ip}:/cpp-save`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => {
+				return response.json();
+			})
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message == "success"){
+					return inputContent.link2;
+				}else{
+					alert("复制失败");
+					return null;
+				}
+			})
+			.catch(error => {
+				console.error('错误:', error);
+			});
+		}
+		async function getrolink(){
+			if(!rolink){
+				return rolink = await makeonly();
+			}
+			return rolink;
+		}
+		function cprolink(me){
+			getrolink().then((data=>{
+				const url = new URL(window.location.href);
+				url.searchParams.set("uuid", data);
+				copy(me, url.href.toString());
+			}))
+		}
+		var lasave = "";
+		function readcodes(){
+			let inputContent = { type: "read", link };
+			fetch(`https://${ip}:/cpp-save`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(response => {
+				return response.json();
+			})
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				if(data.message == "success"){
+					if(data.readOnly){
+						let inputContent2 = { type: "cp", link };
+						fetch(`https://${ip}:/cpp-save`, {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json'
+							},
+							body: JSON.stringify({ content: inputContent2 })
+						})
+						.then(response => {
+							return response.json();
+						})
+						.then(data => {
+							console.log('服务器返回的数据:', data)
+							if(data.message == "success"){
+								setParam("uuid", data.link);
+							}else{
+								alert("代码获取失败");
+							}
+						})
+						.catch(error => {
+							console.error('错误:', error);
+						});
+						return;
+					}
+					editor.setValue(data.cppfile);
+					editor.clearHistory();
+					if(data.cppfile != data.unsave_cppfile){
+						editor.setValue(data.unsave_cppfile);
+					}
+					lasave = data.cppfile;
+					lacode = data.unsave_cppfile;
+					edi_input.setValue(data.inputfile);
+					edi_input.clearHistory();
+				}else{
+					alert("代码获取失败");
+				}
+			})
+			.catch(error => {
+				console.error('错误:', error);
+			});
+		}
+	</script>
+	<script>'use strict';
+		var tsmele = document.querySelector(".transmit");
+		function opentsm(){
+			tsmele.hidden = false;
+		}
+		function closetsm(){
+			tsmele.hidden = true;
+		}
+		function copy(me, text){
+			var textArea = document.createElement("textarea");
+			textArea.value = text;
+			textArea.style.top = "0";
+			textArea.style.left = "0";
+			textArea.style.position = "fixed";
+			document.body.appendChild(textArea);
+			textArea.focus();
+			textArea.select();
+			try {
+				var successful = document.execCommand('copy');
+				var msg = successful ? 'successful' : 'unsuccessful';
+			} catch (err) {
+			}
+			document.body.removeChild(textArea);
+			if(me.tiout){
+				clearTimeout(me.tiout);
+			}
+			me.lastChild.hidden = false;
+			me.tiout = setTimeout(()=>{
+				me.lastChild.hidden = true;
+				me.tiout = null;
+			}, 1000)
+		}
 	</script>
 </body>
 

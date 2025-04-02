@@ -5,7 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<!-- <script src="jquery.js"></script> -->
-	<title>chat room</title>
+	<title>chat room-setting</title>
 	<link rel="stylesheet" href="/lib/codemirror.css">
 	<script src="/lib/codemirror.js"></script>
 	<script src="/lib/forge.js"></script>
@@ -247,6 +247,18 @@
 
 <body>
 	<div class="left">
+		<div id="clear" translate="no">
+			<span id="clear-nopwd" hidden = "true" >
+				<button type="button" onclick="fun_clear()">清空聊天区</button>
+			</span>
+			<span id="clear-pwd" hidden = "true">
+				<label>Password:</label>
+				<input id="password" type="password" />
+				<button type="button" onclick="fun_clear_by_pwd()">清空聊天区</button>
+			</span>
+		</div>
+		<br>
+		<br>
 		<label for="auto-fresh">自动刷新</label>
 		<input type="checkbox" id="auto-fresh">
 		<h3>用户名:&nbsp;<span id="username"></span>&nbsp;&nbsp;<button type="button" onclick="change_username()">更改</button></h3>

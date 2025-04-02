@@ -1,0 +1,13 @@
+.env/
+node_modules/
+.vscode/
+cppfile/
+data/
+judge/codes/
+judge/exefiles/
+judge/inputfiles/
+keys/
+log/
+savedcpp/
+template/
+uploads/

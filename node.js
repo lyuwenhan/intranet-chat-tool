@@ -10,13 +10,80 @@ const path = require('path');
 const mime = require('mime-types');
 const multer = require('multer');
 const marked = require("marked");
-const {"main-pwd": pwd, private_pwd} = to_json('keys/pwd.json');
+const Prism = require('prismjs');
+require('dotenv').config();
+const renderer = new marked.Renderer();
+const createDOMPurify = require('dompurify');
+const { JSDOM } = require('jsdom');
+const window = new JSDOM('').window;
+const DOMPurify = createDOMPurify(window);
+DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
+	if (data.attrName === 'style' && /position\s*:/.test(data.attrValue)) {
+		data.keepAttr = false;
+	}
+});
+
+// 手动 HTML 转义，防止 XSS
+const escapeHtml = (code) => {
+	return code
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+};
+
+renderer.codespan = function(text) {
+	return `<code class='code'>${text.text}</code>`;
+};
+renderer.code = function(code) {
+	if(!code.lang){
+		code.lang = "none";
+	}
+	if(code.lang == 'c++'){
+		code.lang = "cpp";
+	}
+	if(code.lang == 'cpp' || code.lang == 'c'){
+		code.lang = "clike" + code.lang;
+	}
+	return `<pre class="line-numbers language-${code.lang}"><code class="language-${code.lang}">${escapeHtml(code.text)}</code></pre>`;
+};
+
+marked.setOptions({
+	renderer: renderer,
+	highlight: function(code, lang) {
+		const language = Prism.languages[lang] || Prism.languages.javascript;
+		return Prism.highlight(code, language, lang);
+	}
+});
+const pwd = process.env.main_pwd;
+const private_pwd = process.env.private_pwd;
+const session_pwd = process.env.session_pwd;
 const app = express();
 const host = "0.0.0.0";
-const port = 8080;
-const port2 = 8081;
+const port = process.env.port;
+const port_http = process.env.port_http;
 const { v4: uuidv4 } = require('uuid');
 const { exec } = require('child_process');
+
+const session = require('express-session');
+
+app.use(session({
+	secret: session_pwd,
+	resave: false,
+	saveUninitialized: true,
+	cookie: {
+		httpOnly: true,
+		secure: true,
+		sameSite: 'Strict',
+		maxAge: 1000 * 60 * 30
+	}
+}));
+app.use((req, res, next) => {
+	res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+	next();
+});
+
 
 /*
 RSA + SHA
@@ -190,6 +257,8 @@ fs.rmSync("./judge/codes", { recursive: true, force: true });
 fs.rmSync("./judge/exefiles", { recursive: true, force: true });
 fs.rmSync("./judge/inputfiles", { recursive: true, force: true });
 fs.mkdirSync("./uploads/iofiles", { recursive: true });
+fs.mkdirSync("./uploads/img", { recursive: true });
+fs.mkdirSync("./uploads/download", { recursive: true });
 fs.mkdirSync("./judge/codes", { recursive: true });
 fs.mkdirSync("./judge/exefiles", { recursive: true });
 fs.mkdirSync("./judge/inputfiles", { recursive: true });
@@ -211,10 +280,10 @@ main server
 app.use(cors());
 app.use(bodyParser.json());
 
-const dataFilePath = './data/data.json', banFilePath = "./data/ban_list.json";
+const dataFilePath = './data/data.json', banFilePath = "./data/ban_list.json", get_path = "./data/get_cnt.json";
 var waiting_clear=false;
 var waiting=null;
-const allow_clear = to_json('./data/config.json')["allow_clear"];
+const allow_clear = process.env.allow_clear;
 const ban_list = [];
 var ban_list2 = to_json(banFilePath);
 const ban_name = ["sb", "shabi", "dashabi", "shab", "shb", "sabi", "sab", "hundan"];
@@ -222,8 +291,45 @@ const ips = [];
 var ip_count = [{}, {}];
 const limcnt = 2;
 const ip_tlimit = [1000, 60000];
-const ip_cntlimit = [20, 700];
+const ip_cntlimit = [2000, 70000];
+// const ip_cntlimit = [20, 700];
 var data = [{chats : []}, {chats : []}];
+var files={};
+var runips = {};
+const cleartime = 604800000;
+
+function getToday() {
+	return new Date().toISOString().split('T')[0];
+}
+
+// 读取计数器
+function readCounter() {
+	if (fs.existsSync(get_path)) {
+		return JSON.parse(fs.readFileSync(get_path, 'utf-8'));
+	} else {
+		return { date: getToday(), count: 0 };
+	}
+}
+
+// 写入计数器
+function writeCounter(data) {
+	fs.writeFileSync(get_path, JSON.stringify(data));
+}
+
+// 主函数（调用时+1，每日自动重置）
+function incrementCounter() {
+	let data = readCounter();
+
+	if (data.date !== getToday()) {
+		data = { date: getToday(), count: 1 };
+	} else {
+		data.count += 1;
+	}
+
+	writeCounter(data);
+	return data.count;
+}
+
 
 // 1. 生成密钥对
 const { publicKey, privateKey } = generateKeyPairRSA(2048, private_pwd);
@@ -305,7 +411,6 @@ async function getinput(inp) {
 
 async function clear(){
 	if(waiting_clear){
-		// console.log("已拒绝");
 		return { message: 'refuse' };
 	}
 
@@ -314,12 +419,10 @@ async function clear(){
 
 	waiting_clear = false;
 	if(input == 'y' || input == 'Y'){
-		// console.log("已清空");
 		data = [{ "chats": [] }, { "chats": [] }];
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		return { message: 'success' };
 	} else {
-		// console.log("已拒绝");
 		return { message: 'refuse' };
 	}
 }
@@ -340,10 +443,9 @@ async function start_clear(){
 function isValidUsername(username){
 	return username && username.length <= 20 && !ban_name.some(user => user == username) && /^\w+$/.test(username);
 }
-app.post('/', (req, res) => {
+app.post('/api/', (req, res) => {
 	const receivedContent = req.body.content;
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
-	// console.log(ips.size);w
 	if(ban_list.some(user => user == ip)){
 		console.log("banned ip:", ip)
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
@@ -390,15 +492,18 @@ app.post('/', (req, res) => {
 		res.json({ message: 'success' , chats: data[0].chats});
 		return;
 	}else if(receivedContent.type == "send-code"){
-		if(!receivedContent.info || receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd() == ""){
+		if(!receivedContent.info || receivedContent.info.replace(/\n+/g, "\n").trimEnd() == ""){
 			res.json({ message: 'faild' });
 			return;
 		}
-		let js = {username:receivedContent.username, info:receivedContent.info.replace(/\n\n\n+/g, "\n\n").trimStart().trimEnd(),ip:receivedContent.ip, type:"code"};
+		let js = {username:receivedContent.username, info:receivedContent.info.replace(/\n\n\n+/g, "\n\n").trimEnd(),ip:receivedContent.ip, type:"code"};
 		if(receivedContent.language){
 			js.language = receivedContent.language;
 			if(receivedContent.language == "markdown"){
-				js.html = marked.parse(js.info);
+				js.html = DOMPurify.sanitize(marked.parse(js.info), {
+					FORBID_TAGS: ['script', 'iframe', 'style'],
+					FORBID_ATTR: ['onclick','ondblclick','onmousedown','onmouseup','onmouseenter','onmouseleave','onmouseover','onmouseout','onmousemove','oncontextmenu','onkeydown','onkeypress','onkeyup','onfocus','onblur','onchange','oninput','onreset','onsubmit','oninvalid','ondrag','ondragstart','ondragend','ondragenter','ondragleave','ondragover','ondrop','oncopy','oncut','onpaste','ontouchstart','ontouchmove','ontouchend','ontouchcancel','onscroll','onwheel','onresize','onload','onerror','onabort','onbeforeunload','onunload','onplay','onpause','onended','onvolumechange','oncanplay','oncanplaythrough','onwaiting','onseeking','onseeked','ontimeupdate','onanimationstart','onanimationend','onanimationiteration','ontransitionend','onshow','ontoggle','onmessage','onopen','onclose']
+				});
 			}
 		}
 		data[0].chats.push(js);
@@ -422,24 +527,24 @@ app.post('/', (req, res) => {
 			start_clear().then(result=>{
 				res.json(result || { message: "Error: Empty response" });
 			});
-		}else if(allow_clear == 2 || (allow_clear == 1 && receivedContent.pwd && isValidCiphertext(receivedContent.pwd, privateKey, private_pwd) && sha256(decryptRSA(receivedContent.pwd, privateKey, private_pwd)) == pwd)){
+		}else if((allow_clear == 1 && receivedContent.pwd && isValidCiphertext(receivedContent.pwd, privateKey, private_pwd) && sha256(decryptRSA(receivedContent.pwd, privateKey, private_pwd)) == pwd)){
 			data = [{ "chats": [] }, { "chats": [] }];
 			fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-			fs.rmSync("uploads", { recursive: true, force: true });
-			fs.rmSync("./uploads/iofiles", { recursive: true, force: true });
+			fs.rmSync("./uploads", { recursive: true, force: true });
 			fs.rmSync("./judge/codes", { recursive: true, force: true });
 			fs.rmSync("./judge/exefiles", { recursive: true, force: true });
 			fs.rmSync("./judge/inputfiles", { recursive: true, force: true });
+			fs.rmSync("./data/gat_cnt.json", { recursive: true, force: true });
 			fs.rmSync("./log", { recursive: true, force: true });
 			fs.mkdirSync("./uploads/iofiles", { recursive: true });
+			fs.mkdirSync("./uploads/img", { recursive: true });
+			fs.mkdirSync("./uploads/download", { recursive: true });
 			fs.mkdirSync("./judge/codes", { recursive: true });
 			fs.mkdirSync("./judge/exefiles", { recursive: true });
 			fs.mkdirSync("./judge/inputfiles", { recursive: true });
 			fs.mkdirSync("./log", { recursive: true });
-			// console.log("已清空");
 			res.json({ message: 'success', chats: data[0].chats });
 		}else{
-			// console.log("已拒绝");
 			res.json({ message: 'refuse' });
 		}
 		return;
@@ -448,19 +553,24 @@ app.post('/', (req, res) => {
 });
 
 function readFirst(filename) {
-    const buffer = Buffer.alloc(1024); // 预分配 1KB 缓冲区
-    const fd = fs.openSync(filename, 'r'); // 以只读方式打开文件
-    const bytesRead = fs.readSync(fd, buffer, 0, 1024, 0); // 从偏移量 0 读取 1024 字节
-    fs.closeSync(fd); // 关闭文件
-    return buffer.toString('utf-8', 0, bytesRead); // 转换为字符串
+	const buffer = Buffer.alloc(1024); // 预分配 1KB 缓冲区
+	const fd = fs.openSync(filename, 'r'); // 以只读方式打开文件
+	const bytesRead = fs.readSync(fd, buffer, 0, 1024, 0); // 从偏移量 0 读取 1024 字节
+	fs.closeSync(fd); // 关闭文件
+	return buffer.toString('utf-8', 0, bytesRead); // 转换为字符串
 }
 
-app.post('/cpp/', (req, res) => {
+app.post('/cpp-run', (req, res) => {
 	const receivedContent = req.body.content;
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
 	fs.appendFile("log/ip.log", `${ip} ${now} cpp.run\n`, (err)=>{});
-	fs.appendFileSync("log/run.log", ip + ' ' + now + '\n' + receivedContent.code + '\n');
+	if(runips[rawip]){
+		res.json({ message: 'faild', stdout: "ERROR", stderr: "you cannot run more than one codes at the same time"});
+		fs.appendFileSync("log/run.log", ip + ' ' + now + ' too many codes\n');
+		return;
+	}
+	fs.appendFileSync("log/run.log", ip + ' ' + now + ' start\n' + receivedContent.code + '\n');
 	if(ban_list.some(user => user == ip)){
 		console.log("banned ip:", ip)
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
@@ -491,22 +601,18 @@ app.post('/cpp/', (req, res) => {
 		const output = "iofiles/" + filename + ".out";
 		const errfile = "iofiles/" + filename + ".err";
 		const exefile = "judge/exefiles/" + filename + ".exe";
-		fs.writeFileSync(cpp, receivedContent.code);
+		fs.writeFileSync(cpp, receivedContent.code || "");
 		fs.writeFileSync(input, (receivedContent.input ? receivedContent.input : ""));
+		runips[rawip] = true;
 		exec("judge\\judge.exe " + cpp + " " + input + " uploads/" + output + " uploads/" + errfile + " " + exefile + " 10000 128 1048576 -O2", (error, stdout, stderr) => {
-			// if (error) {
-			// 	res.json({ message: 'faild', stderr: error.message, stdout});
-			// 	return;
-			// }
+			fs.rm(cpp, (err)=>{});
+			fs.rm(input, (err)=>{});
+			fs.rm(exefile, (err)=>{});
 			if (stderr) {
-				// console.log(stderr);
 				res.json({ message: 'faild', stdout, stderr});
+				runips[rawip] = undefined;
 				return;
 			}
-			if (stderr) {
-				// console.error(`Stderr: ${stderr}`);
-			}
-			// console.log(`Output: ${stdout}`);
 			var outsize, errsize;
 			if(!fs.existsSync("uploads/" + output)){
 				fs.writeFileSync("uploads/" + output, "");
@@ -516,11 +622,212 @@ app.post('/cpp/', (req, res) => {
 			}
 			outsize = fs.statSync("uploads/" + output).size;
 			errsize = fs.statSync("uploads/" + errfile).size;
-			fs.rm(cpp, (err)=>{});
-			fs.rm(input, (err)=>{});
-			fs.rm(exefile, (err)=>{});
+			runips[rawip] = undefined;
+			fs.appendFileSync("log/run.log", ip + ' ' + now + ' end\n');
 			res.json({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
 		});
+		return;
+	}
+	res.json({ message: 'faild' });
+});
+function isValidUUIDv4(uuid) {
+	const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+	return regex.test(uuid);
+}
+app.post('/cpp-save', (req, res) => {
+	const receivedContent = req.body.content;
+	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	const now = Date.now();
+	fs.appendFile("log/ip.log", `${ip} ${now} cpp.save\n`, (err)=>{});
+	fs.appendFileSync("log/save.log", ip + ' ' + now + '\n' + receivedContent.code + '\n');
+	if(ban_list.some(user => user == ip)){
+		console.log("banned ip:", ip)
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
+		return;
+	}
+	if(ban_list2.some(user => user == ip)){
+		console.log("banned ip:", ip)
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
+		return;
+	}
+	ips.push({ip:ip, time:now});
+	console.log('收到的内容：');
+	console.log("realip:", ip);
+	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
+		ip = ip.split(".");
+		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
+	}
+	receivedContent.ip=ip;
+	console.log(receivedContent);
+	if(receivedContent.type == "savecpp" && receivedContent.link){
+		const filename = receivedContent.link;
+		if(!isValidUUIDv4(filename) || (files[filename] && files[filename].readOnly)){
+			res.json({ message: 'faild' });
+			return;
+		}
+		fs.writeFileSync("cppfile/" + filename + ".cpp", receivedContent.code || "");
+		fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", receivedContent.code || "");
+		if(files[filename]){
+			clearTimeout(files[filename].destroy);
+		}
+		const roname = files[filename] && files[filename].roname;
+		files[filename] = {readOnly: false, roname, destroy: setTimeout(()=>{
+			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
+			files[filename] = null;
+		}, cleartime)};
+		res.json({ message: 'success' });
+		return;
+	}else if(receivedContent.type == "savecpp-unsave" && receivedContent.link){
+		const filename = receivedContent.link;
+		if(!isValidUUIDv4(filename) || (files[filename] && files[filename].readOnly)){
+			res.json({ message: 'faild' });
+			return;
+		}
+		console.log(receivedContent);
+		fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", receivedContent.code || "");
+		if(files[filename]){
+			clearTimeout(files[filename].destroy);
+		}
+		const roname = files[filename] && files[filename].roname;
+		files[filename] = {readOnly: false, roname, destroy: setTimeout(()=>{
+			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
+			files[filename] = null;
+		}, cleartime)};
+		res.json({ message: 'success' });
+		return;
+	}else if(receivedContent.type == "saveinput" && receivedContent.link){
+		const filename = receivedContent.link;
+		if(!isValidUUIDv4(filename) || (files[filename] && files[filename].readOnly)){
+			res.json({ message: 'faild' });
+			return;
+		}
+		fs.writeFileSync("cppfile/" + filename + ".in", receivedContent.code || "");
+		if(files[filename]){
+			clearTimeout(files[filename].destroy);
+		}
+		const roname = files[filename] && files[filename].roname;
+		files[filename] = {readOnly: false, roname, destroy: setTimeout(()=>{
+			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
+			files[filename] = null;
+		}, cleartime)};
+		res.json({ message: 'success' });
+		return;
+	}else if(receivedContent.type == "cp" && receivedContent.link){
+		const filename = receivedContent.link, filename2 = uuidv4();
+		if(!isValidUUIDv4(filename) || !files[filename]){
+			res.json({ message: 'faild' });
+			return;
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
+			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".in")){
+			fs.writeFileSync("cppfile/" + filename + ".in", "");
+		}
+		var cppcode = fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }) || "";
+		fs.writeFileSync("cppfile/" + filename2 + "-unsave.cpp", cppcode);
+		fs.writeFileSync("cppfile/" + filename2 + ".cpp", cppcode);
+		fs.writeFileSync("cppfile/" + filename2 + ".in", fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) || "");
+		files[filename2] = {readOnly: false, destroy: setTimeout(()=>{
+			fs.rmSync("./cppfile/" + filename2 + "-unsave.cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename2 + ".cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename2 + ".in", { recursive: true, force: true });
+			files[filename2] = null;
+		}, cleartime)};
+		const roname = files[filename] && files[filename].roname;
+		if(files[filename]){
+			clearTimeout(files[filename].destroy);
+		}
+		let ro = files[filename] && files[filename].readOnly;
+		if(ro != true){
+			ro = false;
+		}
+		files[filename] = {readOnly: ro, roname, destroy: setTimeout(()=>{
+			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
+			files[filename] = null;
+		}, cleartime)};
+		res.json({ message: 'success', link: filename2 });
+		return;
+	}else if(receivedContent.type == "cpro" && receivedContent.link){
+		const filename = receivedContent.link;
+		if(!isValidUUIDv4(filename) || !files[filename]){
+			res.json({ message: 'faild' });
+			return;
+		}
+		if(files[filename] && files[filename].roname){
+			res.json({ message: 'success', link: files[filename].roname });
+		}else{
+			const filename2 = uuidv4();
+			if(files[filename]){
+				clearTimeout(files[filename].destroy);
+			}
+			let ro = files[filename] && files[filename].readOnly;
+			if(ro != true){
+				ro = false;
+			}
+			files[filename] = {readOnly: ro, roname:filename, destroy: setTimeout(()=>{
+				fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
+				fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
+				fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
+				files[filename] = null;
+			}, cleartime)};
+			if(!fs.existsSync("cppfile/" + filename + ".cpp")){
+				fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+			}
+			if(!fs.existsSync("cppfile/" + filename + ".in")){
+				fs.writeFileSync("cppfile/" + filename + ".in", "");
+			}
+			let cppcode = fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }) || "";
+			fs.writeFileSync("cppfile/" + filename2 + "-unsave.cpp", cppcode);
+			fs.writeFileSync("cppfile/" + filename2 + ".cpp", cppcode);
+			fs.writeFileSync("cppfile/" + filename2 + ".in", fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) || "");
+			files[filename2] = {readOnly: true, roname: filename2, destroy: setTimeout(()=>{
+				fs.rmSync("./cppfile/" + filename2 + "-unsave.cpp", { recursive: true, force: true });
+				fs.rmSync("./cppfile/" + filename2 + ".cpp", { recursive: true, force: true });
+				fs.rmSync("./cppfile/" + filename2 + ".in", { recursive: true, force: true });
+				files[filename2] = null;
+			}, cleartime)};
+			res.json({ message: 'success', link: filename2 });
+		}
+		return;
+	}else if(receivedContent.type == "read" && receivedContent.link){
+		if(!isValidUUIDv4(receivedContent.link)){
+			res.json({ message: 'faild' });
+			return;
+		}
+		const filename = receivedContent.link;
+		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
+			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
+			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".in")){
+			fs.writeFileSync("cppfile/" + filename + ".in", "");
+		}
+		let ro = files[filename] && files[filename].readOnly;
+		if(ro != true){
+			ro = false;
+		}
+		if(files[filename]){
+			clearTimeout(files[filename].destroy);
+		}
+		const roname = files[filename] && files[filename].roname;
+		files[filename] = {readOnly: ro, roname, destroy: setTimeout(()=>{
+			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
+			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
+			files[filename] = null;
+		}, cleartime)};
+		res.json({ message: 'success', readOnly: ro, cppfile: fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }), unsave_cppfile: fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' }), inputfile: fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) });
 		return;
 	}
 	res.json({ message: 'faild' });
@@ -537,121 +844,7 @@ main server
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
-http server
-*/
-const CLIENT_DIR = "html";
-function getSafePath(urlPath) {
-	let safeUrlPath = decodeURIComponent(urlPath.split("?")[0]);
-	let safePath = path.normalize(path.join(CLIENT_DIR, safeUrlPath));
-	if (!safePath.startsWith(CLIENT_DIR) || safePath.includes('\0')) {
-		return null;
-	}
-	return safePath;
-}
-
-async function readFileAsync(filePath) {
-	return fs.promises.readFile(filePath);
-}
-
-// 处理请求
-async function requestHandler(req, res) {
-	try {
-		// 解析 URL 并获取安全路径
-		let safePath = getSafePath(req.url);
-
-		if (!safePath) {
-			res.writeHead(403, { "Content-Type": "text/plain" });
-			return res.end("403 Forbidden");
-		}
-
-		// 获取文件的 Content-Type
-		let contentType = mime.lookup(safePath) || "application/octet-stream";
-		if (!contentType || contentType === "application/octet-stream") {
-			contentType = "text/html"; // 强制设为 HTML 以防止下载
-		}
-		try {
-			// 读取请求的文件
-			let fileContent = await readFileAsync(safePath);
-			res.writeHead(200, {
-				"Content-Type": contentType,
-				"Cache-Control": "public, max-age=3600",
-				"Content-Disposition": "inline"
-			});
-			return res.end(fileContent);
-		} catch (err) {
-			try {
-				// 读取请求的文件
-				let fileContent = await readFileAsync(safePath + '/index.html');
-				res.writeHead(200, {
-					"Content-Type": contentType,
-					"Cache-Control": "public, max-age=3600",
-					"Content-Disposition": "inline"
-				});
-				return res.end(fileContent);
-			} catch (err) {
-				// 文件不存在，返回 index.html（SPA 支持）
-				let fallbackPath = path.join(CLIENT_DIR, "404.html");
-				try {
-					let fallbackContent = await readFileAsync(fallbackPath);
-					res.writeHead(200, { "Content-Type": "text/html" });
-					return res.end(fallbackContent);
-				} catch (fallbackErr) {
-					res.writeHead(404, { "Content-Type": "text/plain" });
-					return res.end();
-				}
-			}
-		}
-	} catch (err) {
-		res.writeHead(500, { "Content-Type": "text/plain" });
-		res.end("500 Internal Server Error");
-	}
-}
-
-// 创建 HTTP 服务器
-const server = http.createServer(async (req, res) => {
-	// 处理 CORS
-	res.setHeader('Access-Control-Allow-Origin', '*');
-	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, content-type');
-	// 处理 OPTIONS 预检请求
-	if (req.method === 'OPTIONS') {
-		res.writeHead(204);
-		return res.end();
-	}
-	let ip = req.socket.remoteAddress;
-	const now = Date.now();
-	fs.appendFile("log/ip.log", `${ip} ${now} server.http\n`, (err)=>{});
-	if(ban_list.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.end(JSON.stringify({ message: 'Access denied' }));
-		return;
-	}
-	if(ban_list2.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.end(JSON.stringify('Access denied'));
-		return;
-	}
-	await requestHandler(req, res);
-});
-
-// 启动服务器
-server.listen(8000, host, () => {
-	console.log(`http server 运行在: http://localhost:8000`);
-});
-
-/*
-http server
-*/
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
-https server
+https server2
 */
 
 const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.readFileSync("keys/cert.pem", 'utf8') };
@@ -678,26 +871,117 @@ async function requestHandler2(req, res) {
 	try {
 		// 解析 URL 并获取安全路径
 		let safePath = getSafePath2(req.url);
-
+		// console.log(safePath);
 		if (!safePath) {
 			res.writeHead(403, { "Content-Type": "text/plain" });
 			return res.end("403 Forbidden");
 		}
 
 		// 获取文件的 Content-Type
-		let contentType = mime.lookup(safePath) || "application/octet-stream";
 
 		// 读取请求的文件
-		try {
-			let fileContent = await readFileAsync(safePath);
-			res.writeHead(200, {
-				"Content-Type": contentType,
-				"Cache-Control": "public, max-age=3600" // 1 小时缓存
-			});
-			return res.end(fileContent);
-		} catch (err) {
+		if (safePath.startsWith('uploads\\test-connect\\') || safePath == 'uploads\\test-connect') {
+			try {
+				res.writeHead(200, {
+					"Cache-Control": "public, max-age=3600",
+					"Content-Type": "text/html",
+					"X-Content-Type-Options": "nosniff",
+					"X-Frame-Options": "DENY",
+					"Cross-Origin-Resource-Policy": "same-origin",
+					"Content-Security-Policy": "sandbox"
+				});
+				return res.end();
+			} catch (err) {
+				res.writeHead(404, { "Content-Type": "text/plain" });
+				return res.end("");
+			}
+		}else if (safePath.startsWith('uploads\\img\\download\\')) {
+			safePath = safePath.replace(/^uploads\\img\\download\\/, 'uploads\\img\\');
+			// 是以 /img/ 开头的路径
+			try {
+				let fileContent = await readFileAsync(safePath);
+				res.writeHead(200, {
+					"Cache-Control": "public, max-age=3600",
+					"Content-Type": "application/octet-stream",
+					"Content-Disposition": "attachment",
+					"X-Content-Type-Options": "nosniff",
+					"X-Frame-Options": "DENY",
+					"Cross-Origin-Resource-Policy": "same-origin",
+					"Content-Security-Policy": "sandbox"
+				});
+				return res.end(fileContent);
+			} catch (err) {
+				res.writeHead(404, { "Content-Type": "text/plain" });
+				return res.end("");
+			}
+		}else if (safePath.startsWith('uploads\\img\\')) {
+			// 是以 /img/ 开头的路径
+			let contentType = mime.lookup(safePath) || "application/octet-stream";
+			try {
+				let fileContent = await readFileAsync(safePath);
+				res.writeHead(200, {
+					"Cache-Control": "public, max-age=3600",
+					"Content-Type": contentType,
+					"X-Content-Type-Options": "nosniff",
+					"X-Frame-Options": "DENY",
+					"Cross-Origin-Resource-Policy": "same-origin",
+					"Content-Security-Policy": "sandbox"
+				});
+				return res.end(fileContent);
+			} catch (err) {
+				res.writeHead(404, { "Content-Type": "text/plain" });
+				return res.end("");
+			}
+		}else if (safePath.startsWith('uploads\\allow-connect\\') || safePath == 'uploads\\allow-connect') {
+			try {
+				let fileContent = await readFileAsync("allow-connect.html");
+				res.writeHead(200, {
+					"Cache-Control": "public, max-age=3600",
+					"Content-Type": "text/html",
+					"X-Content-Type-Options": "nosniff",
+					"X-Frame-Options": "DENY",
+					"Cross-Origin-Resource-Policy": "same-origin",
+					// "Content-Security-Policy": "sandbox"
+				});
+				return res.end(fileContent);
+			} catch (err) {
+				res.writeHead(404, { "Content-Type": "text/plain" });
+				return res.end("");
+			}
+		}else if (safePath.startsWith('uploads\\download\\')){
+			try {
+				let fileContent = await readFileAsync(safePath);
+				res.writeHead(200, {
+					"Cache-Control": "public, max-age=3600",
+					"Content-Type": "application/octet-stream",
+					"Content-Disposition": "attachment",
+					"X-Content-Type-Options": "nosniff",
+					"X-Frame-Options": "DENY",
+					"Cross-Origin-Resource-Policy": "same-origin",
+					"Content-Security-Policy": "sandbox"
+				});
+				return res.end(fileContent);
+			} catch (err) {
+				res.writeHead(404, { "Content-Type": "text/plain" });
+				return res.end("");
+			}
+		}else{
+			// try {
+			// 	let fileContent = await readFileAsync(safePath);
+			// 	res.writeHead(200, {
+			// 		"Cache-Control": "public, max-age=3600",
+			// 		"Content-Type": "application/octet-stream",
+			// 		"Content-Disposition": "attachment",
+			// 		"X-Content-Type-Options": "nosniff",
+			// 		"X-Frame-Options": "DENY",
+			// 		// "Cross-Origin-Resource-Policy": "same-origin",
+			// 		"Content-Security-Policy": "sandbox"
+			// 	});
+			// 	return res.end(fileContent);
+			// } catch (err) {
 			res.writeHead(404, { "Content-Type": "text/plain" });
-			return res.end();
+			return res.end("");
+			// }
 		}
 	} catch (err) {
 		res.writeHead(500, { "Content-Type": "text/plain" });
@@ -705,8 +989,7 @@ async function requestHandler2(req, res) {
 	}
 }
 
-// 创建 HTTPS 服务器
-const server2 = https.createServer(credentials, async (req, res) => {
+app.use("/uploads", async (req, res, next) => {
 	// 处理 CORS
 	res.setHeader('Access-Control-Allow-Origin', '*');
 	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -714,35 +997,22 @@ const server2 = https.createServer(credentials, async (req, res) => {
 
 	// 处理 OPTIONS 预检请求
 	if (req.method === 'OPTIONS') {
-		res.writeHead(204);
-		return res.end();
+		return res.status(204).end();
 	}
 
 	let ip = req.socket.remoteAddress;
 	const now = Date.now();
 	fs.appendFile("log/ip.log", `${ip} ${now} server.file\n`, (err)=>{});
-	// 假设你有一个 ban_list（黑名单）检查 IP
-	if (ban_list.some(user => user == ip)) {
-		console.log("banned ip:", ip)
-		res.end(JSON.stringify({ message: 'Access denied5' }));
-		return;
-	}
-	if (ban_list2.some(user => user == ip)) {
-		console.log("banned ip:", ip)
-		res.end(JSON.stringify('Access denied6'));
-		return;
+	fs.appendFile("log/http-server2.log", `${ip} ${now} ${req.url}\n`, (err)=>{});
+	if (ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)) {
+		return res.status(204).end();
 	}
 
 	await requestHandler2(req, res);
 });
 
-// 启动 HTTPS 服务器
-server2.listen(port2, host, () => {
-	console.log(`https server 运行在: https://localhost:${port2}`);
-});
-
 /*
-https server
+https server2
 */
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -759,7 +1029,7 @@ https server
 // 设置文件存储路径
 const storage = multer.diskStorage({
 	destination: (req, file, cb) => {
-		cb(null, './uploads'); // 设置上传文件的存储路径
+		cb(null, './uploads/download'); // 设置上传文件的存储路径
 	},
 	filename: (req, file, cb) => {
 		cb(null, (Date.now() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
@@ -779,6 +1049,87 @@ app.post('/upload', upload.single('file'), (req, res) => {
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
 	fs.appendFile("log/ip.log", `${ip} ${now} server.upload\n`, (err)=>{});
+	fs.appendFile("log/upload.log", `${ip} ${now}\n`, (err)=>{});
+	if(ban_list.some(user => user == ip)){
+		console.log("banned ip:", ip)
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
+		return;
+	}
+	if(ban_list2.some(user => user == ip)){
+		console.log("banned ip:", ip)
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
+		return;
+	}
+	ips.push({ip:ip, time:Date.now()});
+	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
+		ip = ip.split(".");
+		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[3][ip[3].length - 1];
+		// ip=ip[0].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[0].replace(/(.*)(.)/,"$2")+".*.*.*"+ip[3].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[3].replace(/(.*)(.)/,"$2");
+	}
+	if (req.file) {
+		ips.push({ip:ip, time:Date.now()});
+		console.log(req.ip);
+		console.log('收到的内容：');
+		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
+		receivedContent.filename = req.file.originalname;
+		receivedContent.path = `${req.file.filename}`;
+		receivedContent.info = "none";
+		receivedContent.size = req.file.size;
+		fs.appendFile("log/upload.log", `${JSON.stringify(receivedContent, null, 2)}\n`, (err)=>{});
+		receivedContent.ip = ip;
+		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
+		data[0].chats.push(receivedContent);
+		data[1].chats.push(rawip);
+		res.send({message: 'success', chats: data[0].chats});
+	} else {
+		res.send({message: "faild", info: "no file"});
+	}
+});
+/*
+文件上传
+*/
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+图片上传
+*/
+const allowedMimeTypes = [
+	'image/jpeg',   // jpg, jpeg
+	'image/png',
+	'image/webp',
+	'image/bmp',
+	'image/x-icon'  // .ico
+];
+const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.ico'];
+const uploadImg = multer({
+	storage: multer.diskStorage({
+		destination: (req, file, cb) => {
+			cb(null, './uploads/img'); // 设置上传文件的存储路径
+		},
+		filename: (req, file, cb) => {
+			cb(null, (Date.now() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
+		}//Buffer.from(file.originalname, "base64").toString("utf-8")
+	}),
+	limits: { fileSize: 5 * 1024 * 1024 },
+	fileFilter: (req, file, cb) => {
+		const ext = path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")).toLowerCase();
+		const mime = file.mimetype;
+		if (allowedMimeTypes.includes(mime) && allowedExtensions.includes(ext)) {
+			cb(null, true);
+		} else {
+			cb(new Error('仅支持 jpg、png、webp、bmp、ico 图片文件'), false);
+		}
+	}
+  });
+app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
+	// 如果文件上传成功，multer 会将文件信息保存在 req.file 中
+	const receivedContent = JSON.parse(req.body.content);
+	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	const now = Date.now();
+	fs.appendFile("log/ip.log", `${ip} ${now} server.upload\n`, (err)=>{});
+	fs.appendFile("log/upload-image.log", `${ip} ${now}\n`, (err)=>{});
 	if(ban_list.some(user => user == ip)){
 		console.log("banned ip:", ip)
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
@@ -800,23 +1151,147 @@ app.post('/upload', upload.single('file'), (req, res) => {
 		ips.push({ip:ip, time:Date.now()});
 		console.log(req.ip);
 		console.log('收到的内容：');
-		// isValidCiphertext(receivedContent.pwd, privateKey, private_pwd) && sha256(decryptRSA(receivedContent.pwd, privateKey, private_pwd)) == pwd
 		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
 		receivedContent.filename = req.file.originalname;
 		receivedContent.path = `${req.file.filename}`;
-		receivedContent.ip = ip;
 		receivedContent.info = "none";
 		receivedContent.size = req.file.size;
-		console.log(receivedContent);
-		console.log(req.file);
+		receivedContent.type = "image";
+		fs.appendFile("log/upload.log", `${JSON.stringify(receivedContent, null, 2)}\n`, (err)=>{});
+		receivedContent.ip = ip;
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		data[0].chats.push(receivedContent);
 		data[1].chats.push(rawip);
 		res.send({message: 'success', chats: data[0].chats});
-  	} else {
+	} else {
 		res.send({message: "faild", info: "no file"});
-  	}
+	}
 });
+/*
+图片上传
+*/
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+main https server
+*/
+const CLIENT_DIR = "html";
+function getSafePath(urlPath) {
+	let safeUrlPath = decodeURIComponent(urlPath.split("?")[0]);
+	let safePath = path.normalize(path.join(CLIENT_DIR, safeUrlPath));
+	if (!safePath.startsWith(CLIENT_DIR) || safePath.includes('\0')) {
+		return null;
+	}
+	return safePath;
+}
+
+async function readFileAsync(filePath) {
+	return fs.promises.readFile(filePath);
+}
+// 处理请求
+async function requestHandler(req, res) {
+	try {
+		if (req.url === '/get.svg') {
+			const svgContent = `
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="125" height="20">
+	<rect x="0" y="0" width="125" height="20" style="fill-opacity:1.00; fill:rgb(90,90,90); padding: 2px 5px;"/>
+	<rect x="0" y="0" width="80" height="20" style="fill-opacity:1.00; fill:rgb(49, 197, 83);"/>
+	<text x="6" y="14" style="text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;">Page Views</text>
+	<text x="86" y="14" style="text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;">${incrementCounter()}</text>
+</svg>`;
+			res.writeHead(200, {
+				"Content-Type": "image/svg+xml",
+			});
+			return res.end(svgContent);
+		}
+		// 解析 URL 并获取安全路径
+		let safePath = getSafePath(req.url);
+
+		if (!safePath) {
+			res.writeHead(403, { "Content-Type": "text/plain" });
+			return res.end("403 Forbidden");
+		}
+
+		// 获取文件的 Content-Type
+		let contentType = mime.lookup(safePath) || "application/octet-stream";
+		if (!contentType || contentType === "application/octet-stream") {
+			contentType = "text/html"; // 强制设为 HTML 以防止下载
+		}
+		try {
+			// 读取请求的文件
+			let fileContent = await readFileAsync(safePath);
+			res.writeHead(200, {
+				"Content-Type": contentType,
+				"Cache-Control": "public, max-age=3600",
+				"Content-Disposition": "inline",
+				"Cross-Origin-Resource-Policy": "same-origin",
+				"X-Frame-Options": "DENY",
+				"Content-Security-Policy": "frame-ancestors 'none'",
+				"X-Content-Type-Options": "nosniff",
+				"X-XSS-Protection": "1; mode=block",
+				"Referrer-Policy": "no-referrer",
+				"Permissions-Policy": "geolocation=(), camera=(), microphone=()"
+			});
+			return res.end(fileContent);
+		} catch (err) {
+			try {
+				// 读取请求的文件
+				let fileContent = await readFileAsync(safePath + '/index.html');
+				res.writeHead(200, {
+					"Content-Type": contentType,
+					"Cache-Control": "public, max-age=3600",
+					"Content-Disposition": "inline",
+					"Cross-Origin-Resource-Policy": "same-origin",
+					"X-Frame-Options": "DENY",
+					"Content-Security-Policy": "frame-ancestors 'none'",
+					"X-Content-Type-Options": "nosniff",
+					"X-XSS-Protection": "1; mode=block",
+					"Referrer-Policy": "no-referrer",
+					"Permissions-Policy": "geolocation=(), camera=(), microphone=()"
+				});
+				return res.end(fileContent);
+			} catch (err) {
+				res.writeHead(404, { "Content-Type": "text/plain" });
+				return res.end("");
+			}
+		}
+	} catch (err) {
+		res.writeHead(500, { "Content-Type": "text/plain" });
+		res.end("500 Internal Server Error");
+	}
+}
+
+// 创建 HTTP 服务器
+app.use(async (req, res, next) => {
+	// 处理 CORS
+	res.setHeader('Access-Control-Allow-Origin', '*');
+	res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+	res.setHeader('Access-Control-Allow-Headers', 'Content-Type, content-type');
+	// 处理 OPTIONS 预检请求
+	if (req.method === 'OPTIONS') {
+		res.writeHead(204);
+		return res.end();
+	}
+	let ip = req.socket.remoteAddress;
+	const now = Date.now();
+	fs.appendFile("log/ip.log", `${ip} ${now} server.http\n`, (err)=>{});
+	fs.appendFile("log/http-server.log", `${ip} ${now} ${req.url}\n`, (err)=>{});
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		res.writeHead(404, { "Content-Type": "text/plain" });
+		return res.end("");
+	}
+	await requestHandler(req, res);
+});
+
+/*
+main https server
+*/
 
 // 错误处理：文件大小超过限制时的响应
 app.use((err, req, res, next) => {
@@ -825,15 +1300,19 @@ app.use((err, req, res, next) => {
 			return res.send({message:'faild',info: 'File too big'});
 		}
 	}
-  	next(err); // 如果不是 `multer` 错误，继续传递错误
+	  next(err); // 如果不是 `multer` 错误，继续传递错误
 });
 
-
-app.listen(port, host, () => {
-	console.log(`服务器运行在: http://localhost:${port}`);
+https.createServer(credentials, app).listen(port, () => {
+	console.log(`服务器运行在: http://localhost:${port} && `);
+	console.log(`main https server运行在: http://localhost:${port} && `);
+	console.log(`https server2运行在: http://localhost:${port}`);
 }).on('error', err => {
 	console.error('启动失败:', err);
 });
-/*
-文件上传
-*/
+http.createServer((req, res) => {
+	res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+	res.end();
+}).listen(port_http, () => {
+	console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
+});
