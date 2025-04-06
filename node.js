@@ -64,8 +64,8 @@ const private_pwd = make128();
 const session_pwd = process.env.session_pwd;
 const app = express();
 const host = "0.0.0.0";
-const port = process.env.port;
-const port_http = process.env.port_http;
+const port = process.env.port || 443;
+const port_http = process.env.port_http || 80;
 const { v4: uuidv4 } = require('uuid');
 const { exec } = require('child_process');
 
@@ -1134,7 +1134,7 @@ app.use("/uploads", async (req, res, next) => {
 	let ip = req.socket.remoteAddress.replace("::ffff:", "");
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.file\n`);
-	fs.appendFileSync("log/http-server2.log", `${ip} ${now} ${(new Date()).toString()} ${req.url}\n`);
+	fs.appendFileSync("log/https-server2.log", `${ip} ${now} ${(new Date()).toString()} ${req.url}\n`);
 	if (ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)) {
 		return res.status(204).end();
 	}
@@ -1378,7 +1378,7 @@ async function requestHandler(req, res) {
 		} catch (err) {
 			try {
 				// 读取请求的文件
-				let fileContent = await readFileAsync(safePath + '/index.html');
+				let fileContent = await readFileAsync(safePath + '.html');
 				res.writeHead(200, {
 					"Content-Type": contentType,
 					"Cache-Control": "public, max-age=3600",
@@ -1393,8 +1393,26 @@ async function requestHandler(req, res) {
 				});
 				return res.end(fileContent);
 			} catch (err) {
-				res.writeHead(404, { "Content-Type": "text/plain" });
-				return res.end("");
+				try {
+					// 读取请求的文件
+					let fileContent = await readFileAsync(safePath + '/index.html');
+					res.writeHead(200, {
+						"Content-Type": contentType,
+						"Cache-Control": "public, max-age=3600",
+						"Content-Disposition": "inline",
+						"Cross-Origin-Resource-Policy": "same-origin",
+						"X-Frame-Options": "DENY",
+						"Content-Security-Policy": "frame-ancestors 'none'",
+						"X-Content-Type-Options": "nosniff",
+						"X-XSS-Protection": "1; mode=block",
+						"Referrer-Policy": "no-referrer",
+						"Permissions-Policy": "geolocation=(), camera=(), microphone=()"
+					});
+					return res.end(fileContent);
+				} catch (err) {
+					res.writeHead(404, { "Content-Type": "text/plain" });
+					return res.end("");
+				}
 			}
 		}
 	} catch (err) {
@@ -1418,7 +1436,7 @@ app.use(async (req, res, next) => {
 	let ip = req.socket.remoteAddress.replace("::ffff:", "");
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.http\n`);
-	fs.appendFileSync("log/http-server.log", `${ip} ${now} ${(new Date()).toString()} ${req.url}\n`);
+	fs.appendFileSync("log/https-server.log", `${ip} ${now} ${(new Date()).toString()} ${req.url}\n`);
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		res.writeHead(404, { "Content-Type": "text/plain" });
 		return res.end("");
