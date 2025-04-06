@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>cpp runner</title>
+	<link rel="stylesheet" href="/lib/codemirror.css">
+	<script src="/lib/codemirror.js"></script>
+	<script src="/lib/forge.js"></script>
+	<script src="/lib/uuid.js"></script>
+	<link rel="stylesheet" href="/lib/login.css">
+</head>
+
+<body>
+	<nav class="no-select" style="font-size: medium;">
+		<a href="/" style="line-height: 1em;font-size: 0;"><img src="favicon.png" style="width:52px; height: 52px; padding: 4px;"></a>
+		<ul>
+			<li><a href="/"><span>Home</span></a></li>
+			<li><a href="/cpprunner"><span>Code Runner</span></a></li>
+			<li><a href="/manage"><span>Manage</span></a></li>
+		</ul>
+		<ul class="pos-right">
+			<li>
+				<span>
+					username:&nbsp;<span id="username"></span>
+				</span>
+				<ul>
+					<li>
+						<span class="can-click" id="login" hidden><a class="bt-white" href="/login">登录</a>/<a class="bt-white" href="/register">注册</a></span>
+					</li>
+					<li>
+						<span class="can-click" id="logout" onclick="logout()" hidden>注销</span>
+					</li>
+				</ul>
+			</li>
+		</ul>
+	</nav>
+	<div class="main">
+		<h2>登录</h2>
+		<p><a class="show0 bt-grey" href="/register">没有账号?&nbsp;<span class="show1">转到注册</span></a></p>
+		<form id="login-form">
+			<label for="username">用户名:&nbsp;</label>
+			<input type="text" id="username" name="username" autocomplete="username" required><br>
+
+			<label for="password">密码:&nbsp;</label>
+			<input type="password" id="password" name="password" autocomplete="current-password" required><br>
+
+			<button type="submit">登录</button>
+		</form>
+		<a class="ban" id="error-message"></a>
+	</div>
+	<script src="/lib/login.js"></script>
+</body>
+</html>

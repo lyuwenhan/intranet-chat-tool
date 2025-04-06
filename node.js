@@ -17,12 +17,13 @@ const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
+const Database = require('better-sqlite3');
+const db = new Database('./data/users.db');
 DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
 	if (data.attrName === 'style' && /position\s*:/.test(data.attrValue)) {
 		data.keepAttr = false;
 	}
 });
-
 // 手动 HTML 转义，防止 XSS
 const escapeHtml = (code) => {
 	return code
@@ -56,8 +57,10 @@ marked.setOptions({
 		return Prism.highlight(code, language, lang);
 	}
 });
-const pwd = process.env.main_pwd;
-const private_pwd = process.env.private_pwd;
+function make128(){
+	return crypto.randomBytes(64).toString('hex');
+}
+const private_pwd = make128();
 const session_pwd = process.env.session_pwd;
 const app = express();
 const host = "0.0.0.0";
@@ -249,6 +252,38 @@ RSA + SHA
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*database*/
+db.prepare(`
+	CREATE TABLE IF NOT EXISTS users (
+		username TEXT PRIMARY KEY,
+		role TEXT,
+		salt TEXT,
+		hash TEXT
+	)
+`).run();
+const insertUser = db.prepare('INSERT INTO users (username, role, salt, hash) VALUES (?, ?, ?, ?)');
+const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
+/*
+role:
+admin/user
+*/
+function addUser(username, role, pwd){
+	const salt = make128();
+	const hashed_pwd = sha256(pwd + salt);
+	console.log(pwd + salt);
+	insertUser.run(username, role, salt, hashed_pwd);
+}
+function findUser(username){
+	return getUser.get(username);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
 remove trash
 */
@@ -283,7 +318,6 @@ app.use(bodyParser.json());
 const dataFilePath = './data/data.json', banFilePath = "./data/ban_list.json", get_path = "./data/get_cnt.json";
 var waiting_clear=false;
 var waiting=null;
-const allow_clear = process.env.allow_clear;
 const ban_list = [];
 var ban_list2 = to_json(banFilePath);
 const ban_name = ["sb", "shabi", "dashabi", "shab", "shb", "sabi", "sab", "hundan"];
@@ -320,7 +354,8 @@ function writeCounter(data) {
 function incrementCounter() {
 	let data = readCounter();
 
-	if (data.date !== getToday()) {
+	if (data?.date !== getToday()) {
+		fs.appendFileSync("log/get-svg.log", `UTC New Day ${Date.now()} ${(new Date()).toString()}\n`);
 		data = { date: getToday(), count: 1 };
 	} else {
 		data.count += 1;
@@ -443,6 +478,93 @@ async function start_clear(){
 function isValidUsername(username){
 	return username && username.length <= 20 && !ban_name.some(user => user == username) && /^\w+$/.test(username);
 }
+function encodeRSA(pwd){
+	if(pwd && isValidCiphertext(pwd, privateKey, private_pwd)){
+		return decryptRSA(pwd, privateKey, private_pwd);
+	}else{
+		return null
+	}
+}
+app.post('/api/login/', (req, res) => {
+	const receivedContent = req.body.content;
+	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	if(ban_list.some(user => user == ip)){
+		console.log("banned ip:", ip)
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
+		return;
+	}
+	if(ban_list2.some(user => user == ip)){
+		console.log("banned ip:", ip)
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
+		return;
+	}
+	const now = Date.now();
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.login\n`);
+	ips.push({ip:ip, time:now});
+	fs.appendFileSync("log/login.log", `${ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
+	console.log('收到的内容：');
+	console.log("realip:", ip);
+	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
+		ip = ip.split(".");
+		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
+	}
+	receivedContent.ip=ip;
+	console.log(receivedContent);
+	if(receivedContent.type == "login"){
+		if(!receivedContent.username){
+			res.json({ message: 'refuse', info:'用户名不得为空'});
+			return;
+		}
+		if(!isValidUsername(receivedContent.username)){
+			res.json({ message: 'refuse', info:'用户名不合法'});
+			return;
+		}
+		const pwd = encodeRSA(receivedContent.pwd);
+		const userinfo = findUser(receivedContent.username);
+		if((userinfo && pwd && sha256(pwd + userinfo.salt) === userinfo.hash)){
+			req.session.username = receivedContent.username;
+			res.json({ message: 'success' });
+		}else{
+			res.json({ message: 'refuse', info:'用户名或密码错误'});
+		}
+		return;
+	}else if(receivedContent.type == "register" && receivedContent.username){
+		if(!receivedContent.username){
+			res.json({ message: 'refuse', info:'用户名不能为空'});
+			return;
+		}
+		if(!isValidUsername(receivedContent.username)){
+			res.json({ message: 'refuse', info:'用户名不合法'});
+			return;
+		}
+		const userinfo = findUser(receivedContent.username);
+		if(userinfo){
+			res.json({ message: 'refuse', info:'用户已存在'});
+			return;
+		}
+		const pwd = encodeRSA(receivedContent.pwd);
+		if(!pwd){
+			res.json({ message: 'refuse', info:'密码不能为空'});
+			return;
+		}
+		if(pwd.length <= 6){
+			res.json({ message: 'refuse', info:'密码过短'});
+			return;
+		}
+		addUser(receivedContent.username, "user", pwd);
+		res.json({ message: 'success' });
+		return;
+	}else if(receivedContent.type == "logout"){
+		if(!req.session.username){
+			res.json({ message: 'refuse'});
+			return;
+		}
+		req.session.username = "";
+		res.json({ message: 'success' });
+		return;
+	}
+	res.json({ message: 'faild' });
+});
 app.post('/api/', (req, res) => {
 	const receivedContent = req.body.content;
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
@@ -457,22 +579,9 @@ app.post('/api/', (req, res) => {
 		return;
 	}
 	const now = Date.now();
-	fs.appendFile("log/ip.log", `${ip} ${now} server.main\n`, (err)=>{});
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.main\n`);
 	ips.push({ip:ip, time:now});
-	fs.appendFileSync("log/main.log", ip + ' ' + now + ' ' + JSON.stringify(receivedContent) + '\n');
-	if(receivedContent.type == "check-name"){
-		if(!isValidUsername(receivedContent.info)){
-			res.json({ message: 'faild' });
-			return;
-		}
-		res.json({ message: 'success' });
-		return;
-	}else{
-		if(!isValidUsername(receivedContent.username)){
-			res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Invalid Username"}]});
-			return;
-		}
-	}
+	fs.appendFileSync("log/main.log", `${ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
 	console.log("realip:", ip);
 	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
@@ -481,12 +590,21 @@ app.post('/api/', (req, res) => {
 	}
 	receivedContent.ip=ip;
 	console.log(receivedContent);
-	if(receivedContent.type == "send"){
+	if(receivedContent.type == "get-username"){
+		res.json(req.session.username || "");
+		return;
+	}else if(receivedContent.type == "get-key"){
+		res.json(publicKey);
+		return;
+	}else if(!isValidUsername(req.session.username)){
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Invalid Username"}]});
+		return;
+	}else if(receivedContent.type == "send"){
 		if(!receivedContent.info || receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd() == ""){
 			res.json({ message: 'faild' });
 			return;
 		}
-		data[0].chats.push({username:receivedContent.username, info:receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd(),ip:receivedContent.ip, type:"text"});
+		data[0].chats.push({username:req.session.username, info:receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd(),ip:receivedContent.ip, type:"text"});
 		data[1].chats.push(rawip);
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		res.json({ message: 'success' , chats: data[0].chats});
@@ -496,7 +614,7 @@ app.post('/api/', (req, res) => {
 			res.json({ message: 'faild' });
 			return;
 		}
-		let js = {username:receivedContent.username, info:receivedContent.info.replace(/\n\n\n+/g, "\n\n").trimEnd(),ip:receivedContent.ip, type:"code"};
+		let js = {username:req.session.username, info:receivedContent.info.replace(/\n\n\n+/g, "\n\n").trimEnd(),ip:receivedContent.ip, type:"code"};
 		if(receivedContent.language){
 			js.language = receivedContent.language;
 			if(receivedContent.language == "markdown"){
@@ -514,20 +632,10 @@ app.post('/api/', (req, res) => {
 	}else if(receivedContent.type == "get"){
 		res.json(data[0]);
 		return;
-	}else if(receivedContent.type == "get-key"){
-		res.json(publicKey);
-		return;
-	}else if(receivedContent.type == "get-cleartype"){
-		res.json(allow_clear);
-		return;
 	}else if(receivedContent.type == "command" && receivedContent.info == "/clear"){
 		if(JSON.stringify(data[0]) === JSON.stringify({ chats: [] })){
 			res.json({ message: 'faild', info: 'nothing to do' });
-		}else if(allow_clear == -1){
-			start_clear().then(result=>{
-				res.json(result || { message: "Error: Empty response" });
-			});
-		}else if((allow_clear == 1 && receivedContent.pwd && isValidCiphertext(receivedContent.pwd, privateKey, private_pwd) && sha256(decryptRSA(receivedContent.pwd, privateKey, private_pwd)) == pwd)){
+		}else if((receivedContent.pwd && isValidCiphertext(receivedContent.pwd, privateKey, private_pwd) && sha256(decryptRSA(receivedContent.pwd, privateKey, private_pwd)) == pwd)){
 			data = [{ "chats": [] }, { "chats": [] }];
 			fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 			fs.rmSync("./uploads", { recursive: true, force: true });
@@ -564,13 +672,13 @@ app.post('/cpp-run', (req, res) => {
 	const receivedContent = req.body.content;
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
-	fs.appendFile("log/ip.log", `${ip} ${now} cpp.run\n`, (err)=>{});
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} cpp.run\n`);
 	if(runips[rawip]){
 		res.json({ message: 'faild', stdout: "ERROR", stderr: "you cannot run more than one codes at the same time"});
-		fs.appendFileSync("log/run.log", ip + ' ' + now + ' too many codes\n');
+		fs.appendFileSync("log/run.log", `${ip} ${now} ${(new Date()).toString()} too many codes\n`);
 		return;
 	}
-	fs.appendFileSync("log/run.log", ip + ' ' + now + ' start\n' + receivedContent.code + '\n');
+	fs.appendFileSync("log/run.log", `${ip} ${now} start\n${receivedContent.code}\n`);
 	if(ban_list.some(user => user == ip)){
 		console.log("banned ip:", ip)
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
@@ -590,7 +698,10 @@ app.post('/cpp-run', (req, res) => {
 	}
 	receivedContent.ip=ip;
 	console.log(receivedContent);
-	if(receivedContent.type == "run-code"){
+	if(!isValidUsername(req.session.username)){
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Invalid Username"}]});
+		return;
+	}else if(receivedContent.type == "run-code"){
 		if(!receivedContent.code || receivedContent.code.replace(/\n+/g, "\n").trimStart().trimEnd() == ""){
 			res.json({ message: 'faild' });
 			return;
@@ -623,7 +734,7 @@ app.post('/cpp-run', (req, res) => {
 			outsize = fs.statSync("uploads/" + output).size;
 			errsize = fs.statSync("uploads/" + errfile).size;
 			runips[rawip] = undefined;
-			fs.appendFileSync("log/run.log", ip + ' ' + now + ' end\n');
+			fs.appendFileSync("log/run.log", `${ip} ${now} ${(new Date()).toString()} end\n`);
 			res.json({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
 		});
 		return;
@@ -638,8 +749,8 @@ app.post('/cpp-save', (req, res) => {
 	const receivedContent = req.body.content;
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
-	fs.appendFile("log/ip.log", `${ip} ${now} cpp.save\n`, (err)=>{});
-	fs.appendFileSync("log/save.log", ip + ' ' + now + '\n' + receivedContent.code + '\n');
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} cpp.save\n`);
+	fs.appendFileSync("log/save.log", `${ip} ${now} ${(new Date()).toString()} ${receivedContent.code}\n`);
 	if(ban_list.some(user => user == ip)){
 		console.log("banned ip:", ip)
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
@@ -659,7 +770,10 @@ app.post('/cpp-save', (req, res) => {
 	}
 	receivedContent.ip=ip;
 	console.log(receivedContent);
-	if(receivedContent.type == "savecpp" && receivedContent.link){
+	if(!isValidUsername(req.session.username)){
+		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Invalid Username"}]});
+		return;
+	}else if(receivedContent.type == "savecpp" && receivedContent.link){
 		const filename = receivedContent.link;
 		if(!isValidUUIDv4(filename) || (files[filename] && files[filename].readOnly)){
 			res.json({ message: 'faild' });
@@ -965,6 +1079,23 @@ async function requestHandler2(req, res) {
 				res.writeHead(404, { "Content-Type": "text/plain" });
 				return res.end("");
 			}
+		}else if (safePath.startsWith('uploads\\iofiles\\')){
+			try {
+				let fileContent = await readFileAsync(safePath);
+				res.writeHead(200, {
+					"Cache-Control": "public, max-age=3600",
+					"Content-Type": "application/octet-stream",
+					"Content-Disposition": "attachment",
+					"X-Content-Type-Options": "nosniff",
+					"X-Frame-Options": "DENY",
+					"Cross-Origin-Resource-Policy": "same-origin",
+					"Content-Security-Policy": "sandbox"
+				});
+				return res.end(fileContent);
+			} catch (err) {
+				res.writeHead(404, { "Content-Type": "text/plain" });
+				return res.end("");
+			}
 		}else{
 			// try {
 			// 	let fileContent = await readFileAsync(safePath);
@@ -1000,10 +1131,10 @@ app.use("/uploads", async (req, res, next) => {
 		return res.status(204).end();
 	}
 
-	let ip = req.socket.remoteAddress;
+	let ip = req.socket.remoteAddress.replace("::ffff:", "");
 	const now = Date.now();
-	fs.appendFile("log/ip.log", `${ip} ${now} server.file\n`, (err)=>{});
-	fs.appendFile("log/http-server2.log", `${ip} ${now} ${req.url}\n`, (err)=>{});
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.file\n`);
+	fs.appendFileSync("log/http-server2.log", `${ip} ${now} ${(new Date()).toString()} ${req.url}\n`);
 	if (ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)) {
 		return res.status(204).end();
 	}
@@ -1048,8 +1179,8 @@ app.post('/upload', upload.single('file'), (req, res) => {
 	const receivedContent = JSON.parse(req.body.content);
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
-	fs.appendFile("log/ip.log", `${ip} ${now} server.upload\n`, (err)=>{});
-	fs.appendFile("log/upload.log", `${ip} ${now}\n`, (err)=>{});
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.upload\n`);
+	fs.appendFileSync("log/upload.log", `${ip} ${now} ${(new Date()).toString()}\n`);
 	if(ban_list.some(user => user == ip)){
 		console.log("banned ip:", ip)
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
@@ -1075,7 +1206,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
 		receivedContent.path = `${req.file.filename}`;
 		receivedContent.info = "none";
 		receivedContent.size = req.file.size;
-		fs.appendFile("log/upload.log", `${JSON.stringify(receivedContent, null, 2)}\n`, (err)=>{});
+		fs.appendFileSync("log/upload.log", `${JSON.stringify(receivedContent, null, 2)}\n`);
 		receivedContent.ip = ip;
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		data[0].chats.push(receivedContent);
@@ -1128,8 +1259,8 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 	const receivedContent = JSON.parse(req.body.content);
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
-	fs.appendFile("log/ip.log", `${ip} ${now} server.upload\n`, (err)=>{});
-	fs.appendFile("log/upload-image.log", `${ip} ${now}\n`, (err)=>{});
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.upload\n`);
+	fs.appendFileSync("log/upload-image.log", `${ip} ${now} ${(new Date()).toString()}\n`);
 	if(ban_list.some(user => user == ip)){
 		console.log("banned ip:", ip)
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
@@ -1157,7 +1288,7 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 		receivedContent.info = "none";
 		receivedContent.size = req.file.size;
 		receivedContent.type = "image";
-		fs.appendFile("log/upload.log", `${JSON.stringify(receivedContent, null, 2)}\n`, (err)=>{});
+		fs.appendFileSync("log/upload.log", `${JSON.stringify(receivedContent, null, 2)}\n`);
 		receivedContent.ip = ip;
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		data[0].chats.push(receivedContent);
@@ -1197,14 +1328,19 @@ async function readFileAsync(filePath) {
 // 处理请求
 async function requestHandler(req, res) {
 	try {
+		if (req.url.startsWith('/.ignore/') || req.url == '/.ignore') {
+			res.writeHead(404, { "Content-Type": "text/plain" });
+			return res.end("");
+		}
 		if (req.url === '/get.svg') {
 			const svgContent = `
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="125" height="20">
-	<rect x="0" y="0" width="125" height="20" style="fill-opacity:1.00; fill:rgb(90,90,90); padding: 2px 5px;"/>
-	<rect x="0" y="0" width="80" height="20" style="fill-opacity:1.00; fill:rgb(49, 197, 83);"/>
-	<text x="6" y="14" style="text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;">Page Views</text>
-	<text x="86" y="14" style="text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;">${incrementCounter()}</text>
-</svg>`;
+			<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="125" height="20">
+				<rect x="0" y="0" width="125" height="20" style="fill-opacity:1.00; fill:rgb(90,90,90); padding: 2px 5px;"/>
+				<rect x="0" y="0" width="80" height="20" style="fill-opacity:1.00; fill:rgb(49, 197, 83);"/>
+				<text x="6" y="14" style="text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;">Page Views</text>
+				<text x="86" y="14" style="text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;">${incrementCounter()}</text>
+			</svg>`;
+			fs.appendFileSync("log/get-svg.log", `${req.socket.remoteAddress.replace("::ffff:", "")} ${Date.now()} ${(new Date()).toString()}\n`);
 			res.writeHead(200, {
 				"Content-Type": "image/svg+xml",
 			});
@@ -1262,6 +1398,7 @@ async function requestHandler(req, res) {
 			}
 		}
 	} catch (err) {
+		console.log(err);
 		res.writeHead(500, { "Content-Type": "text/plain" });
 		res.end("500 Internal Server Error");
 	}
@@ -1278,10 +1415,10 @@ app.use(async (req, res, next) => {
 		res.writeHead(204);
 		return res.end();
 	}
-	let ip = req.socket.remoteAddress;
+	let ip = req.socket.remoteAddress.replace("::ffff:", "");
 	const now = Date.now();
-	fs.appendFile("log/ip.log", `${ip} ${now} server.http\n`, (err)=>{});
-	fs.appendFile("log/http-server.log", `${ip} ${now} ${req.url}\n`, (err)=>{});
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.http\n`);
+	fs.appendFileSync("log/http-server.log", `${ip} ${now} ${(new Date()).toString()} ${req.url}\n`);
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		res.writeHead(404, { "Content-Type": "text/plain" });
 		return res.end("");

@@ -1,0 +1,271 @@
+
+.CodeMirror {
+	line-height: 1.3em !important;
+	min-height: calc(3.9em + 8px);
+	max-height: calc(26em + 8px);
+}
+
+body{
+	margin: 0;
+}
+.well{
+	background-color: rgb(247, 247, 247);
+	border: 1px solid rgb(227, 227, 227);
+	border-radius: 7px;
+	padding: 19px;
+}
+.code-toolbar{
+	background-color: #f5f2f0;
+	border: 1px solid rgb(227, 227, 227);
+	border-radius: 7px;
+	padding: 4px;
+}
+.code-cm{
+	min-height: calc(26em + 8px);
+	max-height: calc(52em + 8px);
+}
+.preview{
+	max-height: calc(26em + 8px);
+	min-height: calc(1em + 8px);
+	/* height: calc(1em + 8px); */
+	overflow: auto;
+	overflow-y: inherit;
+	padding:5px
+}
+#get-cnt{
+	right: 20px;
+	bottom: 20px;
+	position: fixed;
+}
+code[class^="language-"] .token.operator{
+	background-color: transparent;
+}
+.run{
+	background-color: transparent;
+	border: 1px solid black;
+	cursor: pointer;
+	padding: 5px;
+	margin: 10px;
+	margin-top: 0;
+	display: flex;
+	align-items: center;
+	border-radius: 5px;
+}
+.lang{
+	border: 1px solid black;
+	padding: 10px;
+	bottom: 20px;
+	right: 20px;
+	position: fixed;
+}
+#get-cnt{
+	pointer-events: none;
+}
+.lang-now{
+	cursor: pointer;
+	color:blue;
+}
+
+.lang-now:hover{
+	color:darkblue;
+}
+
+.lang-new{
+	cursor: pointer;
+}
+.bt-grey{
+	color:black;
+}
+.bt-white{
+	color:white;
+}
+.bt-grey:hover,.bt-white:hover{
+	opacity: 0.7;
+}
+.bt-grey:active,.bt-white:active{
+	opacity: 0.8;
+}
+.lang-left{
+	padding: 10px;
+	margin:-10px;
+	padding-right: 3px;
+	margin-right: 0;
+}
+.lang-right{
+	padding: 10px;
+	margin:-10px;
+	padding-left: 3px;
+	margin-left: 0;
+}
+
+#latex{
+	background-color: white;
+	padding: 20px;
+	min-height: calc(3.9em + 8px);
+	max-height: calc(26em + 8px);
+	overflow: auto;
+}
+
+.left {
+	padding: 30px;
+	padding-bottom: 50px;
+	bottom: 0px;
+	left: 0px;
+	position: fixed;
+	width: calc(30% - 60px);
+	min-width:320px;
+	overflow: auto;
+	height: calc(100% - 140px);
+}
+
+.right {
+	padding: 30px;
+	padding-bottom: 50px;
+	bottom: 0px;
+	right: 0px;
+	position: fixed;
+	overflow-y: auto;
+	max-width: calc(100vw - 440px);
+	width: calc(70% - 60px);
+	height: calc(100% - 140px);
+}
+
+.ban{
+	color:red;
+	font-size: 2em;
+}
+
+#clear {
+	margin: -20px;
+	margin-bottom: 0;
+	top: 0px;
+	left: 0px;
+	z-index: 10000001;
+}
+
+.can-click,.bt-grey,.bt-white {
+	cursor: pointer;
+}
+
+.code {
+	padding: 2px 4px;
+	font-size: 90%;
+	color: #c7254e;
+	background-color: #f9f2f4;
+	border-radius: 4px;
+}
+
+textarea {
+	resize: none;
+	overflow: auto;
+	white-space: pre;
+}
+
+input {
+	overflow-x: auto;
+}
+
+html{
+	tab-size: 4;
+}
+
+img,br,button,[for=auto-fresh],.lang > a,.no-select{
+	user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-webkit-user-drag: none;
+}
+
+#img{
+	max-height: 180px;
+	max-width: 320px;
+}
+#noimg{
+	max-height: 126px;
+	max-width: 224px;
+}
+a{
+	text-decoration: none;
+}
+nav {
+	z-index: 10000002;
+	position: relative;
+	left: 0;
+	top: 0;
+	width: calc(100vw - 100px);
+	height: 60px;
+	background-color: #2a83e9;
+	color: white;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	padding: 0px 50px;
+}
+nav li>span {
+	display: block;
+	color: white;
+	text-decoration: none;
+	padding: 4px 10px;
+	line-height: 52px;
+	height: calc(100% - 8px);
+}
+nav li>span:hover{
+	background-color: #2060a9;
+}
+nav li>a>span {
+	display: block;
+	color: white;
+	text-decoration: none;
+	padding: 4px 10px;
+	line-height: 52px;
+	height: calc(100% - 8px);
+}
+nav li>a>span:hover{
+	background-color: #2060a9;
+}
+nav ul {
+	height: 100%;
+	display: flex;
+	padding: 0;
+}
+nav li {
+	display: block;
+	list-style: none;
+}
+.pos-right{
+	position: absolute;
+	right: 50px;
+}
+nav>ul>li:hover ul{
+	display: block;
+}
+nav>ul>li>ul{
+	z-index: 10000002;
+	background-color: #33c9e7;
+	display: none;
+	position:absolute;
+	top:60px;
+	width: 100%;
+	padding: 6px 0;
+	height: auto !important;
+}
+nav>ul>li>ul>li>span{
+	background-color: #33a8e7;
+	line-height: 20px;
+	height: calc(100% - 8px);
+}
+nav>ul>li>ul>li>a>span{
+	background-color: #33a8e7;
+	line-height: 20px;
+	height: calc(100% - 8px);
+}
+nav>ul>li>ul>li>span:hover{
+	background-color: rgb(60, 138, 226);
+}
+nav>ul>li>ul>li>a>span:hover{
+	background-color: rgb(60, 138, 226);
+}
+[hidden]{
+	display: none !important;
+}
