@@ -1,31 +1,27 @@
-MIT License (Modified - Non-Commercial Use Only)
+Custom Non-Commercial License (MIT-Based)
 
 Copyright (c) 2025 lyuwenhan
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, merge, publish, and distribute copies of the Software, subject to
+the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Non-Commercial Use Only
+   This Software is licensed for **non-commercial use only**.  
+   **Commercial use is strictly prohibited without prior written permission from the copyright holder.**
 
-Additional Restrictions:
-This Software is provided for **non-commercial use only**. Commercial use,
-including but not limited to using the Software in a product or service
-that is sold, licensed, or otherwise provided for a fee, is **strictly
-prohibited** without prior written permission from the copyright holder.
+   “Commercial use” includes, but is not limited to:
+   - Using the Software, or any derivative work, in any product or service that is sold, licensed, or provided for a fee;
+   - Distributing the Software as part of any business-related offering;
+   - Using the Software to develop a service or application that generates revenue, directly or indirectly (e.g., through advertisements, subscriptions, SaaS, consulting, etc.).
 
-Modification is permitted for non-commercial purposes only. However, all modified versions must:
-- Retain this license and the original copyright notice;
-- **Include the complete, unmodified original source code** as part of any distributed copies or derivative works, alongside any modifications.
+2. Redistribution and Modification
+   Redistribution and modification are permitted under the following conditions:
+   - The above copyright notice and this license shall be included in all copies or substantial portions of the Software;
+   - The **original, unmodified source code** must be included alongside any modified versions;
+   - Any modifications must be clearly documented, including the **date and author** of the modification;
+   - This license must remain in place and **may not be altered or replaced** in any redistributed copies or derivatives.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+3. No Warranty
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
