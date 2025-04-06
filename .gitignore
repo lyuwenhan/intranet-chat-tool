@@ -12,3 +12,4 @@ savedcpp/
 template/
 uploads/
 html/.ignore
+test*
