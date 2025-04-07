@@ -1,3 +1,11 @@
+process.on('uncaughtException', (err) => {
+	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
+	process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
+	process.exit(1);
+});
 const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
@@ -112,57 +120,57 @@ function to_json(file_name){
  */
 function generateKeyPairRSA(modulusLength = 2048, passphrase = '') {
 	const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
-	  modulusLength,
-	  publicKeyEncoding: {
+		modulusLength,
+		publicKeyEncoding: {
 		type: 'pkcs1',
 		format: 'pem'
-	  },
-	  privateKeyEncoding: {
+		},
+		privateKeyEncoding: {
 		type: 'pkcs8',
 		format: 'pem',
 		...(passphrase
-		  ? { cipher: 'aes-256-cbc', passphrase }
-		  : {}
+			? { cipher: 'aes-256-cbc', passphrase }
+			: {}
 		)
-	  }
+		}
 	});
 
 	return { publicKey, privateKey };
-  }
+	}
 
-  /**
-   * 使用 RSA 公钥 (RSA-OAEP + SHA-256) 加密
-   * @param {string|Buffer} plaintext - 原始明文
-   * @param {string} publicKey - PEM 格式公钥
-   * @returns {string} - Base64 编码的密文
-   */
-  function encryptRSA(plaintext, publicKey) {
+	/**
+	 * 使用 RSA 公钥 (RSA-OAEP + SHA-256) 加密
+	 * @param {string|Buffer} plaintext - 原始明文
+	 * @param {string} publicKey - PEM 格式公钥
+	 * @returns {string} - Base64 编码的密文
+	 */
+	function encryptRSA(plaintext, publicKey) {
 	// 1. 准备明文二进制数据
 	const buffer = Buffer.isBuffer(plaintext)
-	  ? plaintext
-	  : Buffer.from(plaintext, 'utf8');
+		? plaintext
+		: Buffer.from(plaintext, 'utf8');
 
 	// 2. 使用 RSA 公钥进行加密 (RSA-OAEP 填充 + SHA-256)
 	const encrypted = crypto.publicEncrypt(
-	  {
+		{
 		key: publicKey,
 		padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
 		oaepHash: 'sha256'
-	  },
-	  buffer
+		},
+		buffer
 	);
 
 	// 3. 返回 Base64 编码结果
 	return encrypted.toString('base64');
-  }
+	}
 
-  /**
-   * 使用 RSA 私钥 (RSA-OAEP + SHA-256) 解密
-   * @param {string} ciphertextBase64 - Base64 编码的密文
-   * @param {string} privateKey - PEM 格式私钥
-   * @param {string} [passphrase=''] - 如果私钥加了口令，需要传入同样的口令
-   * @returns {string} - 解密后明文（UTF-8）
-   */
+	/**
+	 * 使用 RSA 私钥 (RSA-OAEP + SHA-256) 解密
+	 * @param {string} ciphertextBase64 - Base64 编码的密文
+	 * @param {string} privateKey - PEM 格式私钥
+	 * @param {string} [passphrase=''] - 如果私钥加了口令，需要传入同样的口令
+	 * @returns {string} - 解密后明文（UTF-8）
+	 */
 function decryptRSA(ciphertextBase64, privateKey, passphrase = '') {
 	// 1. Base64 转 Buffer
 	const buffer = Buffer.from(ciphertextBase64, 'base64');
@@ -170,70 +178,70 @@ function decryptRSA(ciphertextBase64, privateKey, passphrase = '') {
 	let decrypted;
 	// 2. 区分是否有私钥口令
 	if (passphrase) {
-	  decrypted = crypto.privateDecrypt(
+		decrypted = crypto.privateDecrypt(
 		{
-		  key: privateKey,
-		  passphrase,
-		  padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-		  oaepHash: 'sha256'
+			key: privateKey,
+			passphrase,
+			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+			oaepHash: 'sha256'
 		},
 		buffer
-	  );
+		);
 	} else {
-	  decrypted = crypto.privateDecrypt(
+		decrypted = crypto.privateDecrypt(
 		{
-		  key: privateKey,
-		  padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-		  oaepHash: 'sha256'
+			key: privateKey,
+			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+			oaepHash: 'sha256'
 		},
 		buffer
-	  );
+		);
 	}
 
 	// 3. 返回明文字符串
 	return decrypted.toString('utf8');
 }
 
-  /**
-   * 判断是否是可解密的合法密文 (RSA-OAEP + SHA-256)
-   * @param {string} ciphertextBase64 - Base64 编码的密文
-   * @param {string} privateKey - PEM 格式私钥
-   * @param {string} [passphrase=''] - 如果私钥加了口令，需要传入同样的口令
-   * @returns {boolean} - 解密成功且明文非空返回true，否则返回false
-   */
-  function isValidCiphertext(ciphertextBase64, privateKey, passphrase = '') {
+	/**
+	 * 判断是否是可解密的合法密文 (RSA-OAEP + SHA-256)
+	 * @param {string} ciphertextBase64 - Base64 编码的密文
+	 * @param {string} privateKey - PEM 格式私钥
+	 * @param {string} [passphrase=''] - 如果私钥加了口令，需要传入同样的口令
+	 * @returns {boolean} - 解密成功且明文非空返回true，否则返回false
+	 */
+	function isValidCiphertext(ciphertextBase64, privateKey, passphrase = '') {
 	try {
-	  // 1. Base64 解码
-	  const buffer = Buffer.from(ciphertextBase64, 'base64');
+		// 1. Base64 解码
+		const buffer = Buffer.from(ciphertextBase64, 'base64');
 
-	  // 2. 使用私钥尝试解密 (同上，加 RSA-OAEP + SHA-256)
-	  let decrypted;
-	  if (passphrase) {
+		// 2. 使用私钥尝试解密 (同上，加 RSA-OAEP + SHA-256)
+		let decrypted;
+		if (passphrase) {
 		decrypted = crypto.privateDecrypt({
-		  key: privateKey,
-		  passphrase,
-		  padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-		  oaepHash: 'sha256'
+			key: privateKey,
+			passphrase,
+			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+			oaepHash: 'sha256'
 		}, buffer);
-	  } else {
+		} else {
 		decrypted = crypto.privateDecrypt({
-		  key: privateKey,
-		  padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-		  oaepHash: 'sha256'
+			key: privateKey,
+			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+			oaepHash: 'sha256'
 		}, buffer);
-	  }
+		}
 
-	  // 3. 解密成功后转换为字符串，做简单校验
-	  const plaintext = decrypted.toString('utf8');
-	  if (!plaintext || plaintext.trim().length === 0) {
+		// 3. 解密成功后转换为字符串，做简单校验
+		const plaintext = decrypted.toString('utf8');
+		if (!plaintext || plaintext.trim().length === 0) {
 		return false;
-	  }
-	  return true; // 解密成功且非空
+		}
+		return true; // 解密成功且非空
 	} catch (err) {
-	  // 解密出错 => 认为密文不合法
-	  return false;
+		// 解密出错 => 认为密文不合法
+		return false;
 	}
-  }
+	}
 
 
 function sha256(data) {
@@ -1258,7 +1266,7 @@ const uploadImg = multer({
 			cb(new Error('仅支持 jpg、png、webp、bmp、ico 图片文件'), false);
 		}
 	}
-  });
+	});
 app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 	// 如果文件上传成功，multer 会将文件信息保存在 req.file 中
 	const receivedContent = JSON.parse(req.body.content);
@@ -1460,7 +1468,7 @@ app.use((err, req, res, next) => {
 			return res.send({message:'faild',info: 'File too big'});
 		}
 	}
-	  next(err); // 如果不是 `multer` 错误，继续传递错误
+		next(err); // 如果不是 `multer` 错误，继续传递错误
 });
 
 https.createServer(credentials, app).listen(port, () => {

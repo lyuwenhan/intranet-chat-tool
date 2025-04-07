@@ -1,3 +1,11 @@
+process.on('uncaughtException', (err) => {
+	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: onerror.js\n${err}`);
+	process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: onerror.js\n${err}`);
+	process.exit(1);
+});
 const express = require('express');
 require('dotenv').config();
 const http = require('http');
@@ -35,7 +43,7 @@ app.use(async (req, res, next) => {
 	});
 	res.end("We are currently experiencing technical difficulties and are making every effort to resolve them as quickly as possible.\n系统目前遇到技术故障，技术团队正在全力抢修中。");
 });
-
+console.log("something error");
 https.createServer(credentials, app).listen(port, () => {
 	console.log(`服务器运行在: http://localhost:${port} && `);
 }).on('error', err => {
