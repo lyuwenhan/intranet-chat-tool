@@ -81,9 +81,11 @@ node.js             → Main backend server
 npm install
 
 # 2. Add .env configuration / 添加环境配置
-# session_pwd=your_secret_key
-# port=443
-# port_http=80
+session_pwd=your_secret_key
+port=443
+port_http=80
+allow_register=true
+
 
 # 3. Run the server / 启动后端服务
 node node.js

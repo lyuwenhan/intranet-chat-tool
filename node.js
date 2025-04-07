@@ -19,6 +19,7 @@ const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
 const Database = require('better-sqlite3');
 const db = new Database('./data/users.db');
+const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.readFileSync("keys/cert.pem", 'utf8') };
 DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
 	if (data.attrName === 'style' && /position\s*:/.test(data.attrValue)) {
 		data.keepAttr = false;
@@ -334,7 +335,7 @@ const ip_cntlimit = [2000, 70000];
 var data = [{chats : []}, {chats : []}];
 var files={};
 var runips = {};
-const cleartime = 604800000;
+const cleartime = 1000 * 60 * 60 * 12;
 
 function getToday() {
 	return new Date().toISOString().split('T')[0];
@@ -966,7 +967,6 @@ main server
 https server2
 */
 
-const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.readFileSync("keys/cert.pem", 'utf8') };
 
 // 设置上传目录路径
 const UPLOADS_DIR = "uploads";
