@@ -62,6 +62,7 @@ function make128(){
 }
 const private_pwd = make128();
 const session_pwd = process.env.session_pwd;
+const allow_register = process.env.allow_register === 'true';
 const app = express();
 const host = "0.0.0.0";
 const port = process.env.port || 443;
@@ -263,6 +264,9 @@ db.prepare(`
 `).run();
 const insertUser = db.prepare('INSERT INTO users (username, role, salt, hash) VALUES (?, ?, ?, ?)');
 const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
+const deleteUser = db.prepare('DELETE FROM users WHERE username = ?');
+const getAllUsers = db.prepare('SELECT * FROM users');
+console.log(getAllUsers.get());
 /*
 role:
 admin/user
@@ -528,7 +532,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'用户名或密码错误'});
 		}
 		return;
-	}else if(receivedContent.type == "register" && receivedContent.username){
+	}else if(allow_register && receivedContent.type == "register" && receivedContent.username){
 		if(!receivedContent.username){
 			res.json({ message: 'refuse', info:'用户名不能为空'});
 			return;
@@ -543,6 +547,7 @@ app.post('/api/login/', (req, res) => {
 			return;
 		}
 		const pwd = encodeRSA(receivedContent.pwd);
+		console.log(pwd);
 		if(!pwd){
 			res.json({ message: 'refuse', info:'密码不能为空'});
 			return;

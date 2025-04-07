@@ -145,7 +145,6 @@ document.getElementById('login-form').addEventListener('submit', async function(
 		error_messageele.innerText = "两次密码不一样";
 		return;
 	}
-	console.log(password);
 	const encrypted = await encryptWithOAEP(password, publicKey);
 	var inputContent = { type: "register", username, pwd: encrypted };
 	fetch(`https://${ip}/api/login`, {

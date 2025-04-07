@@ -96,9 +96,8 @@ node node.js
 
 ## License / 授权协议
 
-MIT License (Modified - Non-Commercial Use Only)  
-MIT 协议（修改版 - 仅限非商业用途）
-
+Custom Non-Commercial License (MIT-Based)
+非商业许可证（基于 MIT 协议）
 ```
 © 2025 lyuwenhan
 
