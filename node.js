@@ -53,6 +53,9 @@ const db_codes = new Database('./cppfile/codes.db');
 const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.readFileSync("keys/cert.pem", 'utf8') };
 const app = express();
 
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: false, limit: '50kb' }));
+
 function banIp(ip) {
 	if (!ban_list2.includes(ip)) {
 		ban_list2.push(ip);
