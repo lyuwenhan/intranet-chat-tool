@@ -98,16 +98,24 @@ node node.js
 
 ## License / 授权协议
 
-Custom Non-Commercial License (MIT-Based)
-非商业许可证（基于 MIT 协议）
-```
-© 2025 lyuwenhan
+This project is licensed under the **GNU General Public License v3.0**  
+本项目采用 **GNU 通用公共许可证 第三版（GPL v3）** 授权。
 
-Permission granted for private or educational use only.  
-仅允许用于私人或教学用途，禁止任何形式的商业使用。
-```
+> You are free to use, modify, and distribute this software under the terms of the GPL.  
+> 你可以在 GPL 协议条款下自由使用、修改和传播本软件。
 
-See [LICENSE](./LICENSE) for full terms. / 详见 LICENSE 文件。
+By using or distributing this software, you agree to:  
+- Provide access to source code when distributing;  
+- License your modifications under the same GPL license;  
+- Retain copyright and license notices.
+
+通过使用或分发本软件，你同意：
+- 分发时提供源码；
+- 派生作品也需遵守 GPL 协议；
+- 保留原始的版权与许可证信息。
+
+📄 See [LICENSE](./LICENSE) for the full legal text.  
+📄 完整协议条款请见 [LICENSE](./LICENSE) 文件。
 
 ---
 
