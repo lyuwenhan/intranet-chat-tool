@@ -1,7 +1,7 @@
 [![Intranet Chat Tool Banner](./html/favicon.png)](./html/index.html)
 # Intranet Chat Tool / 内网聊天工具
 
-[![License](https://img.shields.io/badge/license-MIT--NC-blue?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPLv3-blue?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-intranet-lightgrey?style=flat-square)](#)
 [![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)](#)
 
