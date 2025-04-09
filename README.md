@@ -9,6 +9,12 @@ A secure, extensible chat and code execution tool designed for internal networks
 一个为内网设计的安全、可扩展的聊天与代码执行系统。
 
 ---
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 (or any later version)
+
+这个程序是自由软件：你可以在自由软件基金会发布的 GNU 通用公共许可证 第三版（或任何之后版本） 条款下，重新发布（redistribute）和/或修改（modify）它。
+---
 
 ## 📖 Table of Contents / 目录
 - [About / 项目简介](#about--项目简介)
