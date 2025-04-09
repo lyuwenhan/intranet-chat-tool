@@ -1,16 +1,20 @@
+const fs = require('fs');
+fs.mkdirSync("./error/critical", { recursive: true });
+fs.mkdirSync("./error/normal", { recursive: true });
 process.on('uncaughtException', (err) => {
 	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
+	console.log(err);
 	process.exit(1);
 });
 process.on('unhandledRejection', (err) => {
 	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
+	console.log(err);
 	process.exit(1);
 });
 const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const cors = require('cors');
-const fs = require('fs');
 const readline = require('readline');
 const http = require('http');
 const https = require('https');
@@ -19,6 +23,7 @@ const mime = require('mime-types');
 const multer = require('multer');
 const marked = require("marked");
 const Prism = require('prismjs');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const renderer = new marked.Renderer();
 const createDOMPurify = require('dompurify');
@@ -27,7 +32,88 @@ const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
 const Database = require('better-sqlite3');
 const db = new Database('./data/users.db');
+fs.mkdirSync("./cppfile", { recursive: true });
+const db_codes = new Database('./cppfile/codes.db');
 const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.readFileSync("keys/cert.pem", 'utf8') };
+const app = express();
+
+function banIp(ip) {
+	if (!ban_list2.includes(ip)) {
+		ban_list2.push(ip);
+		fs.writeFileSync(banPath, JSON.stringify(ban_list2, null, 2));
+		fs.appendFileSync('log/ban.log', `${ip} 被自动封禁 ${new Date().toString()}\n`);
+	}
+}
+
+const baseWindow = 60 * 1000; // 60 秒
+const windowScale = { s: 1, m: 5, l: 60 };
+
+// 生成 limiter 实例
+function createLimiter(label, level, baseMax, ban = false) {
+	const timeFactor = windowScale[level.replace('_ban', '')] || 1;
+	const windowMs = baseWindow * timeFactor;
+	const max = baseMax * (ban ? 4 : 1);
+	const tag = `${label}_${level}`;
+
+	return rateLimit({
+		windowMs,
+		max,
+		message: { message: `请求频率过高（${tag}）` },
+		handler: ban
+			? (req, res) => {
+				const ip = req.ip.replace("::ffff:", "");
+				banIp(ip);
+				res.status(429).json({ message: `访问过于频繁，已封禁（${tag}）` });
+			}
+			: undefined
+	});
+}
+
+// 自动挂载所有配置
+function applyLimiters(app, configList) {
+	for (const config of configList) {
+		const { path, label, max, levels } = config;
+		const limiters = levels.map(level =>
+			createLimiter(label, level, max, level.includes('_ban'))
+		);
+		app.use(path, ...limiters);
+	}
+}
+
+const limiterConfig = [
+	{
+		path: '/api/login/',
+		label: 'auth',
+		max: 10,
+		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 登录注册
+	},
+	{
+		path: '/api/',
+		label: 'auth',
+		max: 100,
+		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 登录注册
+	},
+	{
+		path: '/cpp-run',
+		label: 'run',
+		max: 3,
+		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 代码运行
+	},
+	{
+		path: ['/upload', '/uploadimg'],
+		label: 'upload',
+		max: 5,
+		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 上传文件/图像
+	},
+	{
+		path: '/',
+		label: 'global',
+		max: 300,
+		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 全站访问
+	}
+];
+applyLimiters(app, limiterConfig);
+
 DOMPurify.addHook('uponSanitizeAttribute', (node, data) => {
 	if (data.attrName === 'style' && /position\s*:/.test(data.attrValue)) {
 		data.keepAttr = false;
@@ -72,7 +158,6 @@ function make128(){
 const private_pwd = make128();
 const session_pwd = process.env.session_pwd;
 const allow_register = process.env.allow_register === 'true';
-const app = express();
 const host = "0.0.0.0";
 const port = process.env.port || 443;
 const port_http = process.env.port_http || 80;
@@ -262,41 +347,6 @@ RSA + SHA
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*database*/
-db.prepare(`
-	CREATE TABLE IF NOT EXISTS users (
-		username TEXT PRIMARY KEY,
-		role TEXT,
-		salt TEXT,
-		hash TEXT
-	)
-`).run();
-const insertUser = db.prepare('INSERT INTO users (username, role, salt, hash) VALUES (?, ?, ?, ?)');
-const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
-const deleteUser = db.prepare('DELETE FROM users WHERE username = ?');
-const getAllUsers = db.prepare('SELECT * FROM users');
-console.log(getAllUsers.get());
-/*
-role:
-admin/user
-*/
-function addUser(username, role, pwd){
-	const salt = make128();
-	const hashed_pwd = sha256(pwd + salt);
-	console.log(pwd + salt);
-	insertUser.run(username, role, salt, hashed_pwd);
-}
-function findUser(username){
-	return getUser.get(username);
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
 remove trash
 */
@@ -322,6 +372,64 @@ remove trash
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*database*/
+db.prepare(`
+	CREATE TABLE IF NOT EXISTS users (
+		username TEXT PRIMARY KEY,
+		role TEXT,
+		salt TEXT,
+		hash TEXT
+	)
+`).run();
+db_codes.prepare(`
+	CREATE TABLE IF NOT EXISTS codes (
+		filename TEXT PRIMARY KEY,
+		readOnly INTEGER DEFAULT 0,
+		roname TEXT DEFAULT NULL,
+		updated_at INTEGER DEFAULT 0
+	)
+`).run();
+const insertUser = db.prepare('INSERT INTO users (username, role, salt, hash) VALUES (?, ?, ?, ?)');
+const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
+const deleteUser = db.prepare('DELETE FROM users WHERE username = ?');
+const getAllUsers = db.prepare('SELECT username, role FROM users');
+const saveNewCode = db_codes.prepare(`INSERT INTO codes (filename, readOnly, roname, updated_at) VALUES (?, 0, NULL, ?) ON CONFLICT(filename) DO UPDATE SET readOnly = 0, roname = NULL, updated_at = ?`);
+const getCode = db_codes.prepare('SELECT * FROM codes WHERE filename = ?');
+const setRoName = db_codes.prepare('UPDATE codes SET roname = ?, updated_at = ? WHERE filename = ?');
+const saveRoCode = db_codes.prepare('INSERT INTO codes (filename, readOnly, roname, updated_at) VALUES (?, 1, ?, ?)');
+const deleteCode = db_codes.prepare('DELETE FROM codes WHERE filename = ?');
+const refreshCode = db_codes.prepare(`UPDATE codes SET updated_at = ? WHERE filename = ?`);
+const getOldCode = db_codes.prepare(`SELECT filename FROM codes WHERE updated_at <= ?`);
+console.log(getAllUsers.get());
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+role:
+admin/user
+*/
+function addUser(username, role, pwd){
+	const salt = make128();
+	const hashed_pwd = sha256(pwd + salt);
+	console.log(pwd + salt);
+	insertUser.run(username, role, salt, hashed_pwd);
+}
+function findUser(username){
+	return getUser.get(username);
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
 main server
 */
@@ -334,16 +442,10 @@ var waiting=null;
 const ban_list = [];
 var ban_list2 = to_json(banFilePath);
 const ban_name = ["sb", "shabi", "dashabi", "shab", "shb", "sabi", "sab", "hundan"];
-const ips = [];
-var ip_count = [{}, {}];
-const limcnt = 2;
-const ip_tlimit = [1000, 60000];
-const ip_cntlimit = [2000, 70000];
 // const ip_cntlimit = [20, 700];
 var data = [{chats : []}, {chats : []}];
-var files={};
 var runips = {};
-const cleartime = 1000 * 60 * 60 * 12;
+const cleartime = 1000 * 60 * 60 * 24 * 14;
 
 function getToday() {
 	return new Date().toISOString().split('T')[0];
@@ -394,50 +496,6 @@ if (fs.existsSync(dataFilePath)) {
 		data[1].chats=[];
 	}
 }
-setInterval(() => {
-	const currentTime = Date.now();
-	ip_count = [{}, {}];
-	for(let i = 0; i < ips.length; i++) {
-		for(let j = limcnt - 1; j >= 0; j--){
-			if (currentTime - ips[i].time <= ip_tlimit[j]) {
-				if(!ip_count[j][ips[i].ip]){
-					ip_count[j][ips[i].ip] = 0;
-				}
-				ip_count[j][ips[i].ip]++;
-			}else{
-				// break;
-			}
-		}
-	}
-	while(ips.length && currentTime - ips[0].time >= ip_tlimit[limcnt]){
-		ips.shift();
-	}
-	for(let j = 0; j < limcnt; j++){
-		for(let ip in ip_count[j]) {
-			ad = true;
-			if(ip_count[j][ip] > ip_cntlimit[j] && !ban_list2.some(user => user == ip)){
-				ban_list2.push(ip);
-			}
-		}
-	}
-	for(let i = 0; i < ips.length; i++) {
-		if(ban_list2.some(user => user == ips[i].ip)){
-			ips.splice(i, 1);
-			i--;
-			continue;
-		}
-	}
-	for(let i = 0; i < data[1].chats.length; i++) {
-		if(ban_list2.some(user => user == data[1].chats[i])){
-			data[0].chats.splice(i, 1);
-			data[1].chats.splice(i, 1);
-			i--;
-			continue;
-		}
-	}
-	fs.writeFileSync(banFilePath, JSON.stringify(ban_list2, null, 2));
-	fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-}, 100);
 
 function consoleInput(question) {
 	return new Promise((resolve) => {
@@ -513,7 +571,6 @@ app.post('/api/login/', (req, res) => {
 	}
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.login\n`);
-	ips.push({ip:ip, time:now});
 	fs.appendFileSync("log/login.log", `${ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
 	console.log("realip:", ip);
@@ -594,7 +651,6 @@ app.post('/api/', (req, res) => {
 	}
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.main\n`);
-	ips.push({ip:ip, time:now});
 	fs.appendFileSync("log/main.log", `${ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
 	console.log("realip:", ip);
@@ -703,7 +759,6 @@ app.post('/cpp-run', (req, res) => {
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
 		return;
 	}
-	ips.push({ip:ip, time:now});
 	console.log('收到的内容：');
 	console.log("realip:", ip);
 	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
@@ -759,6 +814,86 @@ function isValidUUIDv4(uuid) {
 	const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 	return regex.test(uuid);
 }
+
+function saveCode(code, filename, type){
+	if (!filename || !type){
+		return
+	};
+	const basePath = "cppfile/";
+	if(type === 'savecpp'){
+		fs.writeFileSync(path.join(basePath, `${filename}.cpp`), code || "");
+		fs.writeFileSync(path.join(basePath, `${filename}-unsave.cpp`), code || "");
+	}else if (type === 'savecpp-unsave'){
+		fs.writeFileSync(path.join(basePath, `${filename}-unsave.cpp`), code || "");
+	}else{
+		fs.writeFileSync(path.join(basePath, `${filename}.in`), code || "");
+	}
+	const now = Date.now();
+	saveNewCode.run(filename, now, now);
+}
+function getRoName(filename) {
+	const record = getCode.get(filename);
+	if (record?.roname) return record.roname;
+	const filename2 = uuidv4();
+	const basePath = "cppfile/";
+	const cppcode = fs.readFileSync(path.join(basePath, `${filename}.cpp`), 'utf-8') || "";
+	fs.writeFileSync(path.join(basePath, `${filename2}-unsave.cpp`), cppcode);
+	fs.writeFileSync(path.join(basePath, `${filename2}.cpp`), cppcode);
+	fs.writeFileSync(path.join(basePath, `${filename2}.in`), fs.readFileSync(path.join(basePath, `${filename}.in`), 'utf-8') || "");
+	const now = Date.now();
+	setRoName.run(filename2, now, filename);
+	saveRoCode.run(filename2, filename2, now);
+	return filename2;
+}
+function getCpName(filename) {
+	const filename2 = uuidv4();
+	const basePath = "cppfile/";
+	const cppPath = path.join(basePath, `${filename}.cpp`);
+	if (!fs.existsSync(cppPath)) {
+		fs.writeFileSync(cppPath, "");
+	}
+	const cppcode = fs.readFileSync(cppPath, 'utf-8');
+	const inPath = path.join(basePath, `${filename}.in`);
+	if (!fs.existsSync(inPath)) {
+		fs.writeFileSync(inPath, "");
+	}
+	const inputCode = fs.readFileSync(inPath, 'utf-8');
+	fs.writeFileSync(path.join(basePath, `${filename2}-unsave.cpp`), cppcode);
+	fs.writeFileSync(path.join(basePath, `${filename2}.cpp`), cppcode);
+	fs.writeFileSync(path.join(basePath, `${filename2}.in`), fs.readFileSync(inPath, 'utf-8'));
+	const now = Date.now();
+	saveNewCode.run(filename2, now, now);
+	return filename2;
+}
+function deleteFile(filename){
+    const basePath = "cppfile/";
+	const suffixes = ["-unsave.cpp", ".cpp", ".in"];
+	for(const ext of suffixes){
+		const filePath = path.join(basePath, filename + ext);
+		if(fs.existsSync(filePath)){
+			fs.rmSync(filePath, { force: true });
+		}
+	}
+	deleteCode.run(filename);
+}
+function refreshFile(filename){
+	if(!filename){
+		return;
+	}
+	const now = Date.now();
+	refreshCode.run(now, filename);
+}
+function cleanOldCode(){
+	const now = Date.now();
+	const expired = getOldCode.all(now - cleartime);
+	for(const row of expired){
+		deleteFile(row.filename);
+	}
+}
+
+Promise.resolve().then(cleanOldCode);
+setInterval(cleanOldCode, 10 * 60 * 1000);
+
 app.post('/cpp-save', (req, res) => {
 	const receivedContent = req.body.content;
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
@@ -775,7 +910,6 @@ app.post('/cpp-save', (req, res) => {
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
 		return;
 	}
-	ips.push({ip:ip, time:now});
 	console.log('收到的内容：');
 	console.log("realip:", ip);
 	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
@@ -787,144 +921,36 @@ app.post('/cpp-save', (req, res) => {
 	if(!isValidUsername(req.session.username)){
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Invalid Username"}]});
 		return;
-	}else if(receivedContent.type == "savecpp" && receivedContent.link){
+	}else if((receivedContent.type == "savecpp" || receivedContent.type == "savecpp-unsave" || receivedContent.type == "saveinput") && receivedContent.link){
 		const filename = receivedContent.link;
-		if(!isValidUUIDv4(filename) || (files[filename] && files[filename].readOnly)){
+		const file = getCode.get(filename);
+		if(!isValidUUIDv4(filename) || (file && file.readOnly)){
 			res.json({ message: 'faild' });
 			return;
 		}
-		fs.writeFileSync("cppfile/" + filename + ".cpp", receivedContent.code || "");
-		fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", receivedContent.code || "");
-		if(files[filename]){
-			clearTimeout(files[filename].destroy);
-		}
-		const roname = files[filename] && files[filename].roname;
-		files[filename] = {readOnly: false, roname, destroy: setTimeout(()=>{
-			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
-			files[filename] = null;
-		}, cleartime)};
-		res.json({ message: 'success' });
-		return;
-	}else if(receivedContent.type == "savecpp-unsave" && receivedContent.link){
-		const filename = receivedContent.link;
-		if(!isValidUUIDv4(filename) || (files[filename] && files[filename].readOnly)){
-			res.json({ message: 'faild' });
-			return;
-		}
-		console.log(receivedContent);
-		fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", receivedContent.code || "");
-		if(files[filename]){
-			clearTimeout(files[filename].destroy);
-		}
-		const roname = files[filename] && files[filename].roname;
-		files[filename] = {readOnly: false, roname, destroy: setTimeout(()=>{
-			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
-			files[filename] = null;
-		}, cleartime)};
-		res.json({ message: 'success' });
-		return;
-	}else if(receivedContent.type == "saveinput" && receivedContent.link){
-		const filename = receivedContent.link;
-		if(!isValidUUIDv4(filename) || (files[filename] && files[filename].readOnly)){
-			res.json({ message: 'faild' });
-			return;
-		}
-		fs.writeFileSync("cppfile/" + filename + ".in", receivedContent.code || "");
-		if(files[filename]){
-			clearTimeout(files[filename].destroy);
-		}
-		const roname = files[filename] && files[filename].roname;
-		files[filename] = {readOnly: false, roname, destroy: setTimeout(()=>{
-			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
-			files[filename] = null;
-		}, cleartime)};
+		saveCode(receivedContent.code || "", filename, receivedContent.type);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "cp" && receivedContent.link){
-		const filename = receivedContent.link, filename2 = uuidv4();
-		if(!isValidUUIDv4(filename) || !files[filename]){
+		const filename = receivedContent.link;
+		const file = getCode.get(filename);
+		if(!isValidUUIDv4(filename) || !file){
 			res.json({ message: 'faild' });
 			return;
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
-			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
-		}
-		if(!fs.existsSync("cppfile/" + filename + ".in")){
-			fs.writeFileSync("cppfile/" + filename + ".in", "");
-		}
-		var cppcode = fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }) || "";
-		fs.writeFileSync("cppfile/" + filename2 + "-unsave.cpp", cppcode);
-		fs.writeFileSync("cppfile/" + filename2 + ".cpp", cppcode);
-		fs.writeFileSync("cppfile/" + filename2 + ".in", fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) || "");
-		files[filename2] = {readOnly: false, destroy: setTimeout(()=>{
-			fs.rmSync("./cppfile/" + filename2 + "-unsave.cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename2 + ".cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename2 + ".in", { recursive: true, force: true });
-			files[filename2] = null;
-		}, cleartime)};
-		const roname = files[filename] && files[filename].roname;
-		if(files[filename]){
-			clearTimeout(files[filename].destroy);
-		}
-		let ro = files[filename] && files[filename].readOnly;
-		if(ro != true){
-			ro = false;
-		}
-		files[filename] = {readOnly: ro, roname, destroy: setTimeout(()=>{
-			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
-			files[filename] = null;
-		}, cleartime)};
-		res.json({ message: 'success', link: filename2 });
+		refreshFile(filename);
+		res.json({ message: 'success', link: getCpName(filename) });
 		return;
 	}else if(receivedContent.type == "cpro" && receivedContent.link){
 		const filename = receivedContent.link;
-		if(!isValidUUIDv4(filename) || !files[filename]){
+		const file = getCode.get(filename);
+		console.log(filename, file);
+		if(!isValidUUIDv4(filename) || !file){
 			res.json({ message: 'faild' });
 			return;
 		}
-		if(files[filename] && files[filename].roname){
-			res.json({ message: 'success', link: files[filename].roname });
-		}else{
-			const filename2 = uuidv4();
-			if(files[filename]){
-				clearTimeout(files[filename].destroy);
-			}
-			let ro = files[filename] && files[filename].readOnly;
-			if(ro != true){
-				ro = false;
-			}
-			files[filename] = {readOnly: ro, roname:filename, destroy: setTimeout(()=>{
-				fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
-				fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
-				fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
-				files[filename] = null;
-			}, cleartime)};
-			if(!fs.existsSync("cppfile/" + filename + ".cpp")){
-				fs.writeFileSync("cppfile/" + filename + ".cpp", "");
-			}
-			if(!fs.existsSync("cppfile/" + filename + ".in")){
-				fs.writeFileSync("cppfile/" + filename + ".in", "");
-			}
-			let cppcode = fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }) || "";
-			fs.writeFileSync("cppfile/" + filename2 + "-unsave.cpp", cppcode);
-			fs.writeFileSync("cppfile/" + filename2 + ".cpp", cppcode);
-			fs.writeFileSync("cppfile/" + filename2 + ".in", fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) || "");
-			files[filename2] = {readOnly: true, roname: filename2, destroy: setTimeout(()=>{
-				fs.rmSync("./cppfile/" + filename2 + "-unsave.cpp", { recursive: true, force: true });
-				fs.rmSync("./cppfile/" + filename2 + ".cpp", { recursive: true, force: true });
-				fs.rmSync("./cppfile/" + filename2 + ".in", { recursive: true, force: true });
-				files[filename2] = null;
-			}, cleartime)};
-			res.json({ message: 'success', link: filename2 });
-		}
+		refreshFile(filename);
+		res.json({ message: 'success', link: getRoName(filename) });
 		return;
 	}else if(receivedContent.type == "read" && receivedContent.link){
 		if(!isValidUUIDv4(receivedContent.link)){
@@ -932,6 +958,7 @@ app.post('/cpp-save', (req, res) => {
 			return;
 		}
 		const filename = receivedContent.link;
+		const file = getCode.get(filename);
 		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
 			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
 		}
@@ -941,20 +968,8 @@ app.post('/cpp-save', (req, res) => {
 		if(!fs.existsSync("cppfile/" + filename + ".in")){
 			fs.writeFileSync("cppfile/" + filename + ".in", "");
 		}
-		let ro = files[filename] && files[filename].readOnly;
-		if(ro != true){
-			ro = false;
-		}
-		if(files[filename]){
-			clearTimeout(files[filename].destroy);
-		}
-		const roname = files[filename] && files[filename].roname;
-		files[filename] = {readOnly: ro, roname, destroy: setTimeout(()=>{
-			fs.rmSync("./cppfile/" + filename + "-unsave.cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".cpp", { recursive: true, force: true });
-			fs.rmSync("./cppfile/" + filename + ".in", { recursive: true, force: true });
-			files[filename] = null;
-		}, cleartime)};
+		let ro = file?.readOnly;
+		refreshFile(filename);
 		res.json({ message: 'success', readOnly: ro, cppfile: fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }), unsave_cppfile: fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' }), inputfile: fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) });
 		return;
 	}
@@ -1204,14 +1219,12 @@ app.post('/upload', upload.single('file'), (req, res) => {
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
 		return;
 	}
-	ips.push({ip:ip, time:Date.now()});
 	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
 		ip = ip.split(".");
 		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[3][ip[3].length - 1];
 		// ip=ip[0].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[0].replace(/(.*)(.)/,"$2")+".*.*.*"+ip[3].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[3].replace(/(.*)(.)/,"$2");
 	}
 	if (req.file) {
-		ips.push({ip:ip, time:Date.now()});
 		console.log(req.ip);
 		console.log('收到的内容：');
 		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
@@ -1284,7 +1297,6 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
 		return;
 	}
-	ips.push({ip:ip, time:Date.now()});
 	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
 		ip = ip.split(".");
 		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[3][ip[3].length - 1];
@@ -1292,7 +1304,6 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 	}
 	console.log(receivedContent);
 	if (req.file) {
-		ips.push({ip:ip, time:Date.now()});
 		console.log(req.ip);
 		console.log('收到的内容：');
 		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
