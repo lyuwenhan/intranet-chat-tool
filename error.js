@@ -15,11 +15,11 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 process.on('uncaughtException', (err) => {
-	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: onerror.js\n${err}`);
+	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: error.js\n${err}`);
 	process.exit(1);
 });
 process.on('unhandledRejection', (reason) => {
-	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: onerror.js\n${err}`);
+	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: error.js\n${err}`);
 	process.exit(1);
 });
 const express = require('express');
@@ -61,13 +61,27 @@ app.use(async (req, res, next) => {
 });
 console.log("something error");
 https.createServer(credentials, app).listen(port, () => {
-	console.log(`服务器运行在: http://localhost:${port} && `);
+	console.log(`服务器运行在: http://localhost:${port}`);
 }).on('error', err => {
-	console.error('启动失败:', err);
+	if(err.code === 'EADDRINUSE'){
+		console.log(`服务器启动失败: http://localhost:${port}`);
+		fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: error.js\n${err}`);
+		process.exit(1);
+	}else{
+		throw err;
+	}
 });
 http.createServer((req, res) => {
 	res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
 	res.end();
 }).listen(port_http, () => {
 	console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
+}).on('error', err => {
+	if(err.code === 'EADDRINUSE'){
+		console.log(`http 重定向服务器启动失败: http://localhost:${port_http}`);
+		fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: error.js\n${err}`);
+		process.exit(1);
+	}else{
+		throw err;
+	}
 });

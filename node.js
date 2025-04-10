@@ -15,18 +15,49 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 const fs = require('fs');
+const { spawn, execSync } = require('child_process');
+
 fs.mkdirSync("./error/critical", { recursive: true });
 fs.mkdirSync("./error/normal", { recursive: true });
-process.on('uncaughtException', (err) => {
+const ERROR_FLAG_FILE = './error/.error_status.json';
+
+function killOldOnErrorProcess() {
+  if (fs.existsSync(ERROR_FLAG_FILE)) {
+	const { pid } = JSON.parse(fs.readFileSync(ERROR_FLAG_FILE));
+	try {
+	  	process.kill(pid);
+		console.log("error.js killed");
+	} catch (e) {
+	  	console.warn(`无法结束旧进程: ${e.message}`);
+	}
+	fs.unlinkSync(ERROR_FLAG_FILE);
+  }
+}
+
+killOldOnErrorProcess();
+
+function critical_error(err){
 	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
 	console.log(err);
+	const child = spawn('node', ['error.js'], {
+		detached: true,
+		stdio: 'ignore',
+	});
+	child.unref();
+	fs.writeFileSync(ERROR_FLAG_FILE, JSON.stringify({
+		pid: child.pid,
+		time: Date.now()
+	}, null, 2));
 	process.exit(1);
+}
+process.on('uncaughtException', (err) => {
+	critical_error(err);
 });
 process.on('unhandledRejection', (err) => {
-	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
-	console.log(err);
-	process.exit(1);
+	critical_error(err);
 });
+
+// throw new Error("test");
 const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
@@ -55,7 +86,6 @@ const app = express();
 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '50kb' }));
-
 function banIp(ip) {
 	if (!ban_list2.includes(ip)) {
 		ban_list2.push(ip);
@@ -66,18 +96,19 @@ function banIp(ip) {
 
 const baseWindow = 60 * 1000; // 60 秒
 const windowScale = { s: 1, m: 5, l: 60 };
+const maxScale = { s: 1, m: 4, l: 42 };
 
 // 生成 limiter 实例
 function createLimiter(label, level, baseMax, ban = false) {
 	const timeFactor = windowScale[level.replace('_ban', '')] || 1;
 	const windowMs = baseWindow * timeFactor;
-	const max = baseMax * (ban ? 4 : 1);
+	const max = baseMax * (ban ? 4 : 1) * (maxScale[level.replace('_ban', '')] || 1);
 	const tag = `${label}_${level}`;
 
 	return rateLimit({
 		windowMs,
 		max,
-		message: { message: `请求频率过高（${tag}）` },
+		message: { message: `请求频率过高（${tag}）${level}` },
 		handler: ban
 			? (req, res) => {
 				const ip = req.ip.replace("::ffff:", "");
@@ -109,7 +140,7 @@ const limiterConfig = [
 	{
 		path: '/api/',
 		label: 'auth',
-		max: 100,
+		max: 150,
 		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 登录注册
 	},
 	{
@@ -578,15 +609,8 @@ function encodeRSA(pwd){
 app.post('/api/login/', (req, res) => {
 	const receivedContent = req.body.content;
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
-	if(ban_list.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
-		return;
-	}
-	if(ban_list2.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
-		return;
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		return res.status(403).end();
 	}
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.login\n`);
@@ -658,15 +682,8 @@ app.post('/api/login/', (req, res) => {
 app.post('/api/', (req, res) => {
 	const receivedContent = req.body.content;
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
-	if(ban_list.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
-		return;
-	}
-	if(ban_list2.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
-		return;
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		return res.status(403).end();
 	}
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.main\n`);
@@ -686,7 +703,7 @@ app.post('/api/', (req, res) => {
 		res.json(publicKey);
 		return;
 	}else if(!isValidUsername(req.session.username)){
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Invalid Username"}]});
+		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}else if(receivedContent.type == "send"){
 		if(!receivedContent.info || receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd() == ""){
@@ -768,15 +785,8 @@ app.post('/cpp-run', (req, res) => {
 		return;
 	}
 	fs.appendFileSync("log/run.log", `${ip} ${now} start\n${receivedContent.code}\n`);
-	if(ban_list.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
-		return;
-	}
-	if(ban_list2.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
-		return;
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		return res.status(403).end();
 	}
 	console.log('收到的内容：');
 	console.log("realip:", ip);
@@ -787,7 +797,7 @@ app.post('/cpp-run', (req, res) => {
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(!isValidUsername(req.session.username)){
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Invalid Username"}]});
+		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}else if(receivedContent.type == "run-code"){
 		if(!receivedContent.code || receivedContent.code.replace(/\n+/g, "\n").trimStart().trimEnd() == ""){
@@ -885,7 +895,7 @@ function getCpName(filename) {
 	return filename2;
 }
 function deleteFile(filename){
-    const basePath = "cppfile/";
+	const basePath = "cppfile/";
 	const suffixes = ["-unsave.cpp", ".cpp", ".in"];
 	for(const ext of suffixes){
 		const filePath = path.join(basePath, filename + ext);
@@ -919,15 +929,8 @@ app.post('/cpp-save', (req, res) => {
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} cpp.save\n`);
 	fs.appendFileSync("log/save.log", `${ip} ${now} ${(new Date()).toString()} ${receivedContent.code}\n`);
-	if(ban_list.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
-		return;
-	}
-	if(ban_list2.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
-		return;
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		return res.status(403).end();
 	}
 	console.log('收到的内容：');
 	console.log("realip:", ip);
@@ -938,7 +941,7 @@ app.post('/cpp-save', (req, res) => {
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(!isValidUsername(req.session.username)){
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Invalid Username"}]});
+		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}else if((receivedContent.type == "savecpp" || receivedContent.type == "savecpp-unsave" || receivedContent.type == "saveinput") && receivedContent.link){
 		const filename = receivedContent.link;
@@ -1183,7 +1186,11 @@ app.use("/uploads", async (req, res, next) => {
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.file\n`);
 	fs.appendFileSync("log/https-server2.log", `${ip} ${now} ${(new Date()).toString()} ${req.url}\n`);
 	if (ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)) {
-		return res.status(204).end();
+		return res.status(403).end();
+	}
+	if(!isValidUsername(req.session.username)){
+		res.status(401).json({ error: 'Unauthorized' });
+		return;
 	}
 
 	await requestHandler2(req, res);
@@ -1228,22 +1235,18 @@ app.post('/upload', upload.single('file'), (req, res) => {
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.upload\n`);
 	fs.appendFileSync("log/upload.log", `${ip} ${now} ${(new Date()).toString()}\n`);
-	if(ban_list.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
-		return;
-	}
-	if(ban_list2.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
-		return;
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		return res.status(403).end();
 	}
 	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
 		ip = ip.split(".");
 		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[3][ip[3].length - 1];
 		// ip=ip[0].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[0].replace(/(.*)(.)/,"$2")+".*.*.*"+ip[3].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[3].replace(/(.*)(.)/,"$2");
 	}
-	if (req.file) {
+	if(!isValidUsername(req.session.username)){
+		res.status(401).json({ error: 'Unauthorized' });
+		return;
+	}else if (req.file) {
 		console.log(req.ip);
 		console.log('收到的内容：');
 		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
@@ -1306,20 +1309,17 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.upload\n`);
 	fs.appendFileSync("log/upload-image.log", `${ip} ${now} ${(new Date()).toString()}\n`);
-	if(ban_list.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "You're banned"}]});
-		return;
-	}
-	if(ban_list2.some(user => user == ip)){
-		console.log("banned ip:", ip)
-		res.json({ message: 'ban' , chats: [{ type:"ban", ip:"???.???.???.???", info: "Don't do that! You're banned"}]});
-		return;
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		return res.status(403).end();
 	}
 	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
 		ip = ip.split(".");
 		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[3][ip[3].length - 1];
 		// ip=ip[0].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[0].replace(/(.*)(.)/,"$2")+".*.*.*"+ip[3].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[3].replace(/(.*)(.)/,"$2");
+	}
+	if(!isValidUsername(req.session.username)){
+		res.status(401).json({ error: 'Unauthorized' });
+		return;
 	}
 	console.log(receivedContent);
 	if (req.file) {
@@ -1506,11 +1506,28 @@ https.createServer(credentials, app).listen(port, () => {
 	console.log(`main https server运行在: http://localhost:${port} && `);
 	console.log(`https server2运行在: http://localhost:${port}`);
 }).on('error', err => {
-	console.error('启动失败:', err);
+	if(err.code === 'EADDRINUSE'){
+		console.log(`服务器启动失败: http://localhost:${port} && `);
+		console.log(`main https server启动失败: http://localhost:${port} && `);
+		console.log(`https server2启动失败: http://localhost:${port}`);
+		fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
+		process.exit(1);
+	}else{
+		throw err;
+	}
 });
+
 http.createServer((req, res) => {
 	res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
 	res.end();
 }).listen(port_http, () => {
 	console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
+}).on('error', err => {
+	if(err.code === 'EADDRINUSE'){
+		console.log(`http 重定向服务器启动失败: http://localhost:${port_http}`);
+		fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
+		process.exit(1);
+	}else{
+		throw err;
+	}
 });
