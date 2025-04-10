@@ -17,9 +17,17 @@
  */
 
 'use strict';
+async function safeFetch(url, options = {}) {
+	const res = await fetch(url, options);
+	if (res.status === 401) {
+		window.location.href = '/login';
+		throw new Error('未登录，跳转中...');
+	}
+	return res;
+}
 function logout(){
 	let inputContent = { type: "logout" };
-	fetch(`https://${ip}/api/login`, {
+	safeFetch(`https://${ip}/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -71,7 +79,7 @@ function formatSize(bytes) {
 }
 function get_key() {
 	let inputContent = { type: "get-key", username: localStorage.getItem("username") };
-	fetch(`https://${ip}:`, {
+	safeFetch(`https://${ip}:`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -128,7 +136,7 @@ window.onload = function () {
 		}
 	}
 	let inputContent = { type: "get-username" };
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -187,7 +195,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			outdlele.innerHTML += ` (${formatSize(outsize)})`;
 			outdlele.hidden = false;
 			outdlele.onclick=function(){
-				fetch(`https://${ip}/uploads/${outfile}`)
+				safeFetch(`https://${ip}/uploads/${outfile}`)
 				.then(response => {
 					if (!response.ok) {
 						throw new Error('file connected err');
@@ -220,7 +228,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			errdlele.innerHTML += ` (${formatSize(errsize)})`;
 			errdlele.hidden = false;
 			errdlele.onclick=function(){
-				fetch(`https://${ip}/uploads/${errfile}`)
+				safeFetch(`https://${ip}/uploads/${errfile}`)
 				.then(response => {
 					if (!response.ok) {
 						throw new Error('file connected err');
@@ -262,7 +270,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			errdlele.innerHTML += ` (${formatSize(errsize)})`;
 			outdlele.hidden = false;
 			outdlele.onclick=function(){
-				fetch(`https://${ip}/uploads/${outfile}`)
+				safeFetch(`https://${ip}/uploads/${outfile}`)
 				.then(response => {
 					if (!response.ok) {
 						throw new Error('file connected err');
@@ -288,7 +296,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		if(errfile){
 			errdlele.hidden = false;
 			errdlele.onclick=function(){
-				fetch(`https://${ip}/uploads/${errfile}`)
+				safeFetch(`https://${ip}/uploads/${errfile}`)
 				.then(response => {
 					if (!response.ok) {
 						throw new Error('file connected err');
@@ -340,7 +348,7 @@ function submitCode() {
 	show("Running");
 	savecode();
 	saveinput();
-	fetch(`https://${ip}:/cpp-run`, {
+	safeFetch(`https://${ip}:/cpp-run`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -414,7 +422,7 @@ editor.on("keydown", (cm, event) => {
 	save_unsave = setTimeout(function(){
 		save_unsave = null;
 		let inputContent = { type: "savecpp-unsave", link, code: cm.getValue() };
-		fetch(`https://${ip}:/cpp-save`, {
+		safeFetch(`https://${ip}:/cpp-save`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -441,7 +449,7 @@ edi_input.on("keydown", (cm, event) => {
 function savecode(){
 	lasave = editor.getValue();
 	let inputContent = { type: "savecpp", link, code: lasave };
-	fetch(`https://${ip}:/cpp-save`, {
+	safeFetch(`https://${ip}:/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -465,7 +473,7 @@ function savecode(){
 }
 function saveinput(){
 	let inputContent = { type: "saveinput", link, code: edi_input.getValue() };
-	fetch(`https://${ip}:/cpp-save`, {
+	safeFetch(`https://${ip}:/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -489,7 +497,7 @@ function saveinput(){
 }
 function makeonly(){
 	let inputContent = { type: "cpro", link };
-	return fetch(`https://${ip}:/cpp-save`, {
+	return safeFetch(`https://${ip}:/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -515,7 +523,7 @@ function makeonly(){
 var rolink;
 function makenonly(){
 	let inputContent = { type: "cp", link1: link, link2: uuid.v4() };
-	return fetch(`https://${ip}:/cpp-save`, {
+	return safeFetch(`https://${ip}:/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -553,7 +561,7 @@ function cprolink(me){
 }
 function readcodes(){
 	let inputContent = { type: "read", link };
-	fetch(`https://${ip}:/cpp-save`, {
+	safeFetch(`https://${ip}:/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -568,7 +576,7 @@ function readcodes(){
 		if(data.message == "success"){
 			if(data.readOnly){
 				let inputContent2 = { type: "cp", link };
-				fetch(`https://${ip}:/cpp-save`, {
+				safeFetch(`https://${ip}:/cpp-save`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'

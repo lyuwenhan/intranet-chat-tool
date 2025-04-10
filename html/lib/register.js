@@ -17,9 +17,17 @@
  */
 
 'use strict';
+async function safeFetch(url, options = {}) {
+	const res = await fetch(url, options);
+	if (res.status === 401) {
+		window.location.href = '/login';
+		throw new Error('未登录，跳转中...');
+	}
+	return res;
+}
 function logout(){
 	let inputContent = { type: "logout" };
-	fetch(`https://${ip}/api/login`, {
+	safeFetch(`https://${ip}/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -43,7 +51,7 @@ var username;
 function get_key() {
 	var ret = null;
 	var inputContent = { type: "get-key", username };
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -94,7 +102,7 @@ window.onload = async function () {
 	}
 	ip = mayip;
 	let inputContent = { type: "get-username" };
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -117,7 +125,7 @@ window.onload = async function () {
 		}
 	}
 	let inputContent2 = { type: "get-username" };
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -165,7 +173,7 @@ document.getElementById('login-form').addEventListener('submit', async function(
 	}
 	const encrypted = await encryptWithOAEP(password, publicKey);
 	var inputContent = { type: "register", username, pwd: encrypted };
-	fetch(`https://${ip}/api/login`, {
+	safeFetch(`https://${ip}/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'

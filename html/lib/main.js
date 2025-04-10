@@ -17,9 +17,17 @@
  */
 
 'use strict';
+async function safeFetch(url, options = {}) {
+	const res = await fetch(url, options);
+	if (res.status === 401) {
+		window.location.href = '/login';
+		throw new Error('未登录，跳转中...');
+	}
+	return res;
+}
 function logout(){
 	let inputContent = { type: "logout" };
-	fetch(`https://${ip}/api/login`, {
+	safeFetch(`https://${ip}/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -85,7 +93,7 @@ form.addEventListener('submit', function(e) {
 	}
 	formData.set("file", newFile);
 	formData.append('content', JSON.stringify({type: 'file'}));
-	fetch(`https://${ip}/upload`, {
+	safeFetch(`https://${ip}/upload`, {
 		method: 'POST',
 		body: formData,
 	})
@@ -125,7 +133,7 @@ imgform.addEventListener('submit', function(e) {
 	}
 	formData.set("image", newFile);
 	formData.append('content', JSON.stringify({type: 'file'}));
-	fetch(`https://${ip}/uploadimg`, {
+	safeFetch(`https://${ip}/uploadimg`, {
 		method: 'POST',
 		body: formData,
 	})
@@ -161,7 +169,7 @@ function formatSize(bytes) {
 var last_data = {chats:[]};
 function get_key() {
 	var inputContent = { type: "get-key" };
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -235,7 +243,7 @@ window.onload = function () {
 		}
 	}
 	let inputContent = { type: "get-username" };
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -281,7 +289,7 @@ function submitForm() {
 		return;
 	}
 	document.getElementById("inputContent").value = "";
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -309,7 +317,7 @@ function submitCode() {
 	}
 	editor.setValue("");
 	editor.clearHistory();
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -329,7 +337,7 @@ function show(ele, ele2){
 }
 async function loadImageAsDataURL(url, a) {
 	try {
-		const res = await fetch(url);
+		const res = await safeFetch(url);
 		if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
 		const blob = await res.blob();
@@ -444,9 +452,9 @@ function reloadd(data) {
 			nele.innerHTML=`${li[i].filename}&nbsp;&nbsp;[${formatSize(li[i].size)}]`;
 			nele.onclick=function(){
 				let run = false;
-				fetch(`https://${ip}/uploads/test-connect`).then(a=>{
+				safeFetch(`https://${ip}/uploads/test-connect`).then(a=>{
 					run = true;
-					fetch(`https://${ip}/uploads${(li[i].type == "file" ? `` : `/img`)}/download/${li[i].path}`)
+					safeFetch(`https://${ip}/uploads${(li[i].type == "file" ? `` : `/img`)}/download/${li[i].path}`)
 					.then(response => {
 						if (!response.ok) {
 							throw new Error('file connected err');
@@ -473,7 +481,7 @@ function reloadd(data) {
 						location.href = `https://${ip}/uploads/allow-connect?from=` + encodeURIComponent(location.href);
 						window.addEventListener('pageshow', function(event) {
 							if (event.persisted || performance.getEntriesByType('navigation')[0].type === 'back_forward') {
-								fetch(`https://${ip}/uploads${(li[i].type == "file" ? `` : `/img`)}/download/${li[i].path}`)
+								safeFetch(`https://${ip}/uploads${(li[i].type == "file" ? `` : `/img`)}/download/${li[i].path}`)
 								.then(response => {
 									if (!response.ok) {
 										throw new Error('file connected err');
@@ -546,7 +554,7 @@ function reloadd(data) {
 
 function reload() {
 	var inputContent = { type: "get" };
-	fetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -666,7 +674,7 @@ document.getElementById("code-language").addEventListener("change", function() {
 });
 function run(){
 	let inputContent = { type: "savecpp", link: uuid.v4(), code: editor.getValue() };
-	fetch(`https://${ip}/cpp-save`, {
+	safeFetch(`https://${ip}/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
