@@ -28,7 +28,7 @@ function killOldOnErrorProcess() {
 	  	process.kill(pid);
 		console.log("error.js killed");
 	} catch (e) {
-	  	console.warn(`无法结束旧进程: ${e.message}`);
+	  	console.warn(`进程结束失败: ${e.message}`);
 	}
 	fs.unlinkSync(ERROR_FLAG_FILE);
   }
