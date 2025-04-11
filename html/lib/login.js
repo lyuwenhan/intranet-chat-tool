@@ -20,7 +20,14 @@
 async function safeFetch(url, options = {}) {
 	const res = await fetch(url, options);
 	if (res.status === 401) {
-		window.location.href = '/login';
+		const win = window.open('/login', '_blank');
+		if (!win || win.closed || typeof win.closed === "undefined") {
+			window.name="from-href";
+			location.href='/login';
+			return null;
+		}else{
+		 	win.name = 'from-open';
+		}
 		throw new Error('未登录，跳转中...');
 	}
 	return res;
@@ -138,7 +145,14 @@ window.onload = async function () {
 	.then(data => {
 		document.getElementById("username").innerText = username = data;
 		if(data){
-			location.href = '/';
+			if(window.name === 'from-open'){
+				window.close();
+			}else if(window.name === 'from-href'){
+				window.name = "";
+				history.back();
+			}else{
+				location.href='/';
+			}
 			document.getElementById("logout").hidden = false;
 		}else{
 			document.getElementById("login").hidden = false;
@@ -182,7 +196,14 @@ document.getElementById('login-form').addEventListener('submit', async function(
 		.then(data => {
 			console.log('服务器返回的数据:', data)
 			if(data.message == "success"){
-				location.replace("/");
+				if(window.name === 'from-open'){
+					window.close();
+				}else if(window.name === 'from-href'){
+					window.name = "";
+					history.back();
+				}else{
+					location.href='/';
+				}
 			}else{
 				error_messageele.innerText = data.info;
 			}

@@ -20,7 +20,14 @@
 async function safeFetch(url, options = {}) {
 	const res = await fetch(url, options);
 	if (res.status === 401) {
-		window.location.href = '/login';
+		const win = window.open('/login', '_blank');
+		if (!win || win.closed || typeof win.closed === "undefined") {
+			window.name="from-href";
+			location.href='/login';
+			return null;
+		}else{
+		 	win.name = 'from-open';
+		}
 		throw new Error('未登录，跳转中...');
 	}
 	return res;

@@ -220,6 +220,7 @@ app.use(session({
 	secret: session_pwd,
 	resave: false,
 	saveUninitialized: true,
+	rolling: true,
 	cookie: {
 		httpOnly: true,
 		secure: true,
