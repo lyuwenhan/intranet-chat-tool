@@ -459,7 +459,7 @@ const saveRoCode = db_codes.prepare('INSERT INTO codes (filename, readOnly, rona
 const deleteCode = db_codes.prepare('DELETE FROM codes WHERE filename = ?');
 const refreshCode = db_codes.prepare(`UPDATE codes SET updated_at = ? WHERE filename = ?`);
 const getOldCode = db_codes.prepare(`SELECT filename FROM codes WHERE updated_at <= ?`);
-console.log(getAllUsers.get());
+// console.log(getAllUsers.all());
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -502,7 +502,6 @@ var ban_list2 = to_json(banFilePath);
 const ban_name = ["sb", "shabi", "dashabi", "shab", "shb", "sabi", "sab", "hundan"];
 // const ip_cntlimit = [20, 700];
 var data = [{chats : []}, {chats : []}];
-var runips = {};
 const cleartime = 1000 * 60 * 60 * 24 * 14;
 
 function getToday() {
@@ -821,7 +820,7 @@ app.post('/cpp-run', (req, res) => {
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} cpp.run\n`);
-	if(runips[rawip]){
+	if(req.session.cppRunning){
 		res.json({ message: 'faild', stdout: "ERROR", stderr: "you cannot run more than one codes at the same time"});
 		fs.appendFileSync("log/run.log", `${ip} ${now} ${(new Date()).toString()} too many codes\n`);
 		return;
@@ -854,14 +853,15 @@ app.post('/cpp-run', (req, res) => {
 		const exefile = "judge/exefiles/" + filename + ".exe";
 		fs.writeFileSync(cpp, receivedContent.code || "");
 		fs.writeFileSync(input, (receivedContent.input ? receivedContent.input : ""));
-		runips[rawip] = true;
+		req.session.cppRunning = true;
 		exec("judge\\judge.exe " + cpp + " " + input + " uploads/" + output + " uploads/" + errfile + " " + exefile + " 10000 128 1048576 -O2", (error, stdout, stderr) => {
 			fs.rm(cpp, (err)=>{});
 			fs.rm(input, (err)=>{});
 			fs.rm(exefile, (err)=>{});
 			if (stderr) {
 				res.json({ message: 'faild', stdout, stderr});
-				runips[rawip] = undefined;
+				req.session.cppRunning = null;
+				req.session.save(err=>{});
 				return;
 			}
 			var outsize, errsize;
@@ -873,7 +873,8 @@ app.post('/cpp-run', (req, res) => {
 			}
 			outsize = fs.statSync("uploads/" + output).size;
 			errsize = fs.statSync("uploads/" + errfile).size;
-			runips[rawip] = undefined;
+			req.session.cppRunning = null;
+			req.session.save(err=>{});
 			fs.appendFileSync("log/run.log", `${ip} ${now} ${(new Date()).toString()} end\n`);
 			res.json({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
 		});
