@@ -82,6 +82,8 @@ const db = new Database('./data/users.db');
 fs.mkdirSync("./cppfile", { recursive: true });
 const db_codes = new Database('./cppfile/codes.db');
 const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.readFileSync("keys/cert.pem", 'utf8') };
+const svgCaptcha = require('svg-captcha');
+const sharp = require('sharp');
 const app = express();
 
 app.use(express.json({ limit: '100kb' }));
@@ -135,6 +137,12 @@ const limiterConfig = [
 		path: '/api/login/',
 		label: 'auth',
 		max: 10,
+		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 登录注册
+	},
+	{
+		path: 'api/captcha/',
+		label: 'auth',
+		max: 5,
 		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 登录注册
 	},
 	{
@@ -604,11 +612,23 @@ function encodeRSA(pwd){
 	if(pwd && isValidCiphertext(pwd, privateKey, private_pwd)){
 		return decryptRSA(pwd, privateKey, private_pwd);
 	}else{
-		return null
+		return null;
 	}
 }
+async function generateCaptcha(options = {}) {
+	const captcha = svgCaptcha.create({
+		size: 4,
+		noise: 2,
+		color: true,
+		background: '#f1f1f1',
+		ignoreChars: 'Il',
+		...options
+	});
+	return {text: captcha.text,data: `data:image/png;base64,${(await sharp(Buffer.from(captcha.data), { density: 144 }).png().toBuffer()).toString('base64')}`};
+}
+
 app.post('/api/login/', (req, res) => {
-	const receivedContent = req.body.content;
+	const receivedContent = req.body.content || {};
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
@@ -642,7 +662,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'用户名或密码错误'});
 		}
 		return;
-	}else if(allow_register && receivedContent.type == "register" && receivedContent.username){
+	}else if(allow_register && receivedContent.type == "register" && receivedContent.username && receivedContent.captcha){
 		if(!receivedContent.username){
 			res.json({ message: 'refuse', info:'用户名不能为空'});
 			return;
@@ -656,17 +676,26 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'用户已存在'});
 			return;
 		}
+		if(!req.session.captcha){
+			res.json({ message: 'refuse', info:'未申请验证码'});
+			return;
+		}
+		console.log(req.session.captcha, receivedContent.captcha.toLowerCase());
+		if(req.session.captcha != receivedContent.captcha.toLowerCase()){
+			res.json({ message: 'refuse', info:'验证码不正确'});
+			return;
+		}
 		const pwd = encodeRSA(receivedContent.pwd);
 		console.log(pwd);
 		if(!pwd){
 			res.json({ message: 'refuse', info:'密码不能为空'});
 			return;
 		}
-		if(pwd.length <= 6){
+		if(pwd.length < 6){
 			res.json({ message: 'refuse', info:'密码过短'});
 			return;
 		}
-		addUser(receivedContent.username, "user", pwd);
+		// addUser(receivedContent.username, "user", pwd);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "logout"){
@@ -680,8 +709,27 @@ app.post('/api/login/', (req, res) => {
 	}
 	res.json({ message: 'faild' });
 });
+app.post('/api/captcha', async (req, res) => {
+	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		return res.status(403).end();
+	}
+	const now = Date.now();
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.captcha\n`);
+	fs.appendFileSync("log/captcha.log", `${ip} ${now} ${(new Date()).toString()}\n`);
+	console.log('收到的内容：');
+	console.log("realip:", ip);
+	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
+		ip = ip.split(".");
+		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
+	}
+	const captcha = await generateCaptcha();
+	req.session.captcha = captcha.text.toLowerCase();
+	res.json({ message: 'success', image: captcha.data });
+});
+
 app.post('/api/', (req, res) => {
-	const receivedContent = req.body.content;
+	const receivedContent = req.body.content || {};
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
@@ -742,7 +790,7 @@ app.post('/api/', (req, res) => {
 	}else if(receivedContent.type == "command" && receivedContent.info == "/clear"){
 		if(JSON.stringify(data[0]) === JSON.stringify({ chats: [] })){
 			res.json({ message: 'faild', info: 'nothing to do' });
-		}else if((receivedContent.pwd && isValidCiphertext(receivedContent.pwd, privateKey, private_pwd) && sha256(decryptRSA(receivedContent.pwd, privateKey, private_pwd)) == pwd)){
+		}else if((findUser(req.session.username))?.role == "admin"){
 			data = [{ "chats": [] }, { "chats": [] }];
 			fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 			fs.rmSync("./uploads", { recursive: true, force: true });
@@ -776,7 +824,7 @@ function readFirst(filename) {
 }
 
 app.post('/cpp-run', (req, res) => {
-	const receivedContent = req.body.content;
+	const receivedContent = req.body.content || {};
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} cpp.run\n`);
@@ -925,7 +973,7 @@ Promise.resolve().then(cleanOldCode);
 setInterval(cleanOldCode, 10 * 60 * 1000);
 
 app.post('/cpp-save', (req, res) => {
-	const receivedContent = req.body.content;
+	const receivedContent = req.body.content || {};
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} cpp.save\n`);

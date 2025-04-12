@@ -220,9 +220,6 @@ function isValidIPv4(str) {
 	}
 	return true;
 }
-function isValidUsername(username){
-	return username && username.length <= 20 && /^\w+$/.test(username);
-}
 var auto_fresh = document.querySelector("#auto-fresh").checked = (localStorage.getItem("auto-fresh") === "true");
 document.getElementById("auto-fresh").addEventListener("change", function() {
 	localStorage.setItem("auto-fresh", auto_fresh = this.checked);
@@ -406,10 +403,10 @@ async function loadImageAsDataURL(url, a) {
 		reader.readAsDataURL(blob);
 		});
 
-		return base64; // ✅ 返回 data:image/... 形式
+		return base64;
 	} catch (err) {
 		console.warn("❌ 图片加载失败:", err.message);
-		return a; // ❌ 返回传入的 a
+		return a;
 	}
 }
 function reloadd(data) {

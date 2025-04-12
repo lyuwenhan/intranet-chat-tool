@@ -26,7 +26,7 @@ async function safeFetch(url, options = {}) {
 			location.href='/login';
 			return null;
 		}else{
-		 	win.name = 'from-open';
+			 win.name = 'from-open';
 		}
 		throw new Error('未登录，跳转中...');
 	}
@@ -155,6 +155,7 @@ window.onload = async function () {
 	.catch(error => {
 		console.error('错误:', error);
 	});
+	getCaptcha();
 }
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 1️⃣ 解析 PEM 格式公钥
@@ -168,6 +169,31 @@ async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 3️⃣ Base64 编码，方便传输
 	return forge.util.encode64(encrypted);
 }
+const captchaele = document.getElementById("captcha-img");
+var getCaptchaSuc = false;
+captchaele.onclick = getCaptcha;
+function getCaptcha(){
+	safeFetch('/api/captcha', {
+		method: 'POST'
+	})
+	.then(response => {
+		return response.json();
+	})
+	.then(data=>{
+		console.log('服务器返回的数据:', data)
+		if(data.message == "success"){
+			captchaele.src = data.image;
+			getCaptchaSuc = false;
+			captchaele.onload = ()=>{
+				getCaptchaSuc = true;
+			}
+			captchaele.onerror = function(){
+				this.onerror = null;
+				this.src = 'data:image/svg+xml;charset=utf-8,%3Csvg%20style%3D%22font-family%3A%20ui-monospace%2C%20SFMono-Regular%2C%20SF%20Mono%2C%20Menlo%2C%20Consolas%2C%20Liberation%20Mono%2C%20monospace%3B%22%20width%3D%22300%22%20height%3D%22100%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%09%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23f1f1f1%22/%3E%0A%09%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-size%3D%2270%22%20fill%3D%22%23000000%22%3E%E8%8E%B7%E5%8F%96%E5%A4%B1%E8%B4%A5%3C/text%3E%0A%3C/svg%3E';
+			}
+		}
+	})
+}
 const error_messageele = document.getElementById("error-message");
 document.getElementById('login-form').addEventListener('submit', async function(e) {
 	e.preventDefault();
@@ -178,8 +204,17 @@ document.getElementById('login-form').addEventListener('submit', async function(
 		error_messageele.innerText = "两次密码不一样";
 		return;
 	}
+	if(password.length < 6){
+		error_messageele.innerText = "密码过短";
+		return;
+	}
+	const captcha = e.target[3].value;
+	if(!captcha){
+		error_messageele.innerText = "未输入验证码";
+		return;
+	}
 	const encrypted = await encryptWithOAEP(password, publicKey);
-	var inputContent = { type: "register", username, pwd: encrypted };
+	var inputContent = { type: "register", username, pwd: encrypted, captcha };
 	safeFetch(`https://${ip}/api/login`, {
 		method: 'POST',
 		headers: {

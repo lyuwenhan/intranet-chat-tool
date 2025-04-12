@@ -52,6 +52,12 @@ img,br,button,[for=auto-fresh],.lang > a,.no-select{
 	opacity: 0.8;
 }
 
+#captcha-img{
+	width: 250px;
+	margin: 10px;
+	border-radius: 10px;
+}
+
 a{
 	text-decoration: none;
 }

@@ -85,7 +85,7 @@ function formatSize(bytes) {
 	return `${bytes.toFixed(2)} ${units[unitIndex]}`;
 }
 function get_key() {
-	let inputContent = { type: "get-key", username: localStorage.getItem("username") };
+	let inputContent = { type: "get-key" };
 	safeFetch(`https://${ip}:`, {
 		method: 'POST',
 		headers: {
@@ -159,7 +159,8 @@ window.onload = function () {
 			document.getElementById("logout").hidden = false;
 		}else{
 			document.getElementById("login").hidden = false;
-			location.href = '/login';
+			window.name="from-href";
+			location.href='/login';
 		}
 		readcodes();
 		// get_key();

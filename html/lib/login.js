@@ -57,7 +57,7 @@ function logout(){
 var username;
 function get_key() {
 	var ret = null;
-	var inputContent = { type: "get-key", username };
+	var inputContent = { type: "get-key" };
 	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
