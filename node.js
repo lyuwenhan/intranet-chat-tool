@@ -645,11 +645,11 @@ app.post('/api/login/', (req, res) => {
 	console.log(receivedContent);
 	if(receivedContent.type == "login"){
 		if(!receivedContent.username){
-			res.json({ message: 'refuse', info:'用户名不得为空'});
+			res.json({ message: 'refuse', info:'Username cannot be empty'});
 			return;
 		}
 		if(!isValidUsername(receivedContent.username)){
-			res.json({ message: 'refuse', info:'用户名不合法'});
+			res.json({ message: 'refuse', info:'Username is not valid'});
 			return;
 		}
 		const pwd = encodeRSA(receivedContent.pwd);
@@ -658,41 +658,37 @@ app.post('/api/login/', (req, res) => {
 			req.session.username = receivedContent.username;
 			res.json({ message: 'success' });
 		}else{
-			res.json({ message: 'refuse', info:'用户名或密码错误'});
+			res.json({ message: 'refuse', info:'Username or password is incorrect'});
 		}
 		return;
 	}else if(allow_register && receivedContent.type == "register" && receivedContent.username && receivedContent.captcha){
 		if(!receivedContent.username){
-			res.json({ message: 'refuse', info:'用户名不能为空'});
+			res.json({ message: 'refuse', info:'Username cannot be empty'});
 			return;
 		}
 		if(!isValidUsername(receivedContent.username)){
-			res.json({ message: 'refuse', info:'用户名不合法'});
+			res.json({ message: 'refuse', info:'Username is not valid'});
 			return;
 		}
 		const userinfo = findUser(receivedContent.username);
 		if(userinfo){
-			res.json({ message: 'refuse', info:'用户已存在'});
+			res.json({ message: 'refuse', info:'Username already exists'});
 			return;
 		}
-		if(!req.session.captcha){
-			res.json({ message: 'refuse', info:'未申请验证码'});
-			return;
-		}
-		if(req.session.captcha != receivedContent.captcha.toLowerCase()){
-			res.json({ message: 'refuse', info:'验证码不正确'});
+		if(!req.session.captcha || req.session.captcha != receivedContent.captcha.toLowerCase()){
+			res.json({ message: 'refuse', info:'Captcha not correct'});
 			return;
 		}
 		const pwd = encodeRSA(receivedContent.pwd);
 		if(!pwd){
-			res.json({ message: 'refuse', info:'密码不能为空'});
+			res.json({ message: 'refuse', info:'Password cannot be empty'});
 			return;
 		}
 		if(pwd.length < 6){
-			res.json({ message: 'refuse', info:'密码过短'});
+			res.json({ message: 'refuse', info:'Password too short'});
 			return;
 		}
-		// addUser(receivedContent.username, "user", pwd);
+		addUser(receivedContent.username, "user", pwd);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "logout"){
@@ -904,9 +900,7 @@ function saveCode(code, filename, type){
 		fs.writeFileSync(path.join(basePath, `${filename}.in`), code || "");
 	}
 	const now = Date.now();
-	console.log(getCode.get(filename));
 	saveNewCode.run(filename, now, now);
-	console.log(getCode.get(filename));
 }
 function getRoName(filename) {
 	const record = getCode.get(filename);

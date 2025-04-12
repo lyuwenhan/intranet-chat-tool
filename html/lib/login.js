@@ -126,9 +126,9 @@ window.onload = async function () {
 		console.error('错误:', error);
 	});
 	if(!mayip){
-		ip = prompt("请输入服务器ipv4", mayip);
+		ip = prompt("Please enter server ipv4", mayip);
 		while (!isValidIPv4(ip)) {
-			ip = prompt("请输入合法的服务器ipv4", mayip);
+			ip = prompt("Enter a valid server ipv4 address", mayip);
 		}
 	}
 	let inputContent2 = { type: "get-username" };

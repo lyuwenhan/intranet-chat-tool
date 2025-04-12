@@ -94,7 +94,7 @@ form.addEventListener('submit', function(e) {
 
 	// 检查文件大小
 	if (file.size > MAX_FILE_SIZE) {
-		alert('文件大小超过限制！最大允许文件大小为 5MB');
+		alert('File size exceeds limit! The maximum allowed file size is 5MB');
 		fileInput.value = '';
 		return;
 	}
@@ -109,13 +109,13 @@ form.addEventListener('submit', function(e) {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
 			reloadd(data);
-			alert(`上传成功`);
+			alert(`Upload success`);
 		}else{
-			alert(`上传失败`);
+			alert(`Upload failure`);
 		}
 	})
 	.catch(error => {
-		alert(`上传失败`);
+		alert(`Upload failure`);
 		console.error(error);
 	});
 	fileInput.value = '';
@@ -134,7 +134,7 @@ imgform.addEventListener('submit', function(e) {
 
 	// 检查文件大小
 	if (file.size > MAX_FILE_SIZE) {
-		alert('文件大小超过限制！最大允许文件大小为 5MB');
+		alert('File size exceeds limit! The maximum allowed file size is 5MB');
 		imgInput.value = '';
 		return;
 	}
@@ -149,13 +149,13 @@ imgform.addEventListener('submit', function(e) {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
 			reloadd(data);
-			alert(`上传成功`);
+			alert(`Upload success`);
 		}else{
-			alert(`上传失败`);
+			alert(`Upload failure`);
 		}
 	})
 	.catch(error => {
-		alert(`上传失败`);
+		alert(`Upload failure`);
 		console.error(error);
 	});
 	imgInput.value = '';
@@ -241,9 +241,9 @@ window.onload = function () {
 	}
 	ip = mayip;
 	if(!mayip){
-		ip = prompt("请输入服务器ipv4", mayip);
+		ip = prompt("Please enter server ipv4", mayip);
 		while (!isValidIPv4(ip)) {
-			ip = prompt("请输入合法的服务器ipv4", mayip);
+			ip = prompt("Enter a valid server ipv4 address", mayip);
 		}
 	}
 	let inputContent = { type: "get-username" };
@@ -692,7 +692,7 @@ function run(){
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
-			alert("代码保存失败");
+			alert("Code save failure");
 		}else{
 			const currentUrl = new URL(window.location.href);
 			currentUrl.pathname = "/cpprunner";

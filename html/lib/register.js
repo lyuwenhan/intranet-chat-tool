@@ -126,9 +126,9 @@ window.onload = async function () {
 		console.error('错误:', error);
 	});
 	if(!mayip){
-		ip = prompt("请输入服务器ipv4", mayip);
+		ip = prompt("Please enter server ipv4", mayip);
 		while (!isValidIPv4(ip)) {
-			ip = prompt("请输入合法的服务器ipv4", mayip);
+			ip = prompt("Enter a valid server ipv4 address", mayip);
 		}
 	}
 	let inputContent2 = { type: "get-username" };
@@ -201,16 +201,16 @@ document.getElementById('login-form').addEventListener('submit', async function(
 	const username = e.target[0].value;
 	const password = e.target[1].value;
 	if(password != e.target[2].value){
-		error_messageele.innerText = "两次密码不一样";
+		error_messageele.innerText = "Password must be the same";
 		return;
 	}
 	if(password.length < 6){
-		error_messageele.innerText = "密码过短";
+		error_messageele.innerText = "Password too short";
 		return;
 	}
 	const captcha = e.target[3].value;
 	if(!captcha){
-		error_messageele.innerText = "未输入验证码";
+		error_messageele.innerText = "Enter the capcha";
 		return;
 	}
 	const encrypted = await encryptWithOAEP(password, publicKey);

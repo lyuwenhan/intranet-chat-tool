@@ -109,13 +109,13 @@ form.addEventListener('submit', function(e) {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
 			reloadd(data);
-			alert(`上传成功`);
+			alert(`Upload success`);
 		}else{
-			alert(`上传失败`);
+			alert(`Upload failure`);
 		}
 	})
 	.catch(error => {
-		alert(`上传失败`);
+		alert(`Upload failure`);
 		console.error(error);
 	});
 	fileInput.value = '';
@@ -149,13 +149,13 @@ imgform.addEventListener('submit', function(e) {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
 			reloadd(data);
-			alert(`上传成功`);
+			alert(`Upload success`);
 		}else{
-			alert(`上传失败`);
+			alert(`Upload failure`);
 		}
 	})
 	.catch(error => {
-		alert(`上传失败`);
+		alert(`Upload failure`);
 		console.error(error);
 	});
 	imgInput.value = '';
@@ -242,9 +242,9 @@ window.onload = function () {
 	}
 	ip = mayip;
 	if(!mayip){
-		ip = prompt("请输入服务器ipv4", mayip);
+		ip = prompt("Please enter server ipv4", mayip);
 		while (!isValidIPv4(ip)) {
-			ip = prompt("请输入合法的服务器ipv4", mayip);
+			ip = prompt("Enter a valid server ipv4 address", mayip);
 		}
 	}
 	let inputContent = { type: "get-username" };
@@ -311,7 +311,7 @@ async function fun_clear() {
 	.catch(error => console.error('错误:', error));
 }
 async function fun_clear_by_pwd() {
-	if(!confirm("确定要清空吗")){
+	if(!confirm("Are you sure to clear it")){
 		return;
 	}
 	var inputContent = {
@@ -741,7 +741,7 @@ function run(){
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
-			alert("代码保存失败");
+			alert("Code save failure");
 		}else{
 			const currentUrl = new URL(window.location.href);
 			currentUrl.pathname = "/cpprunner";

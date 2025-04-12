@@ -137,9 +137,9 @@ window.onload = function () {
 	}
 	ip = mayip;
 	if(!mayip){
-		ip = prompt("请输入服务器ipv4", mayip);
+		ip = prompt("Please enter server ipv4", mayip);
 		while (!isValidIPv4(ip)) {
-			ip = prompt("请输入合法的服务器ipv4", mayip);
+			ip = prompt("Enter a valid server ipv4 address", mayip);
 		}
 	}
 	let inputContent = { type: "get-username" };
@@ -470,7 +470,7 @@ function savecode(){
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
-			alert("代码保存失败");
+			alert("Code save failure");
 		}else{
 			save(saveele1, savebtele1, saveele12);
 		}
@@ -494,7 +494,7 @@ function saveinput(){
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
-			alert("输入文件保存失败");
+			alert("Input filesave save failure");
 		}else{
 			save(saveele2, savebtele2, saveele22);
 		}
@@ -520,7 +520,7 @@ function makeonly(){
 		if(data.message == "success"){
 			return data.link;
 		}else{
-			alert("复制失败");
+			alert("Copy failure");
 			return null;
 		}
 	})
@@ -546,7 +546,7 @@ function makenonly(){
 		if(data.message == "success"){
 			return inputContent.link2;
 		}else{
-			alert("复制失败");
+			alert("Copy failure");
 			return null;
 		}
 	})
@@ -593,7 +593,7 @@ function readcodes(){
 					if(data.message == "success"){
 						setParam("uuid", data.link);
 					}else{
-						alert("代码获取失败");
+						alert("Code acquisition failure");
 					}
 				})
 				.catch(error => {
@@ -610,7 +610,7 @@ function readcodes(){
 			edi_input.setValue(data.inputfile);
 			edi_input.clearHistory();
 		}else{
-			alert("代码获取失败");
+			alert("Code acquisition failure");
 		}
 	})
 	.catch(error => {
