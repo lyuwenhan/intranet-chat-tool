@@ -695,7 +695,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'密码过短'});
 			return;
 		}
-		// addUser(receivedContent.username, "user", pwd);
+		addUser(receivedContent.username, "user", pwd);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "logout"){
