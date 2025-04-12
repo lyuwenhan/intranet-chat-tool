@@ -247,7 +247,7 @@ window.onload = function () {
 			ip = prompt("Enter a valid server ipv4 address", mayip);
 		}
 	}
-	let inputContent = { type: "get-username" };
+	let inputContent = { type: "command", info: "/testadmin" };
 	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
@@ -259,20 +259,38 @@ window.onload = function () {
 		return response.json();
 	})
 	.then(data => {
-		document.getElementById("username").innerText = username = data;
-		if(data){
-			document.getElementById("logout").hidden = false;
-		}else{
-			document.getElementById("login").hidden = false;
-			window.name="from-href";
-			location.href='/login';
+		if(data.message !== "success"){
+			location.replace('/');
+			return;
 		}
-		reload();
-		get_key();
+		console.log(data.message);
+		let inputContent = { type: "get-username" };
+		safeFetch(`https://${ip}/api`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ content: inputContent })
+		})
+		.then(response => {
+			return response.json();
+		})
+		.then(data => {
+			document.getElementById("username").innerText = username = data;
+			if(data){
+				document.getElementById("logout").hidden = false;
+			}else{
+				document.getElementById("login").hidden = false;
+				window.name="from-href";
+				location.href='/login';
+			}
+			reload();
+			get_key();
+		})
+		.catch(error => {
+			console.error('错误:', error);
+		});
 	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
 }
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 1️⃣ 解析 PEM 格式公钥

@@ -779,10 +779,15 @@ app.post('/api/', (req, res) => {
 	}else if(receivedContent.type == "get"){
 		res.json(data[0]);
 		return;
+	}else if(receivedContent.type == "command" && receivedContent.info == "/testadmin"){
+		if((findUser(req.session.username))?.role == "admin"){
+			res.json({ message: 'success' });
+		}else{
+			res.json({ message: 'refuse' });
+		}
+		return;
 	}else if(receivedContent.type == "command" && receivedContent.info == "/clear"){
-		if(JSON.stringify(data[0]) === JSON.stringify({ chats: [] })){
-			res.json({ message: 'faild', info: 'nothing to do' });
-		}else if((findUser(req.session.username))?.role == "admin"){
+		if((findUser(req.session.username))?.role == "admin"){
 			data = [{ "chats": [] }, { "chats": [] }];
 			fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 			fs.rmSync("./uploads", { recursive: true, force: true });

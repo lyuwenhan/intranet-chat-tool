@@ -522,10 +522,12 @@ function reloadd(data) {
 				nele2.id="img";
 				nele2.title="click to copy the link";
 				nele2.onerror=function(){
-					nele.innerHTML = `<span style="color:red;font-size:1.1em;">image broked</span>`;
+					nele.innerText = 'image broked';
 					nele.id = '';
 					nele.onclick = null;
-					nele.title="";
+					nele.title = '';
+					nele.classList = '';
+					nele.style = 'color:red;font-size:1.1em;';
 					nele2.onclick = null;
 					nele2.id="noimg";
 					nele2.onerror = null;
