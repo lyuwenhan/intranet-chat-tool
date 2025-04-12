@@ -503,6 +503,25 @@ const ban_name = ["sb", "shabi", "dashabi", "shab", "shb", "sabi", "sab", "hunda
 // const ip_cntlimit = [20, 700];
 var data = [{chats : []}, {chats : []}];
 const cleartime = 1000 * 60 * 60 * 24 * 14;
+let cpp_runlist = Promise.resolve();
+
+function start_runcpp(command) {
+    return new Promise(resolve => {
+        exec(command, (error, stdout, stderr) => {
+            resolve({ error, stdout, stderr });
+        });
+    });
+}
+function runcpp(command, callback){
+    cpp_runlist = cpp_runlist.then(() => {
+        return new Promise(resolve => {
+            start_runcpp(command, (err, out, errOut) => {
+                callback(err, out, errOut);
+                resolve();
+            });
+        });
+    }).catch(() => {});
+}
 
 function getToday() {
 	return new Date().toISOString().split('T')[0];
@@ -860,7 +879,7 @@ app.post('/cpp-run', (req, res) => {
 		fs.writeFileSync(cpp, receivedContent.code || "");
 		fs.writeFileSync(input, (receivedContent.input ? receivedContent.input : ""));
 		req.session.cppRunning = true;
-		exec("judge\\judge.exe " + cpp + " " + input + " uploads/" + output + " uploads/" + errfile + " " + exefile + " 10000 128 1048576 -O2", (error, stdout, stderr) => {
+		runcpp("judge\\judge.exe " + cpp + " " + input + " uploads/" + output + " uploads/" + errfile + " " + exefile + " 10000 128 1048576 -O2", (error, stdout, stderr) => {
 			fs.rm(cpp, (err)=>{});
 			fs.rm(input, (err)=>{});
 			fs.rm(exefile, (err)=>{});
@@ -1323,7 +1342,7 @@ const storage = multer.diskStorage({
 		cb(null, './uploads/download'); // 设置上传文件的存储路径
 	},
 	filename: (req, file, cb) => {
-		cb(null, (Date.now() + "" + uuidv4() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
+		cb(null, (Date.now() + "_" + uuidv4() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
 	}//Buffer.from(file.originalname, "base64").toString("utf-8")
 });
 
@@ -1394,7 +1413,7 @@ const uploadImg = multer({
 			cb(null, './uploads/img'); // 设置上传文件的存储路径
 		},
 		filename: (req, file, cb) => {
-			cb(null, (Date.now() + "" + uuidv4() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
+			cb(null, (Date.now() + "_" + uuidv4() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
 		}//Buffer.from(file.originalname, "base64").toString("utf-8")
 	}),
 	limits: { fileSize: 5 * 1024 * 1024 },
@@ -1533,7 +1552,7 @@ async function requestHandler(req, res) {
 				"Content-Disposition": "inline",
 				"Cross-Origin-Resource-Policy": "same-origin",
 				"X-Frame-Options": "DENY",
-  				"Content-Security-Policy": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+  				"Content-Security-Policy": "script-src '*';object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 				"X-Content-Type-Options": "nosniff",
 				"X-XSS-Protection": "1; mode=block",
 				"Referrer-Policy": "no-referrer",
@@ -1550,7 +1569,7 @@ async function requestHandler(req, res) {
 					"Content-Disposition": "inline",
 					"Cross-Origin-Resource-Policy": "same-origin",
 					"X-Frame-Options": "DENY",
-					"Content-Security-Policy": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+					"Content-Security-Policy": "script-src '*';object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 					"X-Content-Type-Options": "nosniff",
 					"X-XSS-Protection": "1; mode=block",
 					"Referrer-Policy": "no-referrer",
@@ -1567,7 +1586,7 @@ async function requestHandler(req, res) {
 						"Content-Disposition": "inline",
 						"Cross-Origin-Resource-Policy": "same-origin",
 						"X-Frame-Options": "DENY",
-						"Content-Security-Policy": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+						"Content-Security-Policy": "script-src '*';object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 						"X-Content-Type-Options": "nosniff",
 						"X-XSS-Protection": "1; mode=block",
 						"Referrer-Policy": "no-referrer",
