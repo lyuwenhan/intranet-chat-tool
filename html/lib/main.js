@@ -263,7 +263,8 @@ window.onload = function () {
 			document.getElementById("logout").hidden = false;
 		}else{
 			document.getElementById("login").hidden = false;
-			location.href = '/login';
+			window.name="from-href";
+			location.href='/login';
 		}
 		reload();
 		get_key();

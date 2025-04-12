@@ -45,26 +45,24 @@
 				</span>
 				<ul>
 					<li>
-						<span class="can-click" id="login" hidden><a class="bt-white" href="/login">登录</a>/<a class="bt-white" href="/register">注册</a></span>
+						<span class="can-click" id="login" hidden><a class="bt-white" href="/login">Login</a>/<a class="bt-white" href="/register">Sign up</a></span>
 					</li>
 					<li>
-						<span class="can-click" id="logout" onclick="logout()" hidden>注销</span>
+						<span class="can-click" id="logout" onclick="logout()" hidden>Logout</span>
 					</li>
 				</ul>
 			</li>
 		</ul>
 	</nav>
 	<div class="main">
-		<h2>登录</h2>
-		<p><a class="show0 bt-grey" href="/register">没有账号?&nbsp;<span class="show1">转到注册</span></a></p>
+		<h2>Log in</h2>
+		<p><a class="show0 bt-grey" href="/register">New here?&nbsp;<span class="show1">Sign up</span></a></p>
 		<form id="login-form">
-			<label for="username">用户名:&nbsp;</label>
-			<input type="text" id="username" name="username" autocomplete="username" required><br>
+			<input type="text" id="username" name="username" autocomplete="username" placeholder="Username" required><br><br>
 
-			<label for="password">密码:&nbsp;</label>
-			<input type="password" id="password" name="password" autocomplete="current-password" required><br>
+			<input type="password" id="password" name="password" autocomplete="current-password" placeholder="Password" required><br><br>
 
-			<button type="submit">登录</button>
+			<button type="submit">Log in</button>
 		</form>
 		<a class="ban" id="error-message"></a>
 	</div>

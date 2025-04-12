@@ -23,6 +23,7 @@
 
 body{
 	margin: 0;
+	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
 }
 .well{
 	background-color: rgb(247, 247, 247);

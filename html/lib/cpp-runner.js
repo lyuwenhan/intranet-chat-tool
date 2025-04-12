@@ -554,14 +554,8 @@ function makenonly(){
 		console.error('错误:', error);
 	});
 }
-async function getrolink(){
-	if(!rolink){
-		return rolink = await makeonly();
-	}
-	return rolink;
-}
 function cprolink(me){
-	getrolink().then((data=>{
+	makeonly().then((data=>{
 		const url = new URL(window.location.href);
 		url.searchParams.set("uuid", data);
 		copy(me, url.href.toString());

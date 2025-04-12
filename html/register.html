@@ -22,7 +22,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>register</title>
+	<title>sign up</title>
 	<link rel="stylesheet" href="/lib/codemirror.css">
 	<script src="/lib/codemirror.js"></script>
 	<script src="/lib/forge.js"></script>
@@ -45,32 +45,27 @@
 				</span>
 				<ul>
 					<li>
-						<span class="can-click" id="login" hidden><a class="bt-white" href="/login">登录</a>/<a class="bt-white" href="/register">注册</a></span>
+						<span class="can-click" id="login" hidden><a class="bt-white" href="/login">Login</a>/<a class="bt-white" href="/register">Sign up</a></span>
 					</li>
 					<li>
-						<span class="can-click" id="logout" onclick="logout()" hidden>注销</span>
+						<span class="can-click" id="logout" onclick="logout()" hidden>Logout</span>
 					</li>
 				</ul>
 			</li>
 		</ul>
 	</nav>
 	<div class="main">
-		<h2>注册</h2>
-		<p><a class="show0 bt-grey" href="/login">已有账号?&nbsp;<span class="show1">转到登录</span></a></p>
+		<h2>Sign up</h2>
+		<p><a class="show0 bt-grey" href="/login">Already have an account?&nbsp;<span class="show1">Sign in</span></a></p>
 		<form id="login-form">
-			<label for="username">用户名:&nbsp;</label>
-			<input type="text" id="username" name="username" autocomplete="username" placeholder="用户名" required><br>
-
-			<label for="password">密码:&nbsp;</label>
-			<input type="password" id="password" name="password" autocomplete="new-password" placeholder="密码  至少六位" required><br>
-			<label for="password">再次输入密码:&nbsp;</label>
-			<input type="password" id="confirm-password" name="password" autocomplete="new-password" placeholder="再次输入密码" required><br>
-
-			<label for="password">请输入验证码:&nbsp;</label>
-			<input type="text" name="captcha" autocomplete="off" placeholder="输入验证码" required><br>
+			<input type="text" id="username" name="username" autocomplete="username" placeholder="Username" required><br><br>
+			<input type="password" id="password" name="password" autocomplete="new-password" placeholder="Password" required><br><br>
+			<input type="password" id="confirm-password" name="password" autocomplete="new-password" placeholder="Confirm password" required><br><br>
+			<a>Password should be at least 8 characters.</a><br><br>
+			<input type="text" name="captcha" autocomplete="off" placeholder="Captcha" required><br>
 			<img id="captcha-img" class="can-click" title="click to refresh"><br>
 
-			<button type="submit">登录</button>
+			<button type="submit">Sign up</button>
 		</form>
 		<a class="ban" id="error-message"></a>
 	</div>

@@ -475,7 +475,6 @@ admin/user
 function addUser(username, role, pwd){
 	const salt = make128();
 	const hashed_pwd = sha256(pwd + salt);
-	console.log(pwd + salt);
 	insertUser.run(username, role, salt, hashed_pwd);
 }
 function findUser(username){
@@ -680,13 +679,11 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'未申请验证码'});
 			return;
 		}
-		console.log(req.session.captcha, receivedContent.captcha.toLowerCase());
 		if(req.session.captcha != receivedContent.captcha.toLowerCase()){
 			res.json({ message: 'refuse', info:'验证码不正确'});
 			return;
 		}
 		const pwd = encodeRSA(receivedContent.pwd);
-		console.log(pwd);
 		if(!pwd){
 			res.json({ message: 'refuse', info:'密码不能为空'});
 			return;
@@ -695,7 +692,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'密码过短'});
 			return;
 		}
-		addUser(receivedContent.username, "user", pwd);
+		// addUser(receivedContent.username, "user", pwd);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "logout"){
@@ -907,7 +904,9 @@ function saveCode(code, filename, type){
 		fs.writeFileSync(path.join(basePath, `${filename}.in`), code || "");
 	}
 	const now = Date.now();
+	console.log(getCode.get(filename));
 	saveNewCode.run(filename, now, now);
+	console.log(getCode.get(filename));
 }
 function getRoName(filename) {
 	const record = getCode.get(filename);
@@ -1015,7 +1014,6 @@ app.post('/cpp-save', (req, res) => {
 	}else if(receivedContent.type == "cpro" && receivedContent.link){
 		const filename = receivedContent.link;
 		const file = getCode.get(filename);
-		console.log(filename, file);
 		if(!isValidUUIDv4(filename) || !file){
 			res.json({ message: 'faild' });
 			return;
@@ -1031,12 +1029,15 @@ app.post('/cpp-save', (req, res) => {
 		const filename = receivedContent.link;
 		const file = getCode.get(filename);
 		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
+			saveCode(receivedContent.code || "", filename, "savecpp-unsave");
 			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
 		}
 		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
+			saveCode(receivedContent.code || "", filename, "savecpp-cpponly");
 			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
 		}
 		if(!fs.existsSync("cppfile/" + filename + ".in")){
+			saveCode(receivedContent.code || "", filename, "saveinput");
 			fs.writeFileSync("cppfile/" + filename + ".in", "");
 		}
 		let ro = file?.readOnly;
@@ -1084,7 +1085,6 @@ async function requestHandler2(req, res) {
 	try {
 		// 解析 URL 并获取安全路径
 		let safePath = getSafePath2(req.url);
-		// console.log(safePath);
 		if (!safePath) {
 			res.writeHead(403, { "Content-Type": "text/plain" });
 			return res.end("403 Forbidden");
@@ -1508,7 +1508,6 @@ async function requestHandler(req, res) {
 			}
 		}
 	} catch (err) {
-		console.log(err);
 		res.writeHead(500, { "Content-Type": "text/plain" });
 		res.end("500 Internal Server Error");
 	}

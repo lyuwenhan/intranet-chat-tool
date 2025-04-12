@@ -23,6 +23,7 @@ html{
 
 body{
 	margin: 0;
+	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
 }
 
 img,br,button,[for=auto-fresh],.lang > a,.no-select{
