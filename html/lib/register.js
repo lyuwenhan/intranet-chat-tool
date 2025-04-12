@@ -108,7 +108,13 @@ window.onload = async function () {
 		mayip = window.location.hostname;
 	}
 	ip = mayip;
-	let inputContent = { type: "get-username" };
+	if(!mayip){
+		ip = prompt("Please enter server ipv4", mayip);
+		while (!isValidIPv4(ip)) {
+			ip = prompt("Enter a valid server ipv4 address", mayip);
+		}
+	}
+	let inputContent = { type: "command", info: "/testadmin" };
 	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
@@ -120,42 +126,35 @@ window.onload = async function () {
 		return response.json();
 	})
 	.then(data => {
-		username = data;
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-	if(!mayip){
-		ip = prompt("Please enter server ipv4", mayip);
-		while (!isValidIPv4(ip)) {
-			ip = prompt("Enter a valid server ipv4 address", mayip);
+		if(data.message === "success"){
+			document.getElementById("bt-manage").hidden = false;
 		}
-	}
-	let inputContent2 = { type: "get-username" };
-	safeFetch(`https://${ip}/api`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent2 })
-	})
-	.then(response => {
-		return response.json();
-	})
-	.then(data => {
-		document.getElementById("username").innerText = username = data;
-		if(data){
-			location.href = '/';
-			document.getElementById("logout").hidden = false;
-		}else{
-			document.getElementById("login").hidden = false;
-		}
-		get_key();
-	})
-	.catch(error => {
-		console.error('错误:', error);
+		let inputContent = { type: "get-username" };
+		safeFetch(`https://${ip}/api`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ content: inputContent })
+		})
+		.then(response => {
+			return response.json();
+		})
+		.then(data => {
+			document.getElementById("username").innerText = username = data;
+			if(data){
+				location.href = '/';
+				document.getElementById("logout").hidden = false;
+			}else{
+				document.getElementById("login").hidden = false;
+			}
+			get_key();
+		})
+		.catch(error => {
+			console.error('错误:', error);
+		});
+		getCaptcha();
 	});
-	getCaptcha();
 }
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 1️⃣ 解析 PEM 格式公钥

@@ -654,7 +654,8 @@ app.post('/api/login/', (req, res) => {
 		const pwd = encodeRSA(receivedContent.pwd);
 		const userinfo = findUser(receivedContent.username);
 		if((userinfo && pwd && sha256(pwd + userinfo.salt) === userinfo.hash)){
-			req.session.username = receivedContent.username;
+			req.session.username = userinfo.username;
+			req.session.role = userinfo.role;
 			res.json({ message: 'success' });
 		}else{
 			res.json({ message: 'refuse', info:'Username or password is incorrect'});
@@ -743,6 +744,13 @@ app.post('/api/', (req, res) => {
 	}else if(receivedContent.type == "get-key"){
 		res.json(publicKey);
 		return;
+	}else if(receivedContent.type == "command" && receivedContent.info == "/testadmin"){
+		if(isValidUsername(req.session.username) && req.session.role == "admin"){
+			res.json({ message: 'success' });
+		}else{
+			res.json({ message: 'refuse' });
+		}
+		return;
 	}else if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
@@ -778,13 +786,6 @@ app.post('/api/', (req, res) => {
 		return;
 	}else if(receivedContent.type == "get"){
 		res.json(data[0]);
-		return;
-	}else if(receivedContent.type == "command" && receivedContent.info == "/testadmin"){
-		if((findUser(req.session.username))?.role == "admin"){
-			res.json({ message: 'success' });
-		}else{
-			res.json({ message: 'refuse' });
-		}
 		return;
 	}else if(receivedContent.type == "command" && receivedContent.info == "/clear"){
 		if((findUser(req.session.username))?.role == "admin"){
@@ -1513,7 +1514,7 @@ async function requestHandler(req, res) {
 	}
 }
 
-// 创建 HTTP 服务器
+// 创建 HTTPS 服务器
 app.use(async (req, res, next) => {
 	// 处理 CORS
 	res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1546,7 +1547,7 @@ app.use((err, req, res, next) => {
 			return res.send({message:'faild',info: 'File too big'});
 		}
 	}
-		next(err); // 如果不是 `multer` 错误，继续传递错误
+	next(err); // 如果不是 `multer` 错误，继续传递错误
 });
 
 https.createServer(credentials, app).listen(port, () => {

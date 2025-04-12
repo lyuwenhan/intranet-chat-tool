@@ -259,9 +259,12 @@ window.onload = function () {
 		return response.json();
 	})
 	.then(data => {
-		if(data.message !== "success"){
+		if(data.message === "success"){
+			document.getElementById("bt-manage").hidden = false;
+		}else{
 			location.replace('/');
 			return;
+
 		}
 		console.log(data.message);
 		let inputContent = { type: "get-username" };
@@ -290,7 +293,7 @@ window.onload = function () {
 		.catch(error => {
 			console.error('错误:', error);
 		});
-	})
+	});
 }
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 1️⃣ 解析 PEM 格式公钥
