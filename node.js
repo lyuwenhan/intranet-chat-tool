@@ -1102,12 +1102,20 @@ async function requestHandler2(req, res) {
 					"X-Content-Type-Options": "nosniff",
 					"X-Frame-Options": "DENY",
 					"Cross-Origin-Resource-Policy": "same-origin",
-					"Content-Security-Policy": "sandbox"
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
 				});
 				return res.end();
 			} catch (err) {
-				res.writeHead(404, { "Content-Type": "text/plain" });
-				return res.end("");
+				return res.writeHead(404, {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'X-Content-Type-Options': 'nosniff',
+					'X-Frame-Options': 'DENY',
+					'Referrer-Policy': 'no-referrer',
+					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+					'Cross-Origin-Resource-Policy': 'same-origin',
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+				}).end("")
 			}
 		}else if (safePath.startsWith('uploads\\img\\download\\')) {
 			safePath = safePath.replace(/^uploads\\img\\download\\/, 'uploads\\img\\');
@@ -1121,12 +1129,20 @@ async function requestHandler2(req, res) {
 					"X-Content-Type-Options": "nosniff",
 					"X-Frame-Options": "DENY",
 					"Cross-Origin-Resource-Policy": "same-origin",
-					"Content-Security-Policy": "sandbox"
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
 				});
 				return res.end(fileContent);
 			} catch (err) {
-				res.writeHead(404, { "Content-Type": "text/plain" });
-				return res.end("");
+				return res.writeHead(404, {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'X-Content-Type-Options': 'nosniff',
+					'X-Frame-Options': 'DENY',
+					'Referrer-Policy': 'no-referrer',
+					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+					'Cross-Origin-Resource-Policy': 'same-origin',
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+				}).end("")
 			}
 		}else if (safePath.startsWith('uploads\\img\\')) {
 			// 是以 /img/ 开头的路径
@@ -1139,12 +1155,20 @@ async function requestHandler2(req, res) {
 					"X-Content-Type-Options": "nosniff",
 					"X-Frame-Options": "DENY",
 					"Cross-Origin-Resource-Policy": "same-origin",
-					"Content-Security-Policy": "sandbox"
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
 				});
 				return res.end(fileContent);
 			} catch (err) {
-				res.writeHead(404, { "Content-Type": "text/plain" });
-				return res.end("");
+				return res.writeHead(404, {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'X-Content-Type-Options': 'nosniff',
+					'X-Frame-Options': 'DENY',
+					'Referrer-Policy': 'no-referrer',
+					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+					'Cross-Origin-Resource-Policy': 'same-origin',
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+				}).end("")
 			}
 		}else if (safePath.startsWith('uploads\\allow-connect\\') || safePath == 'uploads\\allow-connect') {
 			try {
@@ -1159,8 +1183,16 @@ async function requestHandler2(req, res) {
 				});
 				return res.end(fileContent);
 			} catch (err) {
-				res.writeHead(404, { "Content-Type": "text/plain" });
-				return res.end("");
+				return res.writeHead(404, {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'X-Content-Type-Options': 'nosniff',
+					'X-Frame-Options': 'DENY',
+					'Referrer-Policy': 'no-referrer',
+					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+					'Cross-Origin-Resource-Policy': 'same-origin',
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+				}).end("")
 			}
 		}else if (safePath.startsWith('uploads\\download\\')){
 			try {
@@ -1172,12 +1204,20 @@ async function requestHandler2(req, res) {
 					"X-Content-Type-Options": "nosniff",
 					"X-Frame-Options": "DENY",
 					"Cross-Origin-Resource-Policy": "same-origin",
-					"Content-Security-Policy": "sandbox"
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
 				});
 				return res.end(fileContent);
 			} catch (err) {
-				res.writeHead(404, { "Content-Type": "text/plain" });
-				return res.end("");
+				return res.writeHead(404, {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'X-Content-Type-Options': 'nosniff',
+					'X-Frame-Options': 'DENY',
+					'Referrer-Policy': 'no-referrer',
+					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+					'Cross-Origin-Resource-Policy': 'same-origin',
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+				}).end("")
 			}
 		}else if (safePath.startsWith('uploads\\iofiles\\')){
 			try {
@@ -1189,12 +1229,20 @@ async function requestHandler2(req, res) {
 					"X-Content-Type-Options": "nosniff",
 					"X-Frame-Options": "DENY",
 					"Cross-Origin-Resource-Policy": "same-origin",
-					"Content-Security-Policy": "sandbox"
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
 				});
 				return res.end(fileContent);
 			} catch (err) {
-				res.writeHead(404, { "Content-Type": "text/plain" });
-				return res.end("");
+				return res.writeHead(404, {
+					'Content-Type': 'text/plain; charset=utf-8',
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					'X-Content-Type-Options': 'nosniff',
+					'X-Frame-Options': 'DENY',
+					'Referrer-Policy': 'no-referrer',
+					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+					'Cross-Origin-Resource-Policy': 'same-origin',
+					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+				}).end("")
 			}
 		}else{
 			// try {
@@ -1210,8 +1258,16 @@ async function requestHandler2(req, res) {
 			// 	});
 			// 	return res.end(fileContent);
 			// } catch (err) {
-			res.writeHead(404, { "Content-Type": "text/plain" });
-			return res.end("");
+			return res.writeHead(404, {
+				'Content-Type': 'text/plain; charset=utf-8',
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				'X-Content-Type-Options': 'nosniff',
+				'X-Frame-Options': 'DENY',
+				'Referrer-Policy': 'no-referrer',
+				'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+				'Cross-Origin-Resource-Policy': 'same-origin',
+				"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+			}).end("")
 			// }
 		}
 	} catch (err) {
@@ -1267,7 +1323,7 @@ const storage = multer.diskStorage({
 		cb(null, './uploads/download'); // 设置上传文件的存储路径
 	},
 	filename: (req, file, cb) => {
-		cb(null, (Date.now() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
+		cb(null, (Date.now() + "" + uuidv4() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
 	}//Buffer.from(file.originalname, "base64").toString("utf-8")
 });
 
@@ -1338,7 +1394,7 @@ const uploadImg = multer({
 			cb(null, './uploads/img'); // 设置上传文件的存储路径
 		},
 		filename: (req, file, cb) => {
-			cb(null, (Date.now() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
+			cb(null, (Date.now() + "" + uuidv4() + path.extname(Buffer.from(file.originalname, "base64").toString("utf-8")))); // 使用时间戳加扩展名设置文件名
 		}//Buffer.from(file.originalname, "base64").toString("utf-8")
 	}),
 	limits: { fileSize: 5 * 1024 * 1024 },
@@ -1422,8 +1478,16 @@ async function readFileAsync(filePath) {
 async function requestHandler(req, res) {
 	try {
 		if (req.url.startsWith('/.ignore/') || req.url == '/.ignore') {
-			res.writeHead(404, { "Content-Type": "text/plain" });
-			return res.end("");
+			return res.writeHead(404, {
+				'Content-Type': 'text/plain; charset=utf-8',
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				'X-Content-Type-Options': 'nosniff',
+				'X-Frame-Options': 'DENY',
+				'Referrer-Policy': 'no-referrer',
+				'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+				'Cross-Origin-Resource-Policy': 'same-origin',
+				"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+			}).end("")
 		}
 		if (req.url === '/get.svg') {
 			const svgContent = `
@@ -1435,7 +1499,15 @@ async function requestHandler(req, res) {
 			</svg>`;
 			fs.appendFileSync("log/get-svg.log", `${req.socket.remoteAddress.replace("::ffff:", "")} ${Date.now()} ${(new Date()).toString()}\n`);
 			res.writeHead(200, {
-				"Content-Type": "image/svg+xml",
+				"Content-Type": "image/svg+xml; charset=utf-8",
+				"Cache-Control": "no-store, no-cache, must-revalidate",
+				"Pragma": "no-cache",
+				"Expires": "0",
+				"X-Content-Type-Options": "nosniff",
+				"X-Frame-Options": "DENY",
+				"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+				"Cross-Origin-Resource-Policy": "same-origin",
+				"Referrer-Policy": "no-referrer",
 			});
 			return res.end(svgContent);
 		}
@@ -1461,7 +1533,7 @@ async function requestHandler(req, res) {
 				"Content-Disposition": "inline",
 				"Cross-Origin-Resource-Policy": "same-origin",
 				"X-Frame-Options": "DENY",
-				"Content-Security-Policy": "frame-ancestors 'none'",
+  				"Content-Security-Policy": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 				"X-Content-Type-Options": "nosniff",
 				"X-XSS-Protection": "1; mode=block",
 				"Referrer-Policy": "no-referrer",
@@ -1478,7 +1550,7 @@ async function requestHandler(req, res) {
 					"Content-Disposition": "inline",
 					"Cross-Origin-Resource-Policy": "same-origin",
 					"X-Frame-Options": "DENY",
-					"Content-Security-Policy": "frame-ancestors 'none'",
+					"Content-Security-Policy": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 					"X-Content-Type-Options": "nosniff",
 					"X-XSS-Protection": "1; mode=block",
 					"Referrer-Policy": "no-referrer",
@@ -1495,7 +1567,7 @@ async function requestHandler(req, res) {
 						"Content-Disposition": "inline",
 						"Cross-Origin-Resource-Policy": "same-origin",
 						"X-Frame-Options": "DENY",
-						"Content-Security-Policy": "frame-ancestors 'none'",
+						"Content-Security-Policy": "script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
 						"X-Content-Type-Options": "nosniff",
 						"X-XSS-Protection": "1; mode=block",
 						"Referrer-Policy": "no-referrer",
@@ -1503,8 +1575,16 @@ async function requestHandler(req, res) {
 					});
 					return res.end(fileContent);
 				} catch (err) {
-					res.writeHead(404, { "Content-Type": "text/plain" });
-					return res.end("");
+					return res.writeHead(404, {
+						'Content-Type': 'text/plain; charset=utf-8',
+						'Cache-Control': 'no-cache, no-store, must-revalidate',
+						'X-Content-Type-Options': 'nosniff',
+						'X-Frame-Options': 'DENY',
+						'Referrer-Policy': 'no-referrer',
+						'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+						'Cross-Origin-Resource-Policy': 'same-origin',
+						"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+					}).end("")
 				}
 			}
 		}
@@ -1530,8 +1610,16 @@ app.use(async (req, res, next) => {
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.http\n`);
 	fs.appendFileSync("log/https-server.log", `${ip} ${now} ${(new Date()).toString()} ${req.url}\n`);
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
-		res.writeHead(404, { "Content-Type": "text/plain" });
-		return res.end("");
+		return res.writeHead(404, {
+			'Content-Type': 'text/plain; charset=utf-8',
+			'Cache-Control': 'no-cache, no-store, must-revalidate',
+			'X-Content-Type-Options': 'nosniff',
+			'X-Frame-Options': 'DENY',
+			'Referrer-Policy': 'no-referrer',
+			'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+			'Cross-Origin-Resource-Policy': 'same-origin',
+			"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+		}).end("")
 	}
 	await requestHandler(req, res);
 });
