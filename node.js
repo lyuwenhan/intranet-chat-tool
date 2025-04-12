@@ -154,7 +154,7 @@ const limiterConfig = [
 	{
 		path: '/cpp-run',
 		label: 'run',
-		max: 3,
+		max: 100,
 		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 代码运行
 	},
 	{
@@ -506,21 +506,18 @@ const cleartime = 1000 * 60 * 60 * 24 * 14;
 let cpp_runlist = Promise.resolve();
 
 function start_runcpp(command) {
-    return new Promise(resolve => {
-        exec(command, (error, stdout, stderr) => {
-            resolve({ error, stdout, stderr });
-        });
-    });
+	return new Promise(resolve => {
+		exec(command, (error, stdout, stderr) => {
+			resolve({ error, stdout, stderr });
+		});
+	});
 }
 function runcpp(command, callback){
-    cpp_runlist = cpp_runlist.then(() => {
-        return new Promise(resolve => {
-            start_runcpp(command, (err, out, errOut) => {
-                callback(err, out, errOut);
-                resolve();
-            });
-        });
-    }).catch(() => {});
+	cpp_runlist = cpp_runlist.then(() => {
+		return start_runcpp(command).then(result => {
+			callback(result.error, result.stdout, result.stderr);
+		});
+	}).catch(() => {});
 }
 
 function getToday() {
@@ -1552,7 +1549,7 @@ async function requestHandler(req, res) {
 				"Content-Disposition": "inline",
 				"Cross-Origin-Resource-Policy": "same-origin",
 				"X-Frame-Options": "DENY",
-  				"Content-Security-Policy": "script-src '*';object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+				"Content-Security-Policy": "frame-ancestors 'none'",
 				"X-Content-Type-Options": "nosniff",
 				"X-XSS-Protection": "1; mode=block",
 				"Referrer-Policy": "no-referrer",
@@ -1569,7 +1566,7 @@ async function requestHandler(req, res) {
 					"Content-Disposition": "inline",
 					"Cross-Origin-Resource-Policy": "same-origin",
 					"X-Frame-Options": "DENY",
-					"Content-Security-Policy": "script-src '*';object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+					"Content-Security-Policy": "frame-ancestors 'none'",
 					"X-Content-Type-Options": "nosniff",
 					"X-XSS-Protection": "1; mode=block",
 					"Referrer-Policy": "no-referrer",
@@ -1586,7 +1583,7 @@ async function requestHandler(req, res) {
 						"Content-Disposition": "inline",
 						"Cross-Origin-Resource-Policy": "same-origin",
 						"X-Frame-Options": "DENY",
-						"Content-Security-Policy": "script-src '*';object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+						"Content-Security-Policy": "frame-ancestors 'none'",
 						"X-Content-Type-Options": "nosniff",
 						"X-XSS-Protection": "1; mode=block",
 						"Referrer-Policy": "no-referrer",
