@@ -203,7 +203,7 @@ function getCodeList() {
 			row.innerHTML = `
 				<td class="show0"><a href="/codeEditor?uuid=${code.uuid}" class="bt-grey">${code.filename}.cpp</a><span class="show1 can-click bt-grey" title="click to copy" onclick="copy(null, '${code.uuid}', alert('copied'))">uuid:${code.uuid}</span></td>
 				<td>${updated}</td>
-				<td><button onclick="deleteCode('${code.filename}', '${code.uuid}')" class="bt-red">Delete</button></td>
+				<td><button onclick="renameCode('${code.uuid}')" class="bt-red">Rename</button>&nbsp;<button onclick="deleteCode('${code.filename}', '${code.uuid}')" class="bt-red">Delete</button></td>
 			`;
 			tableBody.appendChild(row);
 		});
@@ -235,6 +235,32 @@ function deleteCode(filename, uuid) {
 			console.error('错误:', error);
 		});
 	}
+}
+function renameCode(uuid) {
+	const filename = prompt("New file name");
+	if(!filename){
+		return;
+	}
+	let inputContent = { type: "rename", link: uuid, filename };
+	safeFetch(`https://${ip}/cpp-save`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+	.then(response => {
+		return response.json();
+	})
+	.then(data => {
+		console.log("服务器返回的数据:", data);
+		if(data.message == 'success'){
+			location.reload();
+		}
+	})
+	.catch(error => {
+		console.error('错误:', error);
+	});
 }
 function copy(me, text, func){
 	var textArea = document.createElement("textarea");

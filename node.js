@@ -497,6 +497,7 @@ const getCode = db_codes.prepare('SELECT * FROM codes WHERE uuid = ?');
 const setRoName = db_codes.prepare('UPDATE codes SET roname = ?, updated_at = ? WHERE uuid = ?');
 const saveRoCode = db_codes.prepare('INSERT INTO codes (uuid, filename, readOnly, roname, updated_at) VALUES (?, ?, 1, ?, ?)');
 const deleteCode = db_codes.prepare('DELETE FROM codes WHERE uuid = ?');
+const updateFilename = db_codes.prepare('UPDATE codes SET filename = ? WHERE uuid = ?');
 const refreshCode = db_codes.prepare(`UPDATE codes SET updated_at = ? WHERE uuid = ?`);
 const getOldCode = db_codes.prepare(`SELECT uuid FROM codes WHERE updated_at <= ?`);
 const saveCodeList = db_codelist.prepare(`
@@ -508,6 +509,7 @@ const getCodes = db_codelist.prepare('SELECT uuid, updated_at, filename FROM cod
 const deleteCodeListFU = db_codelist.prepare('DELETE FROM code_list WHERE username = ? AND uuid = ?');
 const deleteCodeListFF = db_codelist.prepare('DELETE FROM code_list WHERE uuid = ?');
 const getUsername = db_codelist.prepare('SELECT 1 FROM code_list WHERE uuid = ? LIMIT 1');
+const updateFilenameByUuid = db_codelist.prepare('UPDATE code_list SET filename = ? WHERE uuid = ?');
 function testFilename(filename) {
 	return !!getUsername.get(filename);
 }
@@ -1069,7 +1071,7 @@ app.post('/cpp-save', (req, res) => {
 			return;
 		}
 		saveCode(receivedContent.code || "", filename, receivedContent.type);
-		saveCodeList.run(req.session.username, filename, Date.now(), filename);
+		saveCodeList.run(req.session.username, file?.filename || "Untitled", Date.now(), filename);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "cp" && receivedContent.link){
@@ -1116,26 +1118,43 @@ app.post('/cpp-save', (req, res) => {
 		}
 		let ro = file?.readOnly;
 		refreshFile(filename);
-		res.json({ message: 'success', readOnly: ro, cppfile: fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }), unsave_cppfile: fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' }), inputfile: fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) });
+		res.json({ message: 'success', filename: file.filename, readOnly: ro, cppfile: fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }), unsave_cppfile: fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' }), inputfile: fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) });
 		return;
 	}else if(receivedContent.type == "getList"){
 		res.json(getCodes.all(req.session.username));
 		return;
 	}else if(receivedContent.type == "delete" && receivedContent.link){
 		if(!isValidUUIDv4(receivedContent.link)){
-			res.json({ message: 'faild1' });
+			res.json({ message: 'faild' });
 			return;
 		}
 		const filename = receivedContent.link;
 		const file = getCode.get(filename);
 		if(!file){
-			res.json({ message: 'faild2' });
+			res.json({ message: 'faild' });
 			return;
 		}
 		deleteCodeListFU.run(req.session.username, filename);
 		if(!testFilename(filename)){
 			deleteFile(filename);
 		}
+		res.json({ message: 'success' });
+		return;
+	}else if(receivedContent.type == "rename" && receivedContent.link && receivedContent.filename){
+		if(!isValidUUIDv4(receivedContent.link)){
+			res.json({ message: 'faild' });
+			return;
+		}
+		const uuid = receivedContent.link;
+		const filename = receivedContent.filename;
+		const file = getCode.get(uuid);
+		if(!file){
+			res.json({ message: 'faild2' });
+			return;
+		}
+		updateFilename.run(filename, uuid);
+		updateFilenameByUuid.run(filename, uuid);
+		refreshFile(uuid);
 		res.json({ message: 'success' });
 		return;
 	}

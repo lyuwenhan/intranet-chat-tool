@@ -625,6 +625,7 @@ function readcodes(){
 			lasave = data.cppfile;
 			edi_input.setValue(data.inputfile);
 			edi_input.clearHistory();
+			document.querySelector(".filename").innerText = data.filename + '.cpp';
 		}else{
 			alert("Code acquisition failure");
 		}
@@ -639,6 +640,33 @@ function opentsm(){
 }
 function closetsm(){
 	tsmele.hidden = true;
+}
+function renameCode() {
+	const filename = prompt("New file name");
+	if(!filename){
+		return;
+	}
+	let inputContent = { type: "rename", link, filename };
+	console.log(inputContent);
+	safeFetch(`https://${ip}/cpp-save`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+	.then(response => {
+		return response.json();
+	})
+	.then(data => {
+		console.log("服务器返回的数据:", data);
+		if(data.message == 'success'){
+			location.reload();
+		}
+	})
+	.catch(error => {
+		console.error('错误:', error);
+	});
 }
 function copy(me, text){
 	var textArea = document.createElement("textarea");

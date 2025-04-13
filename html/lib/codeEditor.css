@@ -169,6 +169,7 @@ svg, .copy,.no-select{
 }
 
 .trans{
+	z-index: 100004;
 	/* position: relative; */
 	position: absolute;
 	background-color: white;
@@ -179,7 +180,7 @@ svg, .copy,.no-select{
 	bottom: 0;
 	left: 0;
 	margin: auto;
-	max-height: calc(100vh - 40px);
+	max-height: calc(100vh - 170px);
 	max-width: calc(100vw - 40px);
 	border-radius: 10px;
 	border: 2px solid rgb(79, 79, 79);
