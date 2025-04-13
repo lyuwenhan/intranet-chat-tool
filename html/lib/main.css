@@ -207,6 +207,9 @@ img,br,button,[for=auto-fresh],.lang > a,.no-select{
 a{
 	text-decoration: none;
 }
+.show0:hover .show1{
+	display: unset;
+}
 nav {
 	z-index: 10000002;
 	position: relative;

@@ -472,7 +472,8 @@ db.prepare(`
 `).run();
 db_codes.prepare(`
 	CREATE TABLE IF NOT EXISTS codes (
-		filename TEXT PRIMARY KEY,
+		uuid TEXT PRIMARY KEY,
+		filename TEXT NOT NULL,
 		readOnly INTEGER DEFAULT 0,
 		roname TEXT DEFAULT NULL,
 		updated_at INTEGER DEFAULT 0
@@ -481,31 +482,32 @@ db_codes.prepare(`
 db_codelist.prepare(`
 	CREATE TABLE IF NOT EXISTS code_list (
 		username TEXT NOT NULL,
+		uuid TEXT NOT NULL,
 		filename TEXT NOT NULL,
 		updated_at INTEGER DEFAULT 0,
-		PRIMARY KEY (username, filename)
+		PRIMARY KEY (username, uuid)
 	)
 `).run();
 const insertUser = db.prepare('INSERT INTO users (username, role, salt, hash) VALUES (?, ?, ?, ?)');
 const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
 const deleteUser = db.prepare('DELETE FROM users WHERE username = ?');
 const getAllUsers = db.prepare('SELECT username, role FROM users');
-const saveNewCode = db_codes.prepare(`INSERT INTO codes (filename, readOnly, roname, updated_at) VALUES (?, 0, NULL, ?) ON CONFLICT(filename) DO UPDATE SET readOnly = 0, roname = NULL, updated_at = ?`);
-const getCode = db_codes.prepare('SELECT * FROM codes WHERE filename = ?');
-const setRoName = db_codes.prepare('UPDATE codes SET roname = ?, updated_at = ? WHERE filename = ?');
-const saveRoCode = db_codes.prepare('INSERT INTO codes (filename, readOnly, roname, updated_at) VALUES (?, 1, ?, ?)');
-const deleteCode = db_codes.prepare('DELETE FROM codes WHERE filename = ?');
-const refreshCode = db_codes.prepare(`UPDATE codes SET updated_at = ? WHERE filename = ?`);
-const getOldCode = db_codes.prepare(`SELECT filename FROM codes WHERE updated_at <= ?`);
+const saveNewCode = db_codes.prepare(`INSERT INTO codes (uuid, filename, readOnly, roname, updated_at) VALUES (?, ?, 0, NULL, ?) ON CONFLICT(uuid) DO UPDATE SET readOnly = 0, roname = NULL, updated_at = ?`);
+const getCode = db_codes.prepare('SELECT * FROM codes WHERE uuid = ?');
+const setRoName = db_codes.prepare('UPDATE codes SET roname = ?, updated_at = ? WHERE uuid = ?');
+const saveRoCode = db_codes.prepare('INSERT INTO codes (uuid, filename, readOnly, roname, updated_at) VALUES (?, ?, 1, ?, ?)');
+const deleteCode = db_codes.prepare('DELETE FROM codes WHERE uuid = ?');
+const refreshCode = db_codes.prepare(`UPDATE codes SET updated_at = ? WHERE uuid = ?`);
+const getOldCode = db_codes.prepare(`SELECT uuid FROM codes WHERE updated_at <= ?`);
 const saveCodeList = db_codelist.prepare(`
-	INSERT INTO code_list (username, filename, updated_at)
-	VALUES (?, ?, ?)
-	ON CONFLICT(username, filename) DO UPDATE SET updated_at = excluded.updated_at
+	INSERT INTO code_list (username, filename, updated_at, uuid)
+	VALUES (?, ?, ?, ?)
+	ON CONFLICT(username, uuid) DO UPDATE SET updated_at = excluded.updated_at
 `);
-const getCodes = db_codelist.prepare('SELECT filename, updated_at FROM code_list WHERE username = ?');
-const deleteCodeListFU = db_codelist.prepare('DELETE FROM code_list WHERE username = ? AND filename = ?');
-const deleteCodeListFF = db_codelist.prepare('DELETE FROM code_list WHERE filename = ?');
-const getUsername = db_codelist.prepare('SELECT 1 FROM code_list WHERE filename = ? LIMIT 1');
+const getCodes = db_codelist.prepare('SELECT uuid, updated_at, filename FROM code_list WHERE username = ? ORDER BY updated_at');
+const deleteCodeListFU = db_codelist.prepare('DELETE FROM code_list WHERE username = ? AND uuid = ?');
+const deleteCodeListFF = db_codelist.prepare('DELETE FROM code_list WHERE uuid = ?');
+const getUsername = db_codelist.prepare('SELECT 1 FROM code_list WHERE uuid = ? LIMIT 1');
 function testFilename(filename) {
 	return !!getUsername.get(filename);
 }
@@ -973,7 +975,7 @@ function saveCode(code, filename, type){
 		fs.writeFileSync(path.join(basePath, `${filename}.in`), code || "");
 	}
 	const now = Date.now();
-	saveNewCode.run(filename, now, now);
+	saveNewCode.run(filename, filename, now, now);
 }
 function getRoName(filename) {
 	const record = getCode.get(filename);
@@ -986,10 +988,10 @@ function getRoName(filename) {
 	fs.writeFileSync(path.join(basePath, `${filename2}.in`), fs.readFileSync(path.join(basePath, `${filename}.in`), 'utf-8') || "");
 	const now = Date.now();
 	setRoName.run(filename2, now, filename);
-	saveRoCode.run(filename2, filename2, now);
+	saveRoCode.run(filename2, record.filename, filename2, now);
 	return filename2;
 }
-function getCpName(filename) {
+function getCpName(filename, name) {
 	const filename2 = uuidv4();
 	const basePath = "cppfile/";
 	const cppPath = path.join(basePath, `${filename}.cpp`);
@@ -1006,7 +1008,7 @@ function getCpName(filename) {
 	fs.writeFileSync(path.join(basePath, `${filename2}.cpp`), cppcode);
 	fs.writeFileSync(path.join(basePath, `${filename2}.in`), fs.readFileSync(inPath, 'utf-8'));
 	const now = Date.now();
-	saveNewCode.run(filename2, now, now);
+	saveNewCode.run(filename2, name, now, now);
 	return filename2;
 }
 function deleteFile(filename){
@@ -1067,7 +1069,7 @@ app.post('/cpp-save', (req, res) => {
 			return;
 		}
 		saveCode(receivedContent.code || "", filename, receivedContent.type);
-		saveCodeList.run(req.session.username, filename, (new Date()).toString());
+		saveCodeList.run(req.session.username, filename, Date.now(), filename);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "cp" && receivedContent.link){
@@ -1078,7 +1080,10 @@ app.post('/cpp-save', (req, res) => {
 			return;
 		}
 		refreshFile(filename);
-		res.json({ message: 'success', link: getCpName(filename) });
+		const name = file.filename + " copy";
+		const filename2 = getCpName(filename, name);
+		saveCodeList.run(req.session.username, name, Date.now(), filename2);
+		res.json({ message: 'success', link: filename2 });
 		return;
 	}else if(receivedContent.type == "cpro" && receivedContent.link){
 		const filename = receivedContent.link;

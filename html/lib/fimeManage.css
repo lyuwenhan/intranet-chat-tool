@@ -71,18 +71,12 @@ img,br,button,[for=auto-fresh],.lang > a,.no-select{
 
 table {
 	border-collapse: collapse;
-	width: 80%;
+	max-width: 90%;
 }
 th, td {
 	border: 1px solid #999;
 	padding: 8px 12px;
 	text-align: left;
-}
-
-#captcha-img{
-	width: 250px;
-	margin: 10px;
-	border-radius: 10px;
 }
 
 a{
@@ -96,7 +90,6 @@ nav {
 	position: relative;
 	left: 0;
 	top: 0;
-	width: calc(100vw - 100px);
 	height: 60px;
 	background-color: #2a83e9;
 	color: white;

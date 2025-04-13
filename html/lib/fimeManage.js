@@ -201,9 +201,9 @@ function getCodeList() {
 
 			const row = document.createElement('tr');
 			row.innerHTML = `
-				<td><a href="/codeEditor?uuid=${code.filename}" class="bt-grey">${code.filename}.cpp</a></td>
+				<td class="show0"><a href="/codeEditor?uuid=${code.uuid}" class="bt-grey">${code.filename}.cpp</a><span class="show1 can-click bt-grey" title="click to copy" onclick="copy(null, '${code.uuid}', alert('copied'))">uuid:${code.uuid}</span></td>
 				<td>${updated}</td>
-				<td><button onclick="deleteCode('${code.filename}')" class="bt-red">删除</button></td>
+				<td><button onclick="deleteCode('${code.filename}', '${code.uuid}')" class="bt-red">delete</button></td>
 			`;
 			tableBody.appendChild(row);
 		});
@@ -212,9 +212,9 @@ function getCodeList() {
 		console.error('错误:', error);
 	});
 }
-function deleteCode(filename) {
-	if (confirm(`确定要删除文件 "${filename}.cpp" 吗？`)) {
-		let inputContent = { type: "delete", link: filename };
+function deleteCode(filename, uuid) {
+	if (confirm(`Are you sure you want to delete the file "${filename}.cpp"?`)) {
+		let inputContent = { type: "delete", link: uuid };
 		safeFetch(`https://${ip}/cpp-save`, {
 			method: 'POST',
 			headers: {
@@ -236,7 +236,7 @@ function deleteCode(filename) {
 		});
 	}
 }
-function copy(me, text){
+function copy(me, text, func){
 	var textArea = document.createElement("textarea");
 	textArea.value = text;
 	textArea.style.top = "0";
@@ -260,5 +260,8 @@ function copy(me, text){
 			me.lastChild.hidden = true;
 			me.tiout = null;
 		}, 1000)
+	}
+	if(func){
+		func();
 	}
 }
