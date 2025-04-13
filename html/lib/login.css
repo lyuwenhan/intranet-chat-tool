@@ -70,7 +70,6 @@ nav {
 	position: relative;
 	left: 0;
 	top: 0;
-	width: calc(100vw - 100px);
 	height: 60px;
 	background-color: #2a83e9;
 	color: white;

@@ -154,6 +154,7 @@ window.onload = async function () {
 				document.getElementById("logout").hidden = false;
 			}else{
 				document.getElementById("login").hidden = false;
+				document.getElementById("sign_up").hidden = false;
 			}
 			get_key();
 		})
