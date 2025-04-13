@@ -65,7 +65,7 @@ app.use(async (req, res, next) => {
 		"Referrer-Policy": "no-referrer",
 		"Permissions-Policy": "geolocation=(), camera=(), microphone=()"
 	});
-	res.end("Our system is currently experiencing technical difficulties. Our technical team is actively investigating and working diligently to resolve the issue as quickly as possible. We appreciate your understanding and patience.\n系统目前正在经历技术故障，我们的技术团队已启动紧急响应机制，正在全力排查并修复相关问题。感谢您的理解与耐心等待。");
+	res.end("The server has been shut down by the administrator and is currently undergoing a restart.\n服务器已由管理员关闭，当前正在重启中。");
 });
 console.log("something error");
 https.createServer(credentials, app).listen(port, () => {

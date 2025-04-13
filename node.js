@@ -20,17 +20,28 @@ const { spawn, execSync } = require('child_process');
 fs.mkdirSync("./error/critical", { recursive: true });
 fs.mkdirSync("./error/normal", { recursive: true });
 const ERROR_FLAG_FILE = './error/.error_status.json';
+const CLOSE_FLAG_FILE = './error/.close_status.json';
 
 function killOldOnErrorProcess() {
 	if (fs.existsSync(ERROR_FLAG_FILE)) {
-	const { pid } = JSON.parse(fs.readFileSync(ERROR_FLAG_FILE));
-	try {
+		const { pid } = JSON.parse(fs.readFileSync(ERROR_FLAG_FILE));
+		try {
 			process.kill(pid);
-		console.log("error.js killed");
-	} catch (e) {
+			console.log("error.js killed");
+		} catch (e) {
 			console.warn(`进程结束失败: ${e.message}`);
+		}
+		fs.unlinkSync(ERROR_FLAG_FILE);
 	}
-	fs.unlinkSync(ERROR_FLAG_FILE);
+	if (fs.existsSync(CLOSE_FLAG_FILE)) {
+		const { pid } = JSON.parse(fs.readFileSync(CLOSE_FLAG_FILE));
+		try {
+			process.kill(pid);
+			console.log("close.js killed");
+		} catch (e) {
+			console.warn(`进程结束失败: ${e.message}`);
+		}
+		fs.unlinkSync(CLOSE_FLAG_FILE);
 	}
 }
 
@@ -50,12 +61,30 @@ function critical_error(err){
 	}, null, 2));
 	process.exit(1);
 }
+function sigint_exit(err){
+	fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\nClosed by user (${err})`);
+	const child = spawn('node', ['close.js'], {
+		detached: true,
+		stdio: 'ignore',
+	});
+	child.unref();
+	fs.writeFileSync(CLOSE_FLAG_FILE, JSON.stringify({
+		pid: child.pid,
+		time: Date.now()
+	}, null, 2));
+	process.exit(1);
+}
 process.on('uncaughtException', (err) => {
 	critical_error(err);
 });
 process.on('unhandledRejection', (err) => {
 	critical_error(err);
 });
+process.on('SIGINT', () => sigint_exit('SIGINT (Ctrl+C)'));
+process.on('SIGTERM', () => sigint_exit('SIGTERM (kill)'));
+process.on('SIGHUP', () => sigint_exit('SIGHUP (Terminal closed)'));
+process.on('SIGQUIT', () => sigint_exit('SIGQUIT'));
+
 
 // throw new Error("test");
 const express = require('express');
