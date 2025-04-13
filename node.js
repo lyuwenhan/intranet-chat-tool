@@ -22,16 +22,16 @@ fs.mkdirSync("./error/normal", { recursive: true });
 const ERROR_FLAG_FILE = './error/.error_status.json';
 
 function killOldOnErrorProcess() {
-  if (fs.existsSync(ERROR_FLAG_FILE)) {
+	if (fs.existsSync(ERROR_FLAG_FILE)) {
 	const { pid } = JSON.parse(fs.readFileSync(ERROR_FLAG_FILE));
 	try {
-	  	process.kill(pid);
+			process.kill(pid);
 		console.log("error.js killed");
 	} catch (e) {
-	  	console.warn(`进程结束失败: ${e.message}`);
+			console.warn(`进程结束失败: ${e.message}`);
 	}
 	fs.unlinkSync(ERROR_FLAG_FILE);
-  }
+	}
 }
 
 killOldOnErrorProcess();
@@ -77,10 +77,11 @@ const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
+fs.mkdirSync("./cppfile", { recursive: true });
 const Database = require('better-sqlite3');
 const db = new Database('./data/users.db');
-fs.mkdirSync("./cppfile", { recursive: true });
 const db_codes = new Database('./cppfile/codes.db');
+const db_codelist = new Database('./cppfile/code_list.db');
 const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.readFileSync("keys/cert.pem", 'utf8') };
 const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
@@ -448,6 +449,13 @@ db_codes.prepare(`
 		updated_at INTEGER DEFAULT 0
 	)
 `).run();
+db_codelist.prepare(`
+	CREATE TABLE IF NOT EXISTS code_list (
+		username TEXT NOT NULL,
+		filename TEXT NOT NULL,
+		PRIMARY KEY (username, filename)
+	)
+`).run();
 const insertUser = db.prepare('INSERT INTO users (username, role, salt, hash) VALUES (?, ?, ?, ?)');
 const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
 const deleteUser = db.prepare('DELETE FROM users WHERE username = ?');
@@ -459,7 +467,19 @@ const saveRoCode = db_codes.prepare('INSERT INTO codes (filename, readOnly, rona
 const deleteCode = db_codes.prepare('DELETE FROM codes WHERE filename = ?');
 const refreshCode = db_codes.prepare(`UPDATE codes SET updated_at = ? WHERE filename = ?`);
 const getOldCode = db_codes.prepare(`SELECT filename FROM codes WHERE updated_at <= ?`);
-// console.log(getAllUsers.all());
+const saveCodeList = db_codelist.prepare('INSERT OR IGNORE INTO code_list (username, filename) VALUES (?, ?)');
+const getCodes = db_codelist.prepare('SELECT filename FROM code_list WHERE username = ?');
+const deleteCodeListFU = db_codelist.prepare('DELETE FROM code_list WHERE username = ? AND filename = ?');
+const deleteCodeListFF = db_codelist.prepare('DELETE FROM code_list WHERE filename = ?');
+const getUsername = db_codelist.prepare('SELECT 1 FROM code_list WHERE filename = ? LIMIT 1');
+function getCodeList(username) {
+	return getCodes.all(username).map(row => row.filename);
+}
+function testFilename(filename) {
+	return !!getUsername.get(filename);
+}
+
+console.log(getAllUsers.all());
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -969,6 +989,7 @@ function deleteFile(filename){
 		}
 	}
 	deleteCode.run(filename);
+	deleteCodeListFF.run(filename);
 }
 function refreshFile(filename){
 	if(!filename){
@@ -1016,6 +1037,7 @@ app.post('/cpp-save', (req, res) => {
 			return;
 		}
 		saveCode(receivedContent.code || "", filename, receivedContent.type);
+		saveCodeList.run(req.session.username, filename);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "cp" && receivedContent.link){
@@ -1060,6 +1082,25 @@ app.post('/cpp-save', (req, res) => {
 		let ro = file?.readOnly;
 		refreshFile(filename);
 		res.json({ message: 'success', readOnly: ro, cppfile: fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }), unsave_cppfile: fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' }), inputfile: fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) });
+		return;
+	}else if(receivedContent.type == "getList"){
+		res.json(getCodeList(req.session.username));
+		return;
+	}else if(receivedContent.type == "delete" && receivedContent.link){
+		if(!isValidUUIDv4(receivedContent.link)){
+			res.json({ message: 'faild' });
+			return;
+		}
+		const filename = receivedContent.link;
+		const file = getCode.get(filename);
+		if(!file){
+			res.json({ message: 'faild' });
+			return;
+		}
+		deleteCodeListFU.run(req.session.username, filename);
+		if(!testFilename(filename)){
+			deleteFile(filename);
+		}
 		return;
 	}
 	res.json({ message: 'faild' });

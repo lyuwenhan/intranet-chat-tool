@@ -16,218 +16,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-.CodeMirror {
-	line-height: 1.3em !important;
-	height: 100% !important;
+
+ html{
+	tab-size: 4;
 }
 
 body{
 	margin: 0;
 	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
 }
-.well{
-	background-color: rgb(247, 247, 247);
-	border: 1px solid rgb(227, 227, 227);
-	border-radius: 7px;
-	padding: 19px;
-}
-.input-we{
-	top: 0;
-	left: 0;
-	position: absolute;
-	width: calc( 100% - 40px );
-}
-.output-we{
-	left: 0;
-	position: absolute;
-	width: calc( 100% - 40px );
-}
-.error-we{
-	left: 0;
-	position: absolute;
-	width: calc( 100% - 40px );
-}
-.top{
-	border-radius: 7px;
-	border-bottom-left-radius: 0px;
-	border-bottom-right-radius: 0px;
-}
-.bottom{
-	border-radius: 7px;
-	border-top-left-radius: 0px;
-	border-top-right-radius: 0px;
-}
-.full{
-	border-radius: 7px;
-}
-.no{
-	border-radius: 0px;
-}
-.pla4{
-	top: 40%;
-}
-.pla6{
-	top: 60%;
-}
-.pla7{
-	top: 70%;
-}
-.hei3{
-	height: calc( 30% - 40px );
-}
-.hei4{
-	height: calc( 40% - 40px );
-}
-.hei5{
-	height: calc( 50% - 40px );
-}
-.hei6{
-	height: calc( 60% - 40px );
-}
-.hei10{
-	height: calc( 100% - 40px );
-}
-.code-cm{
-	height: calc(100% - 1.32em - 24px) !important;
-}
-.code-short-cm{
-	height: calc(100% - 1.32em - 12px) !important;
-}
-.code-we{
-	height: calc( 100% - 40px );
-}
-.code-bt{
-	margin-bottom: 20px;
-}
 
-.n-touch{
-	pointer-events: none;
-}
-
-.left {
-	margin: 10px;
-	margin-right: 0px;
-	bottom: 0px;
-	left: 0px;
-	position: fixed;
-	width: calc(60% - 15px);
-	min-width: 320px;
-	overflow: auto;
-	height: calc(100% - 80px);
-}
-
-.right {
-	margin: 10px;
-	margin-left: 0px;
-	bottom: 0px;
-	right: 0px;
-	position: fixed;
-	overflow-y: auto;
-	width: calc(40% - 15px);
-	max-width: calc(100vw - 400px);
-	height: calc(100% - 80px);
-}
-.run{
-	background-color: transparent;
-	border: 1px solid black;
-	cursor: pointer;
-	padding: 5px;
-	display: flex;
-	align-items: center;
-	border-radius: 5px;
-}
-
-#download {
-	cursor: pointer;
-	color:black;
-	text-decoration: none;
-}
-
-html{
-	tab-size: 4;
-	font-size: large;
-}
-
-svg, .copy,.no-select{
+img,br,button,[for=auto-fresh],.lang > a,.no-select{
 	user-select: none;
 	-webkit-user-select: none;
 	-moz-user-select: none;
 	-ms-user-select: none;
+	-webkit-user-drag: none;
 }
-
-.transblack{
-	background-color: rgba(0, 0, 0, 0.2);
-	position: fixed;
-	left: 0;
-	top: 0;
-	height: 100vh;
-	width: 100vw;
-	overflow: hidden;
-	z-index: 100001;
-	/* display: grid; */
-	align-items: center;
+.ban{
+	color:red;
+	font-size: 2em;
 }
-
-.trans{
-	/* position: relative; */
-	position: absolute;
-	background-color: white;
-	height: 300px;
-	width: 500px;
-	top: 0;
-	right: 0;
-	bottom: 0;
-	left: 0;
-	margin: auto;
-	max-height: calc(100vh - 40px);
-	max-width: calc(100vw - 40px);
-	border-radius: 10px;
-	border: 2px solid rgb(79, 79, 79);
-	padding: 18px;
-	overflow: hidden;
-	z-index: 100002;
-}
-.close-btn {
-	position: absolute;
-	top: 10px;
-	right: 10px;
-	width: 20px;
-	height: 20px;
-	cursor: pointer;
-	background: transparent;
-	padding: 10px;
-	margin: -5px;
-}
-
-.close-btn::before, .close-btn::after {
-	content: '';
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: 20px;
-	height: 2px;
-	background-color: black;
-}
-
-.close-btn::before {
-	transform: translate(-50%, -50%) rotate(45deg);
-}
-
-.close-btn::after {
-	transform: translate(-50%, -50%) rotate(-45deg);
-}
-
-.copy{
+.can-click,.bt-grey,.bt-white {
 	cursor: pointer;
 }
-
-.noborder-bt {
-	background: none;
-	border: none;
-	padding: 0;
-	cursor: pointer;
-}
-
 .bt-grey{
 	color:black;
 }
@@ -240,17 +52,18 @@ svg, .copy,.no-select{
 .bt-grey:active,.bt-white:active{
 	opacity: 0.8;
 }
-.bt-grey-text{
-	color:black;
+
+#captcha-img{
+	width: 250px;
+	margin: 10px;
+	border-radius: 10px;
 }
-.bt-grey-text:hover{
-	color:#4c4c4c;
-}
-.bt-grey-text:active{
-	color:#333333;
-}
+
 a{
 	text-decoration: none;
+}
+.main{
+	padding: 10px;
 }
 nav {
 	z-index: 10000002;
@@ -329,6 +142,12 @@ nav>ul>li>ul>li>span:hover{
 }
 nav>ul>li>ul>li>a>span:hover{
 	background-color: rgb(60, 138, 226);
+}
+.show0:hover .show1{
+	display: block;
+}
+.show1{
+	display: none;
 }
 [hidden]{
 	display: none !important;
