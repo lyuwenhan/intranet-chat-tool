@@ -27,7 +27,7 @@
 	<script src="/lib/codemirror.js"></script>
 	<script src="/lib/forge.js"></script>
 	<script src="/lib/uuid.js"></script>
-	<link rel="stylesheet" href="/lib/cpp-runner.css">
+	<link rel="stylesheet" href="/lib/fimeManage.css">
 </head>
 
 <body>
@@ -35,7 +35,7 @@
 		<a href="/" style="line-height: 1em;font-size: 0;"><img src="favicon.png" style="width:52px; height: 52px; padding: 4px;"></a>
 		<ul>
 			<li><a href="/"><span>Home</span></a></li>
-			<li><a href="/cpprunner"><span>Code Runner</span></a></li>
+			<li><a href="/fileManage"><span>File Manage</span></a></li>
 			<li><a href="/manage" id="bt-manage" hidden><span>Manage</span></a></li>
 		</ul>
 		<ul class="pos-right">
@@ -59,7 +59,18 @@
 		<a href="/codeEditor" class="bt-grey">Creat new files</a>
 		<br>
 		<br>
+		<table id="codeTable">
+			<thead>
+				<tr>
+					<th>文件 ID</th>
+					<th>更新时间</th>
+					<th>操作</th>
+				</tr>
+			</thead>
+			<tbody>
+			</tbody>
+		</table>
 	</div>
-	<script src="/lib/cpp-runner.js"></script>
+	<script src="/lib/fimeManage.js"></script>
 </body>
 </html>

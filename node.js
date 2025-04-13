@@ -453,6 +453,7 @@ db_codelist.prepare(`
 	CREATE TABLE IF NOT EXISTS code_list (
 		username TEXT NOT NULL,
 		filename TEXT NOT NULL,
+		updated_at INTEGER DEFAULT 0,
 		PRIMARY KEY (username, filename)
 	)
 `).run();
@@ -467,18 +468,18 @@ const saveRoCode = db_codes.prepare('INSERT INTO codes (filename, readOnly, rona
 const deleteCode = db_codes.prepare('DELETE FROM codes WHERE filename = ?');
 const refreshCode = db_codes.prepare(`UPDATE codes SET updated_at = ? WHERE filename = ?`);
 const getOldCode = db_codes.prepare(`SELECT filename FROM codes WHERE updated_at <= ?`);
-const saveCodeList = db_codelist.prepare('INSERT OR IGNORE INTO code_list (username, filename) VALUES (?, ?)');
-const getCodes = db_codelist.prepare('SELECT filename FROM code_list WHERE username = ?');
+const saveCodeList = db_codelist.prepare(`
+	INSERT INTO code_list (username, filename, updated_at)
+	VALUES (?, ?, ?)
+	ON CONFLICT(username, filename) DO UPDATE SET updated_at = excluded.updated_at
+`);
+const getCodes = db_codelist.prepare('SELECT filename, updated_at FROM code_list WHERE username = ?');
 const deleteCodeListFU = db_codelist.prepare('DELETE FROM code_list WHERE username = ? AND filename = ?');
 const deleteCodeListFF = db_codelist.prepare('DELETE FROM code_list WHERE filename = ?');
 const getUsername = db_codelist.prepare('SELECT 1 FROM code_list WHERE filename = ? LIMIT 1');
-function getCodeList(username) {
-	return getCodes.all(username).map(row => row.filename);
-}
 function testFilename(filename) {
 	return !!getUsername.get(filename);
 }
-
 console.log(getAllUsers.all());
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1037,7 +1038,7 @@ app.post('/cpp-save', (req, res) => {
 			return;
 		}
 		saveCode(receivedContent.code || "", filename, receivedContent.type);
-		saveCodeList.run(req.session.username, filename);
+		saveCodeList.run(req.session.username, filename, (new Date()).toString());
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "cp" && receivedContent.link){
@@ -1084,23 +1085,24 @@ app.post('/cpp-save', (req, res) => {
 		res.json({ message: 'success', readOnly: ro, cppfile: fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }), unsave_cppfile: fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' }), inputfile: fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) });
 		return;
 	}else if(receivedContent.type == "getList"){
-		res.json(getCodeList(req.session.username));
+		res.json(getCodes.all(req.session.username));
 		return;
 	}else if(receivedContent.type == "delete" && receivedContent.link){
 		if(!isValidUUIDv4(receivedContent.link)){
-			res.json({ message: 'faild' });
+			res.json({ message: 'faild1' });
 			return;
 		}
 		const filename = receivedContent.link;
 		const file = getCode.get(filename);
 		if(!file){
-			res.json({ message: 'faild' });
+			res.json({ message: 'faild2' });
 			return;
 		}
 		deleteCodeListFU.run(req.session.username, filename);
 		if(!testFilename(filename)){
 			deleteFile(filename);
 		}
+		res.json({ message: 'success' });
 		return;
 	}
 	res.json({ message: 'faild' });

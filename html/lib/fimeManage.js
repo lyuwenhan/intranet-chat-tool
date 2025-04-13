@@ -170,6 +170,7 @@ async function encryptWithOAEP(plainText, publicKeyPem) {
 	return forge.util.encode64(encrypted);
 }
 const mainele = document.querySelector(".main");
+const tableBody = document.querySelector('#codeTable tbody');
 function getCodeList() {
 	let inputContent = {
 		type: "getList",
@@ -187,24 +188,53 @@ function getCodeList() {
 		if(!data[0]){
 			return;
 		}
-		for(let i = 0; i < data.length; i++){
-			const nele = document.createElement("a");
-			nele.href = `/codeEditor?uuid=${data[i]}`;
-			nele.innerText = data[i] + ".cpp";
-			nele.classList = "bt-grey"
-			mainele.insertAdjacentElement(
-				"beforeend",
-				nele
-			)
-			mainele.insertAdjacentHTML(
-				"beforeend",
-				"<br>"
-			)
-		}
+		tableBody.innerHTML = '';
+		data.forEach((code, index) => {
+			const updated = new Date(code.updated_at).toLocaleString('zh-CN', {
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit'
+			});
+
+			const row = document.createElement('tr');
+			row.innerHTML = `
+				<td><a href="/codeEditor?uuid=${code.filename}" class="bt-grey">${code.filename}.cpp</a></td>
+				<td>${updated}</td>
+				<td><button onclick="deleteCode('${code.filename}')" class="bt-red">删除</button></td>
+			`;
+			tableBody.appendChild(row);
+		});
 	})
 	.catch(error => {
 		console.error('错误:', error);
 	});
+}
+function deleteCode(filename) {
+	if (confirm(`确定要删除文件 "${filename}.cpp" 吗？`)) {
+		let inputContent = { type: "delete", link: filename };
+		safeFetch(`https://${ip}/cpp-save`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ content: inputContent })
+		})
+		.then(response => {
+			return response.json();
+		})
+		.then(data => {
+			console.log("服务器返回的数据:", data);
+			if(data.message == 'success'){
+				location.reload();
+			}
+		})
+		.catch(error => {
+			console.error('错误:', error);
+		});
+	}
 }
 function copy(me, text){
 	var textArea = document.createElement("textarea");
