@@ -759,7 +759,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'Password cannot be empty'});
 			return;
 		}
-		if(pwd.length < 6){
+		if(pwd.length < 8){
 			res.json({ message: 'refuse', info:'Password too short'});
 			return;
 		}

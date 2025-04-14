@@ -193,7 +193,7 @@ document.getElementById('login-form').addEventListener('submit', async function(
 		error_messageele.innerText = "Password must be the same";
 		return;
 	}
-	if(password.length < 6){
+	if(password.length < 8){
 		error_messageele.innerText = "Password too short";
 		return;
 	}
