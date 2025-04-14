@@ -173,26 +173,15 @@ const captchaele = document.getElementById("captcha-img");
 var getCaptchaSuc = false;
 captchaele.onclick = getCaptcha;
 function getCaptcha(){
-	safeFetch('/api/captcha', {
-		method: 'POST'
-	})
-	.then(response => {
-		return response.json();
-	})
-	.then(data=>{
-		console.log('服务器返回的数据:', data)
-		if(data.message == "success"){
-			captchaele.src = data.image;
-			getCaptchaSuc = false;
-			captchaele.onload = ()=>{
-				getCaptchaSuc = true;
-			}
-			captchaele.onerror = function(){
-				this.onerror = null;
-				this.src = 'data:image/svg+xml;charset=utf-8,%3Csvg%20style%3D%22font-family%3A%20ui-monospace%2C%20SFMono-Regular%2C%20SF%20Mono%2C%20Menlo%2C%20Consolas%2C%20Liberation%20Mono%2C%20monospace%3B%22%20width%3D%22300%22%20height%3D%22100%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%09%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23f1f1f1%22/%3E%0A%09%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-size%3D%2270%22%20fill%3D%22%23000000%22%3E%E8%8E%B7%E5%8F%96%E5%A4%B1%E8%B4%A5%3C/text%3E%0A%3C/svg%3E';
-			}
-		}
-	})
+	captchaele.src = "/api/captcha?" + Date.now();
+	getCaptchaSuc = false;
+	captchaele.onload = ()=>{
+		getCaptchaSuc = true;
+	}
+	captchaele.onerror = function(){
+		this.onerror = null;
+		this.src = 'data:image/svg+xml;charset=utf-8,%3Csvg%20style%3D%22font-family%3A%20ui-monospace%2C%20SFMono-Regular%2C%20SF%20Mono%2C%20Menlo%2C%20Consolas%2C%20Liberation%20Mono%2C%20monospace%3B%22%20width%3D%22300%22%20height%3D%22100%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%0A%09%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23f1f1f1%22/%3E%0A%09%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20dominant-baseline%3D%22middle%22%20text-anchor%3D%22middle%22%20font-size%3D%2270%22%20fill%3D%22%23000000%22%3E%E8%8E%B7%E5%8F%96%E5%A4%B1%E8%B4%A5%3C/text%3E%0A%3C/svg%3E';
+	}
 }
 const error_messageele = document.getElementById("error-message");
 document.getElementById('login-form').addEventListener('submit', async function(e) {

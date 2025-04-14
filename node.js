@@ -170,7 +170,7 @@ const limiterConfig = [
 		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 登录注册
 	},
 	{
-		path: 'api/captcha/',
+		path: '/api/captcha/',
 		label: 'auth',
 		max: 5,
 		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 登录注册
@@ -483,7 +483,7 @@ db_codelist.prepare(`
 	CREATE TABLE IF NOT EXISTS code_list (
 		username TEXT NOT NULL,
 		uuid TEXT NOT NULL,
-		filename TEXT NOT NULL,
+		filename TEXT NOT NULL,ca
 		updated_at INTEGER DEFAULT 0,
 		PRIMARY KEY (username, uuid)
 	)
@@ -692,8 +692,13 @@ async function generateCaptcha(options = {}) {
 		ignoreChars: 'Il',
 		...options
 	});
-	return {text: captcha.text,data: `data:image/png;base64,${(await sharp(Buffer.from(captcha.data), { density: 144 }).png().toBuffer()).toString('base64')}`};
+	const buffer = await sharp(Buffer.from(captcha.data), { density: 144 }).png().toBuffer();
+	return {
+		text: captcha.text,
+		data_base64: buffer.toString('base64')
+	};
 }
+
 
 app.post('/api/login/', (req, res) => {
 	const receivedContent = req.body.content || {};
@@ -772,7 +777,7 @@ app.post('/api/login/', (req, res) => {
 	}
 	res.json({ message: 'faild' });
 });
-app.post('/api/captcha', async (req, res) => {
+app.get('/api/captcha', async (req, res) => {
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
@@ -788,8 +793,11 @@ app.post('/api/captcha', async (req, res) => {
 	}
 	const captcha = await generateCaptcha();
 	req.session.captcha = captcha.text.toLowerCase();
-	res.json({ message: 'success', image: captcha.data });
+	res.setHeader('Content-Type', 'image/png');
+	res.setHeader('Cache-Control', 'no-store');
+	res.send(Buffer.from(captcha.data_base64, 'base64'));
 });
+
 
 app.post('/api/', (req, res) => {
 	const receivedContent = req.body.content || {};
@@ -1176,8 +1184,8 @@ app.post('/cpp-save', (req, res) => {
 		const filename = receivedContent.filename;
 		const file = getCode.get(uuid);
 		if(!file){
-			res.json({ message: 'faild2' });
-			return;
+			saveCode("", uuid, "savecpp", "Untitled");
+			saveCodeList.run(req.session.username, "Untitled", Date.now(), uuid);
 		}
 		updateFilename.run(filename, uuid);
 		updateFilenameByUuid.run(filename, uuid);
