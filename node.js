@@ -1086,8 +1086,8 @@ app.post('/cpp-save', (req, res) => {
 		if(!fs.existsSync("cppfile/" + uuid + ".in")){
 			fs.writeFileSync("cppfile/" + uuid + ".in", "");
 		}
-		saveCode(receivedContent.code || "", uuid, receivedContent.type, file?.uuid || "Untitled");
-		saveCodeList.run(req.session.username, file?.uuid || "Untitled", Date.now(), uuid);
+		saveCode(receivedContent.code || "", uuid, receivedContent.type, file?.filename || "Untitled");
+		saveCodeList.run(req.session.username, file?.filename || "Untitled", Date.now(), uuid);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "cp" && receivedContent.link){
@@ -1107,7 +1107,7 @@ app.post('/cpp-save', (req, res) => {
 			fs.writeFileSync("cppfile/" + uuid + ".in", "");
 		}
 		refreshFile(uuid);
-		const name = file.uuid + " copy";
+		const name = file.filename + " copy";
 		const uuid2 = getCpName(uuid, name);
 		saveCodeList.run(req.session.username, name, Date.now(), uuid2);
 		res.json({ message: 'success', link: uuid2 });
@@ -1152,7 +1152,7 @@ app.post('/cpp-save', (req, res) => {
 		}
 		let ro = file?.readOnly;
 		refreshFile(uuid);
-		res.json({ message: 'success', uuid: file?.uuid || "Untitled", readOnly: ro, cppfile, unsave_cppfile, inputfile });
+		res.json({ message: 'success', uuid: file?.filename || "Untitled", readOnly: ro, cppfile, unsave_cppfile, inputfile });
 		return;
 	}else if(receivedContent.type == "getList"){
 		res.json(getCodes.all(req.session.username));
