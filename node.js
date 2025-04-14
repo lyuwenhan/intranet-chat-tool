@@ -554,7 +554,6 @@ var waiting=null;
 const ban_list = [];
 var ban_list2 = to_json(banFilePath);
 const ban_name = ["sb", "shabi", "dashabi", "shab", "shb", "sabi", "sab", "hundan"];
-// const ip_cntlimit = [20, 700];
 var data = [{chats : []}, {chats : []}];
 const cleartime = 1000 * 60 * 60 * 24 * 14;
 let cpp_runlist = Promise.resolve();
@@ -1021,30 +1020,30 @@ function getCpName(filename, name) {
 	saveNewCode.run(filename2, name, now, now);
 	return filename2;
 }
-function deleteFile(filename){
+function deleteFile(uuid){
 	const basePath = "cppfile/";
 	const suffixes = ["-unsave.cpp", ".cpp", ".in"];
 	for(const ext of suffixes){
-		const filePath = path.join(basePath, filename + ext);
+		const filePath = path.join(basePath, uuid + ext);
 		if(fs.existsSync(filePath)){
 			fs.rmSync(filePath, { force: true });
 		}
 	}
-	deleteCode.run(filename);
-	deleteCodeListFF.run(filename);
+	deleteCode.run(uuid);
+	deleteCodeListFF.run(uuid);
 }
-function refreshFile(filename){
-	if(!filename){
+function refreshFile(uuid){
+	if(!uuid){
 		return;
 	}
 	const now = Date.now();
-	refreshCode.run(now, filename);
+	refreshCode.run(now, uuid);
 }
 function cleanOldCode(){
 	const now = Date.now();
 	const expired = getOldCode.all(now - cleartime);
 	for(const row of expired){
-		deleteFile(row.filename);
+		deleteFile(row.uuid);
 	}
 }
 
@@ -1072,88 +1071,88 @@ app.post('/cpp-save', (req, res) => {
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}else if((receivedContent.type == "savecpp" || receivedContent.type == "savecpp-unsave" || receivedContent.type == "saveinput") && receivedContent.link){
-		const filename = receivedContent.link;
-		const file = getCode.get(filename);
-		if(!isValidUUIDv4(filename) || (file && file.readOnly)){
+		const uuid = receivedContent.link;
+		const file = getCode.get(uuid);
+		if(!isValidUUIDv4(uuid) || (file && file.readOnly)){
 			res.json({ message: 'faild' });
 			return;
 		}
-		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
-			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
+		if(!fs.existsSync("cppfile/" + uuid + "-unsave.cpp")){
+			fs.writeFileSync("cppfile/" + uuid + "-unsave.cpp", "");
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
-			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		if(!fs.existsSync("cppfile/" + uuid + ".cpp")){
+			fs.writeFileSync("cppfile/" + uuid + ".cpp", "");
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".in")){
-			fs.writeFileSync("cppfile/" + filename + ".in", "");
+		if(!fs.existsSync("cppfile/" + uuid + ".in")){
+			fs.writeFileSync("cppfile/" + uuid + ".in", "");
 		}
-		saveCode(receivedContent.code || "", filename, receivedContent.type, file?.filename || "Untitled");
-		saveCodeList.run(req.session.username, file?.filename || "Untitled", Date.now(), filename);
+		saveCode(receivedContent.code || "", uuid, receivedContent.type, file?.uuid || "Untitled");
+		saveCodeList.run(req.session.username, file?.uuid || "Untitled", Date.now(), uuid);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "cp" && receivedContent.link){
-		const filename = receivedContent.link;
-		const file = getCode.get(filename);
-		if(!isValidUUIDv4(filename) || !file){
+		const uuid = receivedContent.link;
+		const file = getCode.get(uuid);
+		if(!isValidUUIDv4(uuid) || !file){
 			res.json({ message: 'faild' });
 			return;
 		}
-		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
-			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
+		if(!fs.existsSync("cppfile/" + uuid + "-unsave.cpp")){
+			fs.writeFileSync("cppfile/" + uuid + "-unsave.cpp", "");
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
-			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		if(!fs.existsSync("cppfile/" + uuid + ".cpp")){
+			fs.writeFileSync("cppfile/" + uuid + ".cpp", "");
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".in")){
-			fs.writeFileSync("cppfile/" + filename + ".in", "");
+		if(!fs.existsSync("cppfile/" + uuid + ".in")){
+			fs.writeFileSync("cppfile/" + uuid + ".in", "");
 		}
-		refreshFile(filename);
-		const name = file.filename + " copy";
-		const filename2 = getCpName(filename, name);
-		saveCodeList.run(req.session.username, name, Date.now(), filename2);
-		res.json({ message: 'success', link: filename2 });
+		refreshFile(uuid);
+		const name = file.uuid + " copy";
+		const uuid2 = getCpName(uuid, name);
+		saveCodeList.run(req.session.username, name, Date.now(), uuid2);
+		res.json({ message: 'success', link: uuid2 });
 		return;
 	}else if(receivedContent.type == "cpro" && receivedContent.link){
-		const filename = receivedContent.link;
-		const file = getCode.get(filename);
-		if(!isValidUUIDv4(filename) || !file){
+		const uuid = receivedContent.link;
+		const file = getCode.get(uuid);
+		if(!isValidUUIDv4(uuid) || !file){
 			res.json({ message: 'faild' });
 			return;
 		}
-		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
-			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
+		if(!fs.existsSync("cppfile/" + uuid + "-unsave.cpp")){
+			fs.writeFileSync("cppfile/" + uuid + "-unsave.cpp", "");
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
-			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		if(!fs.existsSync("cppfile/" + uuid + ".cpp")){
+			fs.writeFileSync("cppfile/" + uuid + ".cpp", "");
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".in")){
-			fs.writeFileSync("cppfile/" + filename + ".in", "");
+		if(!fs.existsSync("cppfile/" + uuid + ".in")){
+			fs.writeFileSync("cppfile/" + uuid + ".in", "");
 		}
-		refreshFile(filename);
-		res.json({ message: 'success', link: getRoName(filename) });
+		refreshFile(uuid);
+		res.json({ message: 'success', link: getRoName(uuid) });
 		return;
 	}else if(receivedContent.type == "read" && receivedContent.link){
 		if(!isValidUUIDv4(receivedContent.link)){
 			res.json({ message: 'faild' });
 			return;
 		}
-		const filename = receivedContent.link;
-		const file = getCode.get(filename);
+		const uuid = receivedContent.link;
+		const file = getCode.get(uuid);
 		let unsave_cppfile = "";
-		if(fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
-			unsave_cppfile = fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' });
+		if(fs.existsSync("cppfile/" + uuid + "-unsave.cpp")){
+			unsave_cppfile = fs.readFileSync("cppfile/" + uuid + "-unsave.cpp", { encoding: 'utf-8' });
 		}
 		let cppfile = "";
-		if(fs.existsSync("cppfile/" + filename + ".cpp")){
-			cppfile = fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' });;
+		if(fs.existsSync("cppfile/" + uuid + ".cpp")){
+			cppfile = fs.readFileSync("cppfile/" + uuid + ".cpp", { encoding: 'utf-8' });;
 		}
 		let inputfile = "";
-		if(fs.existsSync("cppfile/" + filename + ".in")){
-			inputfile = fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' });
+		if(fs.existsSync("cppfile/" + uuid + ".in")){
+			inputfile = fs.readFileSync("cppfile/" + uuid + ".in", { encoding: 'utf-8' });
 		}
 		let ro = file?.readOnly;
-		refreshFile(filename);
-		res.json({ message: 'success', filename: file?.filename || "Untitled", readOnly: ro, cppfile, unsave_cppfile, inputfile });
+		refreshFile(uuid);
+		res.json({ message: 'success', uuid: file?.uuid || "Untitled", readOnly: ro, cppfile, unsave_cppfile, inputfile });
 		return;
 	}else if(receivedContent.type == "getList"){
 		res.json(getCodes.all(req.session.username));
@@ -1163,15 +1162,15 @@ app.post('/cpp-save', (req, res) => {
 			res.json({ message: 'faild' });
 			return;
 		}
-		const filename = receivedContent.link;
-		const file = getCode.get(filename);
+		const uuid = receivedContent.link;
+		const file = getCode.get(uuid);
 		if(!file){
 			res.json({ message: 'faild' });
 			return;
 		}
-		deleteCodeListFU.run(req.session.username, filename);
-		if(!testFilename(filename)){
-			deleteFile(filename);
+		deleteCodeListFU.run(req.session.username, uuid);
+		if(!testuuid(uuid)){
+			deleteFile(uuid);
 		}
 		res.json({ message: 'success' });
 		return;
@@ -1184,8 +1183,9 @@ app.post('/cpp-save', (req, res) => {
 		const filename = receivedContent.filename;
 		const file = getCode.get(uuid);
 		if(!file){
-			saveCode("", uuid, "savecpp", "Untitled");
-			saveCodeList.run(req.session.username, "Untitled", Date.now(), uuid);
+			const now = Date.now();
+			saveNewCode.run(filename, realname, now, now);
+			saveCodeList.run(req.session.username, "Untitled", now, uuid);
 		}
 		updateFilename.run(filename, uuid);
 		updateFilenameByUuid.run(filename, uuid);
