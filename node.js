@@ -1145,7 +1145,7 @@ app.post('/cpp-save', (req, res) => {
 		}
 		let ro = file?.readOnly;
 		refreshFile(filename);
-		res.json({ message: 'success', filename: file.filename, readOnly: ro, cppfile, unsave_cppfile, inputfile });
+		res.json({ message: 'success', filename: file?.filename || "Untitled", readOnly: ro, cppfile, unsave_cppfile, inputfile });
 		return;
 	}else if(receivedContent.type == "getList"){
 		res.json(getCodes.all(req.session.username));
