@@ -963,7 +963,7 @@ function isValidUUIDv4(uuid) {
 	return regex.test(uuid);
 }
 
-function saveCode(code, filename, type){
+function saveCode(code, filename, type, realname){
 	if (!filename || !type){
 		return
 	};
@@ -977,7 +977,7 @@ function saveCode(code, filename, type){
 		fs.writeFileSync(path.join(basePath, `${filename}.in`), code || "");
 	}
 	const now = Date.now();
-	saveNewCode.run(filename, filename, now, now);
+	saveNewCode.run(filename, realname, now, now);
 }
 function getRoName(filename) {
 	const record = getCode.get(filename);
@@ -1070,7 +1070,16 @@ app.post('/cpp-save', (req, res) => {
 			res.json({ message: 'faild' });
 			return;
 		}
-		saveCode(receivedContent.code || "", filename, receivedContent.type);
+		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
+			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
+			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".in")){
+			fs.writeFileSync("cppfile/" + filename + ".in", "");
+		}
+		saveCode(receivedContent.code || "", filename, receivedContent.type, file?.filename || "Untitled");
 		saveCodeList.run(req.session.username, file?.filename || "Untitled", Date.now(), filename);
 		res.json({ message: 'success' });
 		return;
@@ -1080,6 +1089,15 @@ app.post('/cpp-save', (req, res) => {
 		if(!isValidUUIDv4(filename) || !file){
 			res.json({ message: 'faild' });
 			return;
+		}
+		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
+			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
+			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".in")){
+			fs.writeFileSync("cppfile/" + filename + ".in", "");
 		}
 		refreshFile(filename);
 		const name = file.filename + " copy";
@@ -1094,6 +1112,15 @@ app.post('/cpp-save', (req, res) => {
 			res.json({ message: 'faild' });
 			return;
 		}
+		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
+			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
+			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		}
+		if(!fs.existsSync("cppfile/" + filename + ".in")){
+			fs.writeFileSync("cppfile/" + filename + ".in", "");
+		}
 		refreshFile(filename);
 		res.json({ message: 'success', link: getRoName(filename) });
 		return;
@@ -1104,21 +1131,21 @@ app.post('/cpp-save', (req, res) => {
 		}
 		const filename = receivedContent.link;
 		const file = getCode.get(filename);
-		if(!fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
-			saveCode(receivedContent.code || "", filename, "savecpp-unsave");
-			fs.writeFileSync("cppfile/" + filename + "-unsave.cpp", "");
+		let unsave_cppfile = "";
+		if(fs.existsSync("cppfile/" + filename + "-unsave.cpp")){
+			unsave_cppfile = fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' });
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".cpp")){
-			saveCode(receivedContent.code || "", filename, "savecpp-cpponly");
-			fs.writeFileSync("cppfile/" + filename + ".cpp", "");
+		let cppfile = "";
+		if(fs.existsSync("cppfile/" + filename + ".cpp")){
+			cppfile = fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' });;
 		}
-		if(!fs.existsSync("cppfile/" + filename + ".in")){
-			saveCode(receivedContent.code || "", filename, "saveinput");
-			fs.writeFileSync("cppfile/" + filename + ".in", "");
+		let inputfile = "";
+		if(fs.existsSync("cppfile/" + filename + ".in")){
+			inputfile = fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' });
 		}
 		let ro = file?.readOnly;
 		refreshFile(filename);
-		res.json({ message: 'success', filename: file.filename, readOnly: ro, cppfile: fs.readFileSync("cppfile/" + filename + ".cpp", { encoding: 'utf-8' }), unsave_cppfile: fs.readFileSync("cppfile/" + filename + "-unsave.cpp", { encoding: 'utf-8' }), inputfile: fs.readFileSync("cppfile/" + filename + ".in", { encoding: 'utf-8' }) });
+		res.json({ message: 'success', filename: file.filename, readOnly: ro, cppfile, unsave_cppfile, inputfile });
 		return;
 	}else if(receivedContent.type == "getList"){
 		res.json(getCodes.all(req.session.username));
