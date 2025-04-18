@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+console.log("Starting...");
 const fs = require('fs');
 const { spawn, execSync } = require('child_process');
 
@@ -21,7 +21,9 @@ fs.mkdirSync("./error/critical", { recursive: true });
 fs.mkdirSync("./error/normal", { recursive: true });
 const ERROR_FLAG_FILE = './error/.error_status.json';
 const CLOSE_FLAG_FILE = './error/.close_status.json';
-
+// if (process.stdout.isTTY) {
+// 	process.exit(1);
+// }
 function killOldOnErrorProcess() {
 	if (fs.existsSync(ERROR_FLAG_FILE)) {
 		const { pid } = JSON.parse(fs.readFileSync(ERROR_FLAG_FILE));
@@ -62,17 +64,17 @@ function critical_error(err){
 	process.exit(1);
 }
 function sigint_exit(err){
-	fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\nClosed by user (${err})`);
-	const child = spawn('node', ['close.js'], {
-		detached: true,
-		stdio: 'ignore',
-	});
-	child.unref();
-	fs.writeFileSync(CLOSE_FLAG_FILE, JSON.stringify({
-		pid: child.pid,
-		time: Date.now()
-	}, null, 2));
-	process.exit(1);
+	// fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\nClosed by user (${err})`);
+	// const child = spawn('node', ['close.js'], {
+	// 	detached: true,
+	// 	stdio: 'ignore',
+	// });
+	// child.unref();
+	// fs.writeFileSync(CLOSE_FLAG_FILE, JSON.stringify({
+	// 	pid: child.pid,
+	// 	time: Date.now()
+	// }, null, 2));
+	process.exit(0);
 }
 process.on('uncaughtException', (err) => {
 	critical_error(err);
@@ -254,7 +256,7 @@ const { exec } = require('child_process');
 
 const session = require('express-session');
 
-app.use(session({
+const sessionParser = session({
 	secret: session_pwd,
 	resave: false,
 	saveUninitialized: true,
@@ -265,7 +267,8 @@ app.use(session({
 		sameSite: 'Strict',
 		maxAge: 1000 * 60 * 30
 	}
-}));
+});
+app.use(sessionParser);
 app.use((req, res, next) => {
 	res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
 	next();
@@ -557,6 +560,7 @@ const ban_name = ["sb", "shabi", "dashabi", "shab", "shb", "sabi", "sab", "hunda
 var data = [{chats : []}, {chats : []}];
 const cleartime = 1000 * 60 * 60 * 24 * 14;
 let cpp_runlist = Promise.resolve();
+const cppQueue = [];
 
 function start_runcpp(command) {
 	return new Promise(resolve => {
@@ -565,14 +569,6 @@ function start_runcpp(command) {
 		});
 	});
 }
-function runcpp(command, callback){
-	cpp_runlist = cpp_runlist.then(() => {
-		return start_runcpp(command).then(result => {
-			callback(result.error, result.stdout, result.stderr);
-		});
-	}).catch(() => {});
-}
-
 function getToday() {
 	return new Date().toISOString().split('T')[0];
 }
@@ -725,6 +721,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'Username is not valid'});
 			return;
 		}
+		receivedContent.username = receivedContent.username.toLowerCase();
 		const pwd = encodeRSA(receivedContent.pwd);
 		const userinfo = findUser(receivedContent.username);
 		if((userinfo && pwd && sha256(pwd + userinfo.salt) === userinfo.hash)){
@@ -744,6 +741,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'Username is not valid'});
 			return;
 		}
+		receivedContent.username = receivedContent.username.toLowerCase();
 		const userinfo = findUser(receivedContent.username);
 		if(userinfo){
 			res.json({ message: 'refuse', info:'Username already exists'});
@@ -836,10 +834,12 @@ app.post('/api/', (req, res) => {
 			res.json({ message: 'faild' });
 			return;
 		}
-		data[0].chats.push({username:req.session.username, info:receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd(),ip:receivedContent.ip, type:"text"});
+		const chat = {username:req.session.username, info:receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd(),ip:receivedContent.ip, type:"text"};
+		data[0].chats.push(chat);
 		data[1].chats.push(rawip);
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-		res.json({ message: 'success' , chats: data[0].chats});
+		broadcastChat(chat);
+		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "send-code"){
 		if(!receivedContent.info || receivedContent.info.replace(/\n+/g, "\n").trimEnd() == ""){
@@ -859,7 +859,8 @@ app.post('/api/', (req, res) => {
 		data[0].chats.push(js);
 		data[1].chats.push(rawip);
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
-		res.json({ message: 'success' , chats: data[0].chats});
+		broadcastChat(js);
+		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "get"){
 		res.json(data[0]);
@@ -923,11 +924,14 @@ app.post('/cpp-run', (req, res) => {
 	if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
-	}else if(receivedContent.type == "run-code"){
-		if(!receivedContent.code || receivedContent.code.replace(/\n+/g, "\n").trimStart().trimEnd() == ""){
+	}else if(receivedContent.type == "run-code" || isValidUUIDv4(receivedContent.token || '')){
+		if(!receivedContent.code || receivedContent.code.replace(/\n+/g, "\n").trimStart().trimEnd() == "" || req.session.cppRunning){
 			res.json({ message: 'faild' });
 			return;
 		}
+		console.log(req.session.cppRunning);
+		req.session.cppRunning = true;
+		req.session.save(err=>{});
 		const filename = uuidv4() + "";
 		const cpp = "judge/codes/" + filename + ".cpp";
 		const input = "judge/inputfiles/" + filename + ".in";
@@ -936,7 +940,6 @@ app.post('/cpp-run', (req, res) => {
 		const exefile = "judge/exefiles/" + filename + ".exe";
 		fs.writeFileSync(cpp, receivedContent.code || "");
 		fs.writeFileSync(input, (receivedContent.input ? receivedContent.input : ""));
-		req.session.cppRunning = true;
 		runcpp("judge\\judge.exe " + cpp + " " + input + " uploads/" + output + " uploads/" + errfile + " " + exefile + " 10000 128 1048576 -O2", (error, stdout, stderr) => {
 			fs.rm(cpp, (err)=>{});
 			fs.rm(input, (err)=>{});
@@ -960,7 +963,7 @@ app.post('/cpp-run', (req, res) => {
 			req.session.save(err=>{});
 			fs.appendFileSync("log/run.log", `${ip} ${now} ${(new Date()).toString()} end\n`);
 			res.json({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
-		});
+		}, req.session.username, receivedContent.token);
 		return;
 	}
 	res.json({ message: 'faild' });
@@ -1152,7 +1155,7 @@ app.post('/cpp-save', (req, res) => {
 		}
 		let ro = file?.readOnly;
 		refreshFile(uuid);
-		res.json({ message: 'success', uuid: file?.filename || "Untitled", readOnly: ro, cppfile, unsave_cppfile, inputfile });
+		res.json({ message: 'success', filename: file?.filename || "Untitled", readOnly: ro, cppfile, unsave_cppfile, inputfile });
 		return;
 	}else if(receivedContent.type == "getList"){
 		res.json(getCodes.all(req.session.username));
@@ -1169,7 +1172,7 @@ app.post('/cpp-save', (req, res) => {
 			return;
 		}
 		deleteCodeListFU.run(req.session.username, uuid);
-		if(!testuuid(uuid)){
+		if(!testFilename(uuid)){
 			deleteFile(uuid);
 		}
 		res.json({ message: 'success' });
@@ -1184,7 +1187,7 @@ app.post('/cpp-save', (req, res) => {
 		const file = getCode.get(uuid);
 		if(!file){
 			const now = Date.now();
-			saveNewCode.run(filename, realname, now, now);
+			saveNewCode.run(uuid, "Unittled", now, now);
 			saveCodeList.run(req.session.username, "Untitled", now, uuid);
 		}
 		updateFilename.run(filename, uuid);
@@ -1512,7 +1515,8 @@ app.post('/upload', upload.single('file'), (req, res) => {
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		data[0].chats.push(receivedContent);
 		data[1].chats.push(rawip);
-		res.send({message: 'success', chats: data[0].chats});
+		broadcastChat(receivedContent);
+		res.send({message: 'success'});
 	} else {
 		res.send({message: "faild", info: "no file"});
 	}
@@ -1589,7 +1593,8 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		data[0].chats.push(receivedContent);
 		data[1].chats.push(rawip);
-		res.send({message: 'success', chats: data[0].chats});
+		broadcastChat(receivedContent);
+		res.send({message: 'success'});
 	} else {
 		res.send({message: "faild", info: "no file"});
 	}
@@ -1784,8 +1789,8 @@ app.use((err, req, res, next) => {
 	}
 	next(err); // 如果不是 `multer` 错误，继续传递错误
 });
-
-https.createServer(credentials, app).listen(port, () => {
+const httpsServer = https.createServer(credentials, app);
+httpsServer.listen(port, () => {
 	console.log(`服务器运行在: http://localhost:${port} && `);
 	console.log(`main https server运行在: http://localhost:${port} && `);
 	console.log(`https server2运行在: http://localhost:${port}`);
@@ -1815,3 +1820,117 @@ http.createServer((req, res) => {
 		throw err;
 	}
 });
+
+const WebSocket = require('ws');
+const chatClients = new Map();
+
+const wss = new WebSocket.Server({ server: httpsServer });
+const wsTokenMap = new Map();
+wss.on('connection', (ws, req) => {
+	sessionParser(req, {}, () => {
+		const username = req.session?.username;
+		const ip = req.socket.remoteAddress.replace("::ffff:", "");
+
+		if (!username) {
+			ws.close(1008, "Unauthorized");
+			return;
+		}
+		if (!chatClients.has(username)) chatClients.set(username, []);
+		chatClients.get(username).push(ws);
+		ws.on('close', () => {
+			if (username) {
+				if (chatClients.has(username)) {
+					const filtered = chatClients.get(username).filter(w => w !== ws);
+					if (filtered.length) chatClients.set(username, filtered);
+					else chatClients.delete(username);
+				}
+			}
+			if (ws.meta?.token) {
+				wsTokenMap.delete(ws.meta.token);
+			}
+		});
+		ws.on('message', (msg) => {
+			try {
+				const data = JSON.parse(msg);
+
+				if (data.type === 'init') {
+					const role = data.role;
+					if (role === 'cpprunner') {
+						let token = data.token;
+						if(isValidUUIDv4(token)){
+							wsTokenMap.set(token, ws);
+							ws.meta = { username, token, role: "cpprunner" };
+							ws.send(JSON.stringify({ type: "ack", message: "cpprunner connected", token }));
+						}else{
+							ws.send(JSON.stringify({ type: "error", message: "Invalid token" }));
+							ws.close(4001, "Invalid token");
+						}
+					} else if (role === 'chatroom') {
+						ws.meta = { username, role };
+						ws.send(JSON.stringify({ type: "ack", message: "chatroom connection ready" }));
+					} else {
+						ws.close(4002, "Unknown role");
+					}
+				}
+
+			} catch (err) {
+				console.log(err);
+				ws.close(4003, "Invalid message format");
+			}
+		});
+	});
+});
+
+
+function notifyStatus(token, message){
+	if(!isValidUUIDv4(token || '')){
+		return;
+	}
+	const ws = wsTokenMap.get(token);
+	if(ws && ws.readyState === WebSocket.OPEN){
+		ws.send(JSON.stringify({ type: 'status', message }));
+	}
+}
+
+function sendFinalResult(token, result){
+	if(!isValidUUIDv4(token || '')){
+		return;
+	}
+	const ws = wsTokenMap.get(token);
+	if(ws && ws.readyState === WebSocket.OPEN){
+		ws.send(JSON.stringify({ type: 'result', ...result }));
+	}
+}
+
+function runcpp(command, callback, username, token){
+	if(!isValidUUIDv4(token || '')){
+		return;
+	}
+	cppQueue.push(token);
+	const position = cppQueue.length - 1;
+	notifyStatus(token, `Queued (${position} ahead)`);
+	cpp_runlist = cpp_runlist.then(async () => {
+		notifyStatus(token, 'Running');
+		const result = await start_runcpp(command);
+		callback(result.error, result.stdout, result.stderr);
+		const idx = cppQueue.indexOf(token);
+		if(idx !== -1){
+			cppQueue.splice(idx, 1);
+		}
+		for(let i = 0; i < cppQueue.length; i++){
+			const t = cppQueue[i];
+			notifyStatus(t, `Queued (${i} ahead)`);
+		}
+	}).catch(()=>{});
+}
+
+function broadcastChat(messageObj){
+	console.log("send:", messageObj);
+	for(const [_, list] of chatClients){
+		list.forEach(ws => {
+			if(ws.readyState === WebSocket.OPEN){
+				ws.send(JSON.stringify({ type: "chat", info: messageObj }));
+			}
+		});
+	}
+}

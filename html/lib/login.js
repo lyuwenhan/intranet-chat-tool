@@ -102,7 +102,57 @@ function isValidIPv4(str) {
 }
 var ip = "";
 var publicKey;
-window.onload = async function () {
+async function encryptWithOAEP(plainText, publicKeyPem) {
+	// 1️⃣ 解析 PEM 格式公钥
+	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
+
+	// 2️⃣ 使用 `RSA-OAEP` 加密数据
+	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
+		md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
+	});
+
+	// 3️⃣ Base64 编码，方便传输
+	return forge.util.encode64(encrypted);
+}
+const error_messageele = document.getElementById("error-message");
+document.getElementById('login-form').addEventListener('submit', async function(e) {
+	e.preventDefault();
+	error_messageele.innerHTML = "";
+	const username = e.target[0].value;
+	const password = e.target[1].value;
+	const encrypted = await encryptWithOAEP(password, publicKey);
+	var inputContent = { type: "login", username, pwd: encrypted };
+	safeFetch(`https://${ip}/api/login`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+		.then(response => {
+			return response.json();
+		})
+		.then(data => {
+			console.log('服务器返回的数据:', data)
+			if(data.message == "success"){
+				if(window.name === 'from-open'){
+					window.close();
+				}else if(window.name === 'from-href'){
+					window.name = "";
+					history.back();
+				}else{
+					location.href='/';
+				}
+			}else{
+				error_messageele.innerText = data.info;
+			}
+		})
+		.catch(error => {
+			console.error('错误:', error);
+		});
+});
+
+document.addEventListener("DOMContentLoaded", () => {
 	let mayip="";
 	if(isValidIPv4(window.location.hostname)){
 		mayip = window.location.hostname;
@@ -162,53 +212,4 @@ window.onload = async function () {
 			console.error('错误:', error);
 		});
 	});
-}
-async function encryptWithOAEP(plainText, publicKeyPem) {
-	// 1️⃣ 解析 PEM 格式公钥
-	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-
-	// 2️⃣ 使用 `RSA-OAEP` 加密数据
-	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
-		md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
-	});
-
-	// 3️⃣ Base64 编码，方便传输
-	return forge.util.encode64(encrypted);
-}
-const error_messageele = document.getElementById("error-message");
-document.getElementById('login-form').addEventListener('submit', async function(e) {
-	e.preventDefault();
-	error_messageele.innerHTML = "";
-	const username = e.target[0].value;
-	const password = e.target[1].value;
-	const encrypted = await encryptWithOAEP(password, publicKey);
-	var inputContent = { type: "login", username, pwd: encrypted };
-	safeFetch(`https://${ip}/api/login`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-		.then(response => {
-			return response.json();
-		})
-		.then(data => {
-			console.log('服务器返回的数据:', data)
-			if(data.message == "success"){
-				if(window.name === 'from-open'){
-					window.close();
-				}else if(window.name === 'from-href'){
-					window.name = "";
-					history.back();
-				}else{
-					location.href='/';
-				}
-			}else{
-				error_messageele.innerText = data.info;
-			}
-		})
-		.catch(error => {
-			console.error('错误:', error);
-		});
 });

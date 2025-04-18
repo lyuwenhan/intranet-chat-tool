@@ -130,62 +130,6 @@ function isValidIPv4(str) {
 	return true;
 }
 var ip = "", username = "";
-window.onload = function () {
-	let mayip="";
-	if(isValidIPv4(window.location.hostname)){
-		mayip = window.location.hostname;
-	}
-	ip = mayip;
-	if(!mayip){
-		ip = prompt("Please enter server ipv4", mayip);
-		while (!isValidIPv4(ip)) {
-			ip = prompt("Enter a valid server ipv4 address", mayip);
-		}
-	}
-	let inputContent = { type: "command", info: "/testadmin" };
-	safeFetch(`https://${ip}/api`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
-	})
-	.then(data => {
-		if(data.message === "success"){
-			document.getElementById("bt-manage").hidden = false;
-		}
-		let inputContent = { type: "get-username" };
-		safeFetch(`https://${ip}/api`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ content: inputContent })
-		})
-		.then(response => {
-			return response.json();
-		})
-		.then(data => {
-			document.getElementById("username").innerText = username = data;
-			if(data){
-				document.getElementById("logout").hidden = false;
-			}else{
-				document.getElementById("login").hidden = false;
-				document.getElementById("sign_up").hidden = false;
-				window.name="from-href";
-				location.href='/login';
-			}
-			readcodes();
-			// get_key();
-		})
-		.catch(error => {
-			console.error('错误:', error);
-		});
-	});
-}
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
 	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
@@ -365,12 +309,12 @@ function submitCode() {
 	let inputContent = {
 		type: "run-code",
 		code: editor.getValue().trimStart().trimEnd(),
-		input: edi_input.getValue().trimStart().trimEnd()
+		input: edi_input.getValue().trimStart().trimEnd(),
+		token
 	};
 	if(!inputContent.code){
 		return;
 	}
-	show("Running");
 	savecode();
 	saveinput();
 	safeFetch(`https://${ip}:/cpp-run`, {
@@ -695,3 +639,113 @@ function copy(me, text){
 		}, 1000)
 	}
 }
+var token = null;
+document.addEventListener("DOMContentLoaded", () => {
+	let mayip="";
+	if(isValidIPv4(window.location.hostname)){
+		mayip = window.location.hostname;
+	}
+	ip = mayip;
+	if(!mayip){
+		ip = prompt("Please enter server ipv4", mayip);
+		while (!isValidIPv4(ip)) {
+			ip = prompt("Enter a valid server ipv4 address", mayip);
+		}
+	}
+	let inputContent = { type: "command", info: "/testadmin" };
+	safeFetch(`https://${ip}/api`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+	.then(response => {
+		return response.json();
+	})
+	.then(data => {
+		if(data.message === "success"){
+			document.getElementById("bt-manage").hidden = false;
+		}
+		let inputContent = { type: "get-username" };
+		safeFetch(`https://${ip}/api`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ content: inputContent })
+		})
+		.then(response => {
+			return response.json();
+		})
+		.then(data => {
+			document.getElementById("username").innerText = username = data;
+			if(data){
+				document.getElementById("logout").hidden = false;
+			}else{
+				document.getElementById("login").hidden = false;
+				document.getElementById("sign_up").hidden = false;
+				window.name="from-href";
+				location.href='/login';
+			}
+			readcodes();
+			// get_key();
+		})
+		.catch(error => {
+			console.error('错误:', error);
+		});
+	});
+	let ws;
+	let reconnectDelay = 1000;
+	const maxDelay = 30000;
+
+	function connectWS(){
+		ws = new WebSocket(`wss://${ip}`, null, { withCredentials: true });
+
+		ws.onopen = () => {
+			console.log("WebSocket connected");
+			reconnectDelay = 1000;
+			token = uuid.v4();
+			ws.send(JSON.stringify({
+				type: "init",
+				role: "cpprunner",
+				token
+			}));
+		};
+
+		ws.onmessage = (event) => {
+			const msg = JSON.parse(event.data);
+			switch (msg.type) {
+				case 'status':
+					show(msg.message);
+					console.log("状态更新:", msg.message);
+					break;
+				case 'result':
+					console.log("评测结果:", msg);
+					break;
+			}
+		};
+
+		ws.onclose = (event) => {
+			console.warn("WebSocket 断开:", event.code, event.reason);
+			retryWS();
+		};
+
+		ws.onerror = (err) => {
+			console.error("WebSocket 错误:", err);
+			ws.close();
+		};
+
+		window.cppWs = ws;
+	}
+
+	function retryWS(){
+		reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
+		console.log(`将在 ${reconnectDelay / 1000} 秒后重连...`);
+		setTimeout(() => {
+			connectWS();
+		}, reconnectDelay);
+	}
+
+	connectWS();
+});

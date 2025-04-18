@@ -94,7 +94,7 @@ form.addEventListener('submit', function(e) {
 
 	// 检查文件大小
 	if (file.size > MAX_FILE_SIZE) {
-		alert('文件大小超过限制！最大允许文件大小为 5MB');
+		alert('File size exceeds limit! The maximum allowed file size is 5MB');
 		fileInput.value = '';
 		return;
 	}
@@ -108,7 +108,6 @@ form.addEventListener('submit', function(e) {
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
-			reloadd(data);
 			alert(`Upload success`);
 		}else{
 			alert(`Upload failure`);
@@ -134,7 +133,7 @@ imgform.addEventListener('submit', function(e) {
 
 	// 检查文件大小
 	if (file.size > MAX_FILE_SIZE) {
-		alert('文件大小超过限制！最大允许文件大小为 5MB');
+		alert('File size exceeds limit! The maximum allowed file size is 5MB');
 		imgInput.value = '';
 		return;
 	}
@@ -148,7 +147,6 @@ imgform.addEventListener('submit', function(e) {
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
-			reloadd(data);
 			alert(`Upload success`);
 		}else{
 			alert(`Upload failure`);
@@ -175,7 +173,6 @@ function formatSize(bytes) {
 
 var last_data = {chats:[]};
 function get_key() {
-	var ret = null;
 	var inputContent = { type: "get-key" };
 	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
@@ -220,82 +217,7 @@ function isValidIPv4(str) {
 	}
 	return true;
 }
-var auto_fresh = document.querySelector("#auto-fresh").checked = (localStorage.getItem("auto-fresh") === "true");
-document.getElementById("auto-fresh").addEventListener("change", function() {
-	localStorage.setItem("auto-fresh", auto_fresh = this.checked);
-});
 var ip = "", username = "";
-window.onload = function () {
-	document.getElementById('inputContent').addEventListener('keydown', function(event) {
-		if (event.key === "Enter") {
-			submitForm();
-		}
-	});
-	document.getElementById('code').addEventListener('keydown', function(event) {
-		if (event.key === "Enter" && event.ctrlKey) {
-			submitCode();
-		}
-	});
-	let mayip="";
-	if(isValidIPv4(window.location.hostname)){
-		mayip = window.location.hostname;
-	}
-	ip = mayip;
-	if(!mayip){
-		ip = prompt("Please enter server ipv4", mayip);
-		while (!isValidIPv4(ip)) {
-			ip = prompt("Enter a valid server ipv4 address", mayip);
-		}
-	}
-	let inputContent = { type: "command", info: "/testadmin" };
-	safeFetch(`https://${ip}/api`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
-	})
-	.then(data => {
-		if(data.message === "success"){
-			document.getElementById("bt-manage").hidden = false;
-		}else{
-			location.replace('/');
-			return;
-
-		}
-		console.log(data.message);
-		let inputContent = { type: "get-username" };
-		safeFetch(`https://${ip}/api`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ content: inputContent })
-		})
-		.then(response => {
-			return response.json();
-		})
-		.then(data => {
-			document.getElementById("username").innerText = username = data;
-			if(data){
-				document.getElementById("logout").hidden = false;
-			}else{
-				document.getElementById("login").hidden = false;
-				document.getElementById("sign_up").hidden = false;
-				window.name="from-href";
-				location.href='/login';
-			}
-			reload();
-			get_key();
-		})
-		.catch(error => {
-			console.error('错误:', error);
-		});
-	});
-}
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 1️⃣ 解析 PEM 格式公钥
 	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
@@ -307,30 +229,6 @@ async function encryptWithOAEP(plainText, publicKeyPem) {
 
 	// 3️⃣ Base64 编码，方便传输
 	return forge.util.encode64(encrypted);
-}
-async function fun_clear() {
-	// if(!confirm("确定要清空吗")){
-	// 	return;
-	// }
-	var inputContent = {
-		type: "command",
-		info: "/clear",
-	};
-	await safeFetch(`http://${ip}:${port}`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => response.json())
-	.then(data => {
-		console.log('服务器返回的数据:', data)
-		if(data.message=="success"){
-			reloadd(data);
-		}
-	})
-	.catch(error => console.error('错误:', error));
 }
 async function fun_clear_by_pwd() {
 	if(!confirm("Are you sure to clear it")){
@@ -359,7 +257,7 @@ async function fun_clear_by_pwd() {
 function submitForm() {
 	var inputContent = {
 		type: "send",
-		info: document.getElementById("inputContent").value.replace(/\n+/g, "\n").trimEnd(),
+		info: document.getElementById("inputContent").value.replace(/\n+/g, "\n").trimEnd()
 	};
 	if(!inputContent.info.replace(/\n+/g, "\n").trimEnd()){
 		return;
@@ -375,14 +273,13 @@ function submitForm() {
 		.then(response => response.json())
 		.then(data => {
 			console.log('服务器返回的数据:', data)
-			reloadd(data);
 		})
 		.catch(error => console.error('错误:', error));
 }
 function submitCode() {
 	var inputContent = {
 		type: "send-code",
-		info: editor.getValue().trimEnd(),
+		info: editor.getValue().trimEnd()
 	};
 	if(!inputContent.info.replace(/\n+/g, "\n").trimEnd()){
 		return;
@@ -403,7 +300,6 @@ function submitCode() {
 		.then(response => response.json())
 		.then(data => {
 			console.log('服务器返回的数据:', data)
-			reloadd(data);
 		})
 		.catch(error => console.error('错误:', error));
 }
@@ -430,6 +326,167 @@ async function loadImageAsDataURL(url, a) {
 	} catch (err) {
 		console.warn("❌ 图片加载失败:", err.message);
 		return a;
+	}
+}
+function reloaddd(data){
+	last_data.chats.push(data);
+	if(data.type == "code" && data.language){
+		document.querySelector(".chat").insertAdjacentHTML(
+			"beforeend",
+			`<strong>[${data.ip}]&nbsp;${(data.username || "").padEnd(8, " ")}: </strong>${data.language}<br>`
+		);
+	}else{
+		document.querySelector(".chat").insertAdjacentHTML(
+			"beforeend",
+			`<strong>[${data.ip}]&nbsp;${(data.username || "").padEnd(8, " ")}: </strong>${data.type}<br>`
+		);
+	}
+	if(data.type == "code"){
+		let ndiv = document.createElement("div");
+		ndiv.classList = "well";
+		let nele = document.createElement("textarea");
+		nele.classList=[`msg-code msg-${i}`];
+		nele.value = data.info;
+		nele.readOnly = true;
+		ndiv.appendChild(nele);
+		ndiv.style.width = "70%";
+		let latele = null, nele1 = null, nele2 = null;
+		if(data.language == "markdown" && data.html){
+			nele1 = document.createElement("a");
+			nele1.innerHTML = "show preview";
+			nele1.classList="bt-grey";
+			nele2 = document.createElement("a");
+			nele2.innerHTML = "show markdown";
+			nele2.classList="bt-grey";
+			ndiv.prepend(document.createElement("br"));
+			ndiv.prepend(document.createElement("br"));
+			ndiv.prepend(nele1);
+			ndiv.prepend(nele2);
+			latele = document.createElement("div");
+			latele.id = "latex";
+			latele.innerHTML = DOMPurify.sanitize(data.html, {
+				FORBID_TAGS: ['style', 'iframe', 'script'],
+				FORBID_ATTR: ['onclick','ondblclick','onmousedown','onmouseup','onmouseenter','onmouseleave','onmouseover','onmouseout','onmousemove','oncontextmenu','onkeydown','onkeypress','onkeyup','onfocus','onblur','onchange','oninput','onreset','onsubmit','oninvalid','ondrag','ondragstart','ondragend','ondragenter','ondragleave','ondragover','ondrop','oncopy','oncut','onpaste','ontouchstart','ontouchmove','ontouchend','ontouchcancel','onscroll','onwheel','onresize','onload','onerror','onabort','onbeforeunload','onunload','onplay','onpause','onended','onvolumechange','oncanplay','oncanplaythrough','onwaiting','onseeking','onseeked','ontimeupdate','onanimationstart','onanimationend','onanimationiteration','ontransitionend','onshow','ontoggle','onmessage','onopen','onclose']
+			});
+			MathJax.typesetPromise([latele]).then(() => {
+				ndiv.appendChild(latele);
+			});
+		}
+		document.querySelector(".chat").appendChild(ndiv);
+		document.querySelector(".chat").appendChild(document.createElement("br"));
+		let cm = CodeMirror.fromTextArea(nele, tomode(languageModes[data.language || "plain text"][1]));
+		cm.setSize("auto", `calc( ${cm.lineCount() * 1.3 + 2.6}em + 8px)`);
+		if(latele){
+			const cmele = cm.getWrapperElement();
+			show(cmele, latele);
+			show(nele1, nele2);
+			nele1.onclick = function(){
+				show(nele2, nele1);
+				show(latele, cmele);
+			}
+			nele2.onclick = function(){
+				show(nele1, nele2);
+				show(cmele, latele);
+			}
+		}
+		setTimeout(function(cm) {
+			cm.setOption("viewportMargin", Infinity);
+		}.bind(null, cm), 5);
+	}else if(data.type == "file" || data.type == "image"){
+		let nele = document.createElement("a");
+		nele.classList="can-click";
+		nele.title="click to download";
+		nele.innerHTML=`${data.filename}&nbsp;&nbsp;[${formatSize(data.size)}]`;
+		nele.onclick=function(){
+			let run = false;
+			safeFetch(`https://${ip}/uploads/test-connect`).then(a=>{
+				run = true;
+				safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`)
+				.then(response => {
+					if (!response.ok) {
+						throw new Error('file connected err');
+					}
+					return response.blob();
+				})
+				.then(blob => {
+					const url = URL.createObjectURL(blob);
+					const a = document.createElement('a');
+					a.style.display = 'none';
+					a.href = url;
+					a.download = data.filename;
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+					URL.revokeObjectURL(url);
+				})
+				.catch(error => {
+					console.error('下载文件时出错:', error);
+				});
+			});
+			setTimeout(function(){
+				if(!run){
+					location.href = `https://${ip}/uploads/allow-connect?from=` + encodeURIComponent(location.href);
+					window.addEventListener('pageshow', function(event) {
+						if (event.persisted || performance.getEntriesByType('navigation')[0].type === 'back_forward') {
+							safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`)
+							.then(response => {
+								if (!response.ok) {
+									throw new Error('file connected err');
+								}
+								return response.blob();
+							})
+							.then(blob => {
+								const url = URL.createObjectURL(blob);
+								const a = document.createElement('a');
+								a.style.display = 'none';
+								a.href = url;
+								a.download = data.filename;
+								document.body.appendChild(a);
+								a.click();
+								document.body.removeChild(a);
+								URL.revokeObjectURL(url);
+							})
+							.catch(error => {
+								console.error('下载文件时出错:', error);
+							});
+						}
+						last_data = {chats:[{info: "Not True"}]};
+						reload();
+					}, {once: true});
+				}
+			},500);
+		}
+		document.querySelector(".chat").appendChild(nele);
+		document.querySelector(".chat").appendChild(document.createElement("br"));
+		if(data.type == "image"){
+			let nele2 = document.createElement("img");
+			nele2.src=`https://${ip}/uploads/img/${data.path}`;
+			nele2.id="img";
+			nele2.title="click to copy the link";
+			nele2.onerror=function(){
+				nele.innerText = 'image broked';
+				nele.id = '';
+				nele.onclick = null;
+				nele.title = '';
+				nele.classList = '';
+				nele.style = 'color:red;font-size:1.1em;';
+				nele2.onclick = null;
+				nele2.id="noimg";
+				nele2.onerror = null;
+				nele2.src="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%20231%20130%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cpath%20fill%3D%22%23E3E9F1%22%20d%3D%22M0%200h231v130H0z%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate(0%2C13.5)%22%3E%3Cpath%20d%3D%22M116%2041c0%208.636-5%2015-15%2015s-15-6.364-15-15%205-15%2015-15%2015%206.364%2015%2015z%22%20fill%3D%22%23CDD5DC%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate(0%2C27)%22%3E%3Cpath%20d%3D%22M231%2089l-41.216-37.138c-2.4-2.874-6.624-5-11.712-5.92-1.824-.287-3.648-.46-5.472-.46-3.36%200-6.72.518-9.696%201.552L101.368%2068.53%2077.752%2058.93c-3.264-1.322-7.008-1.954-10.752-1.954-4.992%200-9.888%201.15-13.536%203.39L0%2087v16h231V89z%22%20fill%3D%22%23CDD5DC%22/%3E%3C/g%3E%3C/svg%3E";
+			};
+			nele2.onclick=function(){
+				copy(null, this.src);
+			};
+			document.querySelector(".chat").appendChild(nele2);
+			document.querySelector(".chat").appendChild(document.createElement("br"));
+		}
+	}else{
+		let nele = document.createElement("code");
+		nele.class=`msg-text msg-${i}`;
+		nele.innerText = data.info;
+		document.querySelector(".chat").appendChild(nele);
+		document.querySelector(".chat").appendChild(document.createElement("br"));
 	}
 }
 function reloadd(data) {
@@ -459,162 +516,7 @@ function reloadd(data) {
 		console.log('新增聊天记录', li);
 	}
 	for (let i = 0; i < li.length; i++) {
-		if(li[i].type == "code" && li[i].language){
-			document.querySelector(".chat").insertAdjacentHTML(
-				"beforeend",
-				`<strong>[${li[i].ip}]&nbsp;${(li[i].username || "").padEnd(8, " ")}: </strong>${li[i].language}<br>`
-			);
-		}else{
-			document.querySelector(".chat").insertAdjacentHTML(
-				"beforeend",
-				`<strong>[${li[i].ip}]&nbsp;${(li[i].username || "").padEnd(8, " ")}: </strong>${li[i].type}<br>`
-			);
-		}
-		if(li[i].type == "code"){
-			let ndiv = document.createElement("div");
-			ndiv.classList = "well";
-			let nele = document.createElement("textarea");
-			nele.classList=[`msg-code msg-${i}`];
-			nele.value = li[i].info;
-			nele.readOnly = true;
-			ndiv.appendChild(nele);
-			ndiv.style.width = "70%";
-			let latele = null, nele1 = null, nele2 = null;
-			if(li[i].language == "markdown" && li[i].html){
-				nele1 = document.createElement("a");
-				nele1.innerHTML = "show preview";
-				nele1.classList="bt-grey";
-				nele2 = document.createElement("a");
-				nele2.innerHTML = "show markdown";
-				nele2.classList="bt-grey";
-				ndiv.prepend(document.createElement("br"));
-				ndiv.prepend(document.createElement("br"));
-				ndiv.prepend(nele1);
-				ndiv.prepend(nele2);
-				latele = document.createElement("div");
-				latele.id = "latex";
-				latele.innerHTML = DOMPurify.sanitize(li[i].html, {
-					FORBID_TAGS: ['style', 'iframe', 'script'],
-					FORBID_ATTR: ['onclick','ondblclick','onmousedown','onmouseup','onmouseenter','onmouseleave','onmouseover','onmouseout','onmousemove','oncontextmenu','onkeydown','onkeypress','onkeyup','onfocus','onblur','onchange','oninput','onreset','onsubmit','oninvalid','ondrag','ondragstart','ondragend','ondragenter','ondragleave','ondragover','ondrop','oncopy','oncut','onpaste','ontouchstart','ontouchmove','ontouchend','ontouchcancel','onscroll','onwheel','onresize','onload','onerror','onabort','onbeforeunload','onunload','onplay','onpause','onended','onvolumechange','oncanplay','oncanplaythrough','onwaiting','onseeking','onseeked','ontimeupdate','onanimationstart','onanimationend','onanimationiteration','ontransitionend','onshow','ontoggle','onmessage','onopen','onclose']
-				});
-				MathJax.typesetPromise([latele]).then(() => {
-					ndiv.appendChild(latele);
-				});
-			}
-			document.querySelector(".chat").appendChild(ndiv);
-			document.querySelector(".chat").appendChild(document.createElement("br"));
-			let cm = CodeMirror.fromTextArea(nele, tomode(languageModes[li[i].language || "plain text"][1]));
-			cm.setSize("auto", `calc( ${cm.lineCount() * 1.3 + 2.6}em + 8px)`);
-			if(latele){
-				const cmele = cm.getWrapperElement();
-				show(cmele, latele);
-				show(nele1, nele2);
-				nele1.onclick = function(){
-					show(nele2, nele1);
-					show(latele, cmele);
-				}
-				nele2.onclick = function(){
-					show(nele1, nele2);
-					show(cmele, latele);
-				}
-			}
-			setTimeout(function(cm) {
-				cm.setOption("viewportMargin", Infinity);
-			}.bind(null, cm), 5);
-		}else if(li[i].type == "file" || li[i].type == "image"){
-			let nele = document.createElement("a");
-			nele.classList="can-click";
-			nele.title="click to download";
-			nele.innerHTML=`${li[i].filename}&nbsp;&nbsp;[${formatSize(li[i].size)}]`;
-			nele.onclick=function(){
-				let run = false;
-				safeFetch(`https://${ip}/uploads/test-connect`).then(a=>{
-					run = true;
-					safeFetch(`https://${ip}/uploads${(li[i].type == "file" ? `` : `/img`)}/download/${li[i].path}`)
-					.then(response => {
-						if (!response.ok) {
-							throw new Error('file connected err');
-						}
-						return response.blob();
-					})
-					.then(blob => {
-						const url = URL.createObjectURL(blob);
-						const a = document.createElement('a');
-						a.style.display = 'none';
-						a.href = url;
-						a.download = li[i].filename;
-						document.body.appendChild(a);
-						a.click();
-						document.body.removeChild(a);
-						URL.revokeObjectURL(url);
-					})
-					.catch(error => {
-						console.error('下载文件时出错:', error);
-					});
-				});
-				setTimeout(function(){
-					if(!run){
-						location.href = `https://${ip}/uploads/allow-connect?from=` + encodeURIComponent(location.href);
-						window.addEventListener('pageshow', function(event) {
-							if (event.persisted || performance.getEntriesByType('navigation')[0].type === 'back_forward') {
-								safeFetch(`https://${ip}/uploads${(li[i].type == "file" ? `` : `/img`)}/download/${li[i].path}`)
-								.then(response => {
-									if (!response.ok) {
-										throw new Error('file connected err');
-									}
-									return response.blob();
-								})
-								.then(blob => {
-									const url = URL.createObjectURL(blob);
-									const a = document.createElement('a');
-									a.style.display = 'none';
-									a.href = url;
-									a.download = li[i].filename;
-									document.body.appendChild(a);
-									a.click();
-									document.body.removeChild(a);
-									URL.revokeObjectURL(url);
-								})
-								.catch(error => {
-									console.error('下载文件时出错:', error);
-								});
-							}
-							last_data = {chats:[{info: "Not True"}]};
-							reload();
-						}, {once: true});
-					}
-				},500);
-			}
-			document.querySelector(".chat").appendChild(nele);
-			document.querySelector(".chat").appendChild(document.createElement("br"));
-			if(li[i].type == "image"){
-				let nele2 = document.createElement("img");
-				nele2.src=`https://${ip}/uploads/img/${li[i].path}`;
-				nele2.id="img";
-				nele2.title="click to copy the link";
-				nele2.onerror=function(){
-					nele.innerHTML = `<span style="color:red;font-size:1.1em;">image broked</span>`;
-					nele.id = '';
-					nele.onclick = null;
-					nele.title="";
-					nele2.onclick = null;
-					nele2.id="noimg";
-					nele2.onerror = null;
-					nele2.src="data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%20231%20130%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cpath%20fill%3D%22%23E3E9F1%22%20d%3D%22M0%200h231v130H0z%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate(0%2C13.5)%22%3E%3Cpath%20d%3D%22M116%2041c0%208.636-5%2015-15%2015s-15-6.364-15-15%205-15%2015-15%2015%206.364%2015%2015z%22%20fill%3D%22%23CDD5DC%22/%3E%3C/g%3E%3Cg%20transform%3D%22translate(0%2C27)%22%3E%3Cpath%20d%3D%22M231%2089l-41.216-37.138c-2.4-2.874-6.624-5-11.712-5.92-1.824-.287-3.648-.46-5.472-.46-3.36%200-6.72.518-9.696%201.552L101.368%2068.53%2077.752%2058.93c-3.264-1.322-7.008-1.954-10.752-1.954-4.992%200-9.888%201.15-13.536%203.39L0%2087v16h231V89z%22%20fill%3D%22%23CDD5DC%22/%3E%3C/g%3E%3C/svg%3E";
-				};
-				nele2.onclick=function(){
-					copy(null, this.src);
-				};
-				document.querySelector(".chat").appendChild(nele2);
-				document.querySelector(".chat").appendChild(document.createElement("br"));
-			}
-		}else{
-			let nele = document.createElement("code");
-			nele.class=`msg-text msg-${i}`;
-			nele.innerText = li[i].info;
-			document.querySelector(".chat").appendChild(nele);
-			document.querySelector(".chat").appendChild(document.createElement("br"));
-		}
+		reloaddd(li[i]);
 	}
 	last_data = data;
 	setTimeout(function() {
@@ -647,12 +549,6 @@ function reload() {
 			console.error('错误:', error);
 		});
 }
-function au_reload(){
-	if(auto_fresh){
-		reload();
-	}
-}
-setInterval(function(){au_reload()}, 1000);
 const renderer = new marked.Renderer();
 
 // 手动 HTML 转义，防止 XSS
@@ -804,3 +700,122 @@ function copy(me, text){
 		alert("copied");
 	}
 }
+document.addEventListener("DOMContentLoaded", () => {
+	document.getElementById('inputContent').addEventListener('keydown', function(event) {
+		if (event.key === "Enter") {
+			submitForm();
+		}
+	});
+	document.getElementById('code').addEventListener('keydown', function(event) {
+		if (event.key === "Enter" && event.ctrlKey) {
+			submitCode();
+		}
+	});
+	let mayip="";
+	if(isValidIPv4(window.location.hostname)){
+		mayip = window.location.hostname;
+	}
+	ip = mayip;
+	if(!mayip){
+		ip = prompt("Please enter server ipv4", mayip);
+		while (!isValidIPv4(ip)) {
+			ip = prompt("Enter a valid server ipv4 address", mayip);
+		}
+	}
+	let inputContent = { type: "command", info: "/testadmin" };
+	safeFetch(`https://${ip}/api`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+	.then(response => {
+		return response.json();
+	})
+	.then(data => {
+		if(data.message === "success"){
+			document.getElementById("bt-manage").hidden = false;
+		}else{
+			location.replace('/');
+			return;
+
+		}
+		console.log(data.message);
+		let inputContent = { type: "get-username" };
+		safeFetch(`https://${ip}/api`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ content: inputContent })
+		})
+		.then(response => {
+			return response.json();
+		})
+		.then(data => {
+			document.getElementById("username").innerText = username = data;
+			if(data){
+				document.getElementById("logout").hidden = false;
+			}else{
+				document.getElementById("login").hidden = false;
+				document.getElementById("sign_up").hidden = false;
+				window.name="from-href";
+				location.href='/login';
+			}
+			reload();
+			get_key();
+		})
+		.catch(error => {
+			console.error('错误:', error);
+		});
+	});
+	let ws;
+	let reconnectDelay = 1000;
+	const maxDelay = 30000;
+
+	function connectWS(){
+		ws = new WebSocket(`wss://${ip}`, null, { withCredentials: true });
+
+		ws.onopen = () => {
+			console.log("WebSocket connected");
+			reconnectDelay = 1000;
+			ws.send(JSON.stringify({
+				type: "init",
+				role: "chatroom",
+			}));
+		};
+
+		ws.onmessage = (event) => {
+			const msg = JSON.parse(event.data);
+			switch (msg.type) {
+				case 'chat':
+					console.log("新增聊天消息:", msg.info);
+					reloaddd(msg.info);
+					break;
+			}
+		};
+
+		ws.onclose = (event) => {
+			console.warn("WebSocket 断开:", event.code, event.reason);
+			retryWS();
+		};
+
+		ws.onerror = (err) => {
+			console.error("WebSocket 错误:", err);
+			ws.close();
+		};
+
+		window.cppWs = ws;
+	}
+
+	function retryWS(){
+		reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
+		console.log(`将在 ${reconnectDelay / 1000} 秒后重连...`);
+		setTimeout(() => {
+			connectWS();
+		}, reconnectDelay);
+	}
+
+	connectWS();
+});

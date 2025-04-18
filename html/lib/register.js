@@ -102,61 +102,6 @@ function isValidIPv4(str) {
 }
 var ip = "";
 var publicKey;
-window.onload = async function () {
-	let mayip="";
-	if(isValidIPv4(window.location.hostname)){
-		mayip = window.location.hostname;
-	}
-	ip = mayip;
-	if(!mayip){
-		ip = prompt("Please enter server ipv4", mayip);
-		while (!isValidIPv4(ip)) {
-			ip = prompt("Enter a valid server ipv4 address", mayip);
-		}
-	}
-	let inputContent = { type: "command", info: "/testadmin" };
-	safeFetch(`https://${ip}/api`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
-	})
-	.then(data => {
-		if(data.message === "success"){
-			document.getElementById("bt-manage").hidden = false;
-		}
-		let inputContent = { type: "get-username" };
-		safeFetch(`https://${ip}/api`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ content: inputContent })
-		})
-		.then(response => {
-			return response.json();
-		})
-		.then(data => {
-			document.getElementById("username").innerText = username = data;
-			if(data){
-				location.href = '/';
-				document.getElementById("logout").hidden = false;
-			}else{
-				document.getElementById("login").hidden = false;
-				document.getElementById("sign_up").hidden = false;
-			}
-			get_key();
-		})
-		.catch(error => {
-			console.error('错误:', error);
-		});
-		getCaptcha();
-	});
-}
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 1️⃣ 解析 PEM 格式公钥
 	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
@@ -225,4 +170,60 @@ document.getElementById('login-form').addEventListener('submit', async function(
 		.catch(error => {
 			console.error('错误:', error);
 		});
+});
+
+document.addEventListener("DOMContentLoaded", async () => {
+	let mayip="";
+	if(isValidIPv4(window.location.hostname)){
+		mayip = window.location.hostname;
+	}
+	ip = mayip;
+	if(!mayip){
+		ip = prompt("Please enter server ipv4", mayip);
+		while (!isValidIPv4(ip)) {
+			ip = prompt("Enter a valid server ipv4 address", mayip);
+		}
+	}
+	let inputContent = { type: "command", info: "/testadmin" };
+	safeFetch(`https://${ip}/api`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+	.then(response => {
+		return response.json();
+	})
+	.then(data => {
+		if(data.message === "success"){
+			document.getElementById("bt-manage").hidden = false;
+		}
+		let inputContent = { type: "get-username" };
+		safeFetch(`https://${ip}/api`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ content: inputContent })
+		})
+		.then(response => {
+			return response.json();
+		})
+		.then(data => {
+			document.getElementById("username").innerText = username = data;
+			if(data){
+				location.href = '/';
+				document.getElementById("logout").hidden = false;
+			}else{
+				document.getElementById("login").hidden = false;
+				document.getElementById("sign_up").hidden = false;
+			}
+			get_key();
+		})
+		.catch(error => {
+			console.error('错误:', error);
+		});
+		getCaptcha();
+	});
 });
