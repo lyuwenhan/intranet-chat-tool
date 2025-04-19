@@ -710,7 +710,7 @@ function getUsers(){
 						row.innerHTML = `
 							<td><strong>${user.username}</strong></td>
 							<td>${user.role}</td>
-							<td><button type="button" class="bt-red">Change password</button></td>
+							<td><button type="button" class="bt-red" onclick="location.href='/changePassword'">Change password</button></td>
 						`;
 					}
 					tableBody.appendChild(row);

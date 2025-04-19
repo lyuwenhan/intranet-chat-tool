@@ -500,6 +500,7 @@ const getUserByPage = db.prepare('SELECT username, role FROM users LIMIT ? OFFSE
 const getUserCount = db.prepare('SELECT COUNT(*) AS count FROM users');
 const hasUser = db.prepare('SELECT 1 FROM users WHERE username = ? LIMIT 1');
 const updateUserRole = db.prepare('UPDATE users SET role = ? WHERE username = ?');
+const changePassword =  db.prepare(`UPDATE users SET salt = ?, hash = ? WHERE username = ?`);
 const saveNewCode = db_codes.prepare(`INSERT INTO codes (uuid, filename, readOnly, roname, updated_at) VALUES (?, ?, 0, NULL, ?) ON CONFLICT(uuid) DO UPDATE SET readOnly = 0, roname = NULL, updated_at = ?`);
 const getCode = db_codes.prepare('SELECT * FROM codes WHERE uuid = ?');
 const setRoName = db_codes.prepare('UPDATE codes SET roname = ?, updated_at = ? WHERE uuid = ?');
@@ -544,6 +545,11 @@ function addUser(username, role, pwd){
 	const salt = make128();
 	const hashed_pwd = sha256(pwd + salt);
 	insertUser.run(username, role, salt, hashed_pwd);
+}
+function changePwd(username, pwd){
+	const salt = make128();
+	const hashed_pwd = sha256(pwd + salt);
+	changePassword.run(salt, hashed_pwd, username);
 }
 function findUser(username){
 	return getUser.get(username);
@@ -779,6 +785,45 @@ app.post('/api/login/', (req, res) => {
 			return;
 		}
 		req.session.username = "";
+		res.json({ message: 'success' });
+		return;
+	}else if(allow_register && receivedContent.type == "change-pwd" && receivedContent.username && receivedContent.captcha){
+		if(!receivedContent.username){
+			res.json({ message: 'refuse', info:'Username cannot be empty'});
+			return;
+		}
+		if(!isValidUsername(receivedContent.username)){
+			res.json({ message: 'refuse', info:'Username is not valid'});
+			return;
+		}
+		receivedContent.username = receivedContent.username.toLowerCase();
+		const userinfo = findUser(receivedContent.username);
+		if(!userinfo){
+			res.json({ message: 'refuse', info:'User not exists'});
+			return;
+		}
+		if(!req.session.captcha || req.session.captcha != receivedContent.captcha.toLowerCase()){
+			res.json({ message: 'refuse', info:'Captcha not correct'});
+			return;
+		}
+		const pwd = encodeRSA(receivedContent.pwd);
+		if(!pwd){
+			res.json({ message: 'refuse', info:'Password cannot be empty'});
+			return;
+		}
+		if(!userinfo || !pwd || sha256(pwd + userinfo.salt) !== userinfo.hash){
+			res.json({ message: 'refuse', info:'Username or password is incorrect'});
+		}
+		const npwd = encodeRSA(receivedContent.npwd);
+		if(!npwd){
+			res.json({ message: 'refuse', info:'New password cannot be empty'});
+			return;
+		}
+		if(npwd.length < 8){
+			res.json({ message: 'refuse', info:'New password too short'});
+			return;
+		}
+		changePwd(receivedContent.username, npwd);
 		res.json({ message: 'success' });
 		return;
 	}
