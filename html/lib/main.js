@@ -17,20 +17,53 @@
  */
 
 'use strict';
-async function safeFetch(url, options = {}) {
+async function safeFetch(url, options = {}, isBlob = false) {
 	const res = await fetch(url, options);
 	if (res.status === 401) {
 		const win = window.open('/login', '_blank');
 		if (!win || win.closed || typeof win.closed === "undefined") {
 			window.name="from-href";
 			location.href='/login';
-			return null;
+			return {};
 		}else{
 		 	win.name = 'from-open';
 		}
 		throw new Error('未登录，跳转中...');
+		return {};
 	}
-	return res;
+	if(res.status === 429){
+		throw new Error("访问过量");
+	}
+	if(!isBlob){
+		let data;
+		try{
+			data = await res.json();
+		}catch (err){
+			throw new Error("返回的不是合法 JSON 格式");
+		}
+		if(res.status === 403){
+			if(data.info == 'not admin'){
+				location.replace('/');
+				throw new Error("权限错误");
+			}
+			throw new Error("banned");
+		}
+		if (!res.ok){
+			throw new Error("fetch fault");
+		}
+		return data;
+	}else{
+		try {
+			if (!res.ok){
+				throw new Error("fetch fault");
+			}
+			const result = await res.blob();
+			return result;
+		} catch (err) {
+			console.error(err);
+			throw new Error("Blob 解码失败");
+		}
+	}
 }
 function logout(){
 	let inputContent = { type: "logout" };
@@ -40,9 +73,6 @@ function logout(){
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
 	})
 	.then(data => {
 		console.log("服务器返回的数据：", data);
@@ -104,7 +134,6 @@ form.addEventListener('submit', function(e) {
 		method: 'POST',
 		body: formData,
 	})
-	.then(response => response.json())
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -143,7 +172,6 @@ imgform.addEventListener('submit', function(e) {
 		method: 'POST',
 		body: formData,
 	})
-	.then(response => response.json())
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -180,9 +208,6 @@ function get_key() {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
 	})
 	.then(data => {
 		publicKey = data;
@@ -246,11 +271,10 @@ function submitForm() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-		.then(response => response.json())
-		.then(data => {
-			console.log('服务器返回的数据:', data)
-		})
-		.catch(error => console.error('错误:', error));
+	.then(data => {
+		console.log('服务器返回的数据:', data)
+	})
+	.catch(error => console.error('错误:', error));
 }
 function submitCode() {
 	var inputContent = {
@@ -273,11 +297,10 @@ function submitCode() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-		.then(response => response.json())
-		.then(data => {
-			console.log('服务器返回的数据:', data)
-		})
-		.catch(error => console.error('错误:', error));
+	.then(data => {
+		console.log('服务器返回的数据:', data)
+	})
+	.catch(error => console.error('错误:', error));
 }
 function show(ele, ele2){
 	ele.hidden = false;
@@ -285,17 +308,14 @@ function show(ele, ele2){
 }
 async function loadImageAsDataURL(url, a) {
 	try {
-		const res = await safeFetch(url);
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-		const blob = await res.blob();
+		const blob = await safeFetch(url, {}, true);
 
 		// 把 Blob 转为 base64 Data URL
 		const base64 = await new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onloadend = () => resolve(reader.result);
-		reader.onerror = reject;
-		reader.readAsDataURL(blob);
+			const reader = new FileReader();
+			reader.onloadend = () => resolve(reader.result);
+			reader.onerror = reject;
+			reader.readAsDataURL(blob);
 		});
 
 		return base64;
@@ -374,63 +394,21 @@ function reloaddd(data){
 		nele.title="click to download";
 		nele.innerHTML=`${data.filename}&nbsp;&nbsp;[${formatSize(data.size)}]`;
 		nele.onclick=function(){
-			let run = false;
-			safeFetch(`https://${ip}/uploads/test-connect`).then(a=>{
-				run = true;
-				safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`)
-				.then(response => {
-					if (!response.ok) {
-						throw new Error('file connected err');
-					}
-					return response.blob();
-				})
-				.then(blob => {
-					const url = URL.createObjectURL(blob);
-					const a = document.createElement('a');
-					a.style.display = 'none';
-					a.href = url;
-					a.download = data.filename;
-					document.body.appendChild(a);
-					a.click();
-					document.body.removeChild(a);
-					URL.revokeObjectURL(url);
-				})
-				.catch(error => {
-					console.error('下载文件时出错:', error);
-				});
+			safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`, {}, true)
+			.then(blob => {
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.style.display = 'none';
+				a.href = url;
+				a.download = data.filename;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			})
+			.catch(error => {
+				console.error('下载文件时出错:', error);
 			});
-			setTimeout(function(){
-				if(!run){
-					location.href = `https://${ip}/uploads/allow-connect?from=` + encodeURIComponent(location.href);
-					window.addEventListener('pageshow', function(event) {
-						if (event.persisted || performance.getEntriesByType('navigation')[0].type === 'back_forward') {
-							safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`)
-							.then(response => {
-								if (!response.ok) {
-									throw new Error('file connected err');
-								}
-								return response.blob();
-							})
-							.then(blob => {
-								const url = URL.createObjectURL(blob);
-								const a = document.createElement('a');
-								a.style.display = 'none';
-								a.href = url;
-								a.download = data.filename;
-								document.body.appendChild(a);
-								a.click();
-								document.body.removeChild(a);
-								URL.revokeObjectURL(url);
-							})
-							.catch(error => {
-								console.error('下载文件时出错:', error);
-							});
-						}
-						last_data = {chats:[{info: "Not True"}]};
-						reload();
-					}, {once: true});
-				}
-			},500);
 		}
 		document.querySelector(".chat").appendChild(nele);
 		document.querySelector(".chat").appendChild(document.createElement("br"));
@@ -515,15 +493,12 @@ function reload() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-		.then(response => {
-			return response.json();
-		})
-		.then(data => {
-			reloadd(data);
-		})
-		.catch(error => {
-			console.error('错误:', error);
-		});
+	.then(data => {
+		reloadd(data);
+	})
+	.catch(error => {
+		console.error('错误:', error);
+	});
 }
 const renderer = new marked.Renderer();
 
@@ -629,9 +604,6 @@ function run(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-	.then(response => {
-		return response.json();
-	})
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
@@ -706,9 +678,6 @@ document.addEventListener("DOMContentLoaded", () => {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-	.then(response => {
-		return response.json();
-	})
 	.then(data => {
 		if(data.message === "success"){
 			document.getElementById("bt-manage").hidden = false;
@@ -720,9 +689,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ content: inputContent })
-		})
-		.then(response => {
-			return response.json();
 		})
 		.then(data => {
 			document.getElementById("username").innerText = username = data;

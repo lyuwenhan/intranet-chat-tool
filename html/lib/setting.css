@@ -1,0 +1,89 @@
+.transblack{
+	background-color: rgba(0, 0, 0, 0.2);
+	position: fixed;
+	left: 0;
+	top: 0;
+	height: 100vh;
+	width: 100vw;
+	overflow: hidden;
+	z-index: 10000001;
+	/* display: grid; */
+	align-items: center;
+}
+
+.trans{
+	z-index: 10000004;
+	position: fixed;
+	background-color: white;
+	width: calc(100vw - min(20vh, 20vw) - 40px);
+	height: calc(100vh - min(20vh, 20vw) - 40px);
+	top: 0;
+	left: 0;
+	margin: min(10vh, 10vw);
+	border-radius: 10px;
+	border: 2px solid rgb(79, 79, 79);
+	padding: 18px;
+	overflow: hidden;
+	overflow-y: auto;
+}
+.transmit{
+	width: 100vw;
+	height: 100vh;
+	position: fixed;
+	z-index: 10000004;
+}
+.close-btn {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	background: transparent;
+	padding: 10px;
+	margin: -5px;
+}
+
+.close-btn::before, .close-btn::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 20px;
+	height: 2px;
+	background-color: black;
+}
+
+.close-btn::before {
+	transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.close-btn::after {
+	transform: translate(-50%, -50%) rotate(-45deg);
+}
+.bt-red {
+	padding: 5px 10px;
+	color: white;
+	background-color: #e74c3c;
+	border: 1px solid #c0392b;
+	border-radius: 4px;
+	cursor: pointer;
+}
+.bt-red:hover {
+	background-color: #b93d30;
+	border: 1px solid #9a2e22;
+}
+.bt-red:active {
+	background-color: #d04436;
+	border: 1px solid #ad3327;
+}
+
+table {
+	border-collapse: collapse;
+	max-width: 90%;
+}
+th, td {
+	border: 1px solid #999;
+	padding: 8px 12px;
+	text-align: left;
+}

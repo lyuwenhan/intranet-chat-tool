@@ -17,20 +17,54 @@
  */
 
 'use strict';
-async function safeFetch(url, options = {}) {
+async function safeFetch(url, options = {}, isBlob = false) {
 	const res = await fetch(url, options);
 	if (res.status === 401) {
 		const win = window.open('/login', '_blank');
 		if (!win || win.closed || typeof win.closed === "undefined") {
 			window.name="from-href";
 			location.href='/login';
-			return null;
+			return {};
 		}else{
 		 	win.name = 'from-open';
 		}
 		throw new Error('未登录，跳转中...');
+		return {};
 	}
-	return res;
+	if(res.status === 429){
+		throw new Error("访问过量");
+	}
+	if(!isBlob){
+		let data;
+		try{
+			data = await res.json();
+		}catch (err){
+			console.error(res);
+			throw new Error("返回的不是合法 JSON 格式");
+		}
+		if(res.status === 403){
+			if(data.info == 'not admin'){
+				location.replace('/');
+				throw new Error("权限错误");
+			}
+			throw new Error("banned");
+		}
+		if (!res.ok){
+			throw new Error("fetch fault");
+		}
+		return data;
+	}else{
+		try {
+			if (!res.ok){
+				throw new Error("fetch fault");
+			}
+			const result = await res.blob();
+			return result;
+		} catch (err) {
+			console.error(err);
+			throw new Error("Blob 解码失败");
+		}
+	}
 }
 function logout(){
 	let inputContent = { type: "logout" };
@@ -40,9 +74,6 @@ function logout(){
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
 	})
 	.then(data => {
 		console.log("服务器返回的数据：", data);
@@ -104,7 +135,6 @@ form.addEventListener('submit', function(e) {
 		method: 'POST',
 		body: formData,
 	})
-	.then(response => response.json())
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -143,7 +173,6 @@ imgform.addEventListener('submit', function(e) {
 		method: 'POST',
 		body: formData,
 	})
-	.then(response => response.json())
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -180,9 +209,6 @@ function get_key() {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
 	})
 	.then(data => {
 		publicKey = data;
@@ -230,7 +256,7 @@ async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 3️⃣ Base64 编码，方便传输
 	return forge.util.encode64(encrypted);
 }
-async function fun_clear_by_pwd() {
+function fun_clear_by_pwd() {
 	if(!confirm("Are you sure to clear it")){
 		return;
 	}
@@ -238,14 +264,13 @@ async function fun_clear_by_pwd() {
 		type: "command",
 		info: "/clear",
 	};
-	await safeFetch(`https://${ip}/api`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-	.then(response => response.json())
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message=="success"){
@@ -270,11 +295,10 @@ function submitForm() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-		.then(response => response.json())
-		.then(data => {
-			console.log('服务器返回的数据:', data)
-		})
-		.catch(error => console.error('错误:', error));
+	.then(data => {
+		console.log('服务器返回的数据:', data)
+	})
+	.catch(error => console.error('错误:', error));
 }
 function submitCode() {
 	var inputContent = {
@@ -297,11 +321,10 @@ function submitCode() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-		.then(response => response.json())
-		.then(data => {
-			console.log('服务器返回的数据:', data)
-		})
-		.catch(error => console.error('错误:', error));
+	.then(data => {
+		console.log('服务器返回的数据:', data)
+	})
+	.catch(error => console.error('错误:', error));
 }
 function show(ele, ele2){
 	ele.hidden = false;
@@ -309,19 +332,13 @@ function show(ele, ele2){
 }
 async function loadImageAsDataURL(url, a) {
 	try {
-		const res = await safeFetch(url);
-		if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-		const blob = await res.blob();
-
-		// 把 Blob 转为 base64 Data URL
+		const blob = await safeFetch(url, {}, true);
 		const base64 = await new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onloadend = () => resolve(reader.result);
-		reader.onerror = reject;
-		reader.readAsDataURL(blob);
+			const reader = new FileReader();
+			reader.onloadend = () => resolve(reader.result);
+			reader.onerror = reject;
+			reader.readAsDataURL(blob);
 		});
-
 		return base64;
 	} catch (err) {
 		console.warn("❌ 图片加载失败:", err.message);
@@ -398,63 +415,21 @@ function reloaddd(data){
 		nele.title="click to download";
 		nele.innerHTML=`${data.filename}&nbsp;&nbsp;[${formatSize(data.size)}]`;
 		nele.onclick=function(){
-			let run = false;
-			safeFetch(`https://${ip}/uploads/test-connect`).then(a=>{
-				run = true;
-				safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`)
-				.then(response => {
-					if (!response.ok) {
-						throw new Error('file connected err');
-					}
-					return response.blob();
-				})
-				.then(blob => {
-					const url = URL.createObjectURL(blob);
-					const a = document.createElement('a');
-					a.style.display = 'none';
-					a.href = url;
-					a.download = data.filename;
-					document.body.appendChild(a);
-					a.click();
-					document.body.removeChild(a);
-					URL.revokeObjectURL(url);
-				})
-				.catch(error => {
-					console.error('下载文件时出错:', error);
-				});
+			safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`, {}, true)
+			.then(blob => {
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.style.display = 'none';
+				a.href = url;
+				a.download = data.filename;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+			})
+			.catch(error => {
+				console.error('下载文件时出错:', error);
 			});
-			setTimeout(function(){
-				if(!run){
-					location.href = `https://${ip}/uploads/allow-connect?from=` + encodeURIComponent(location.href);
-					window.addEventListener('pageshow', function(event) {
-						if (event.persisted || performance.getEntriesByType('navigation')[0].type === 'back_forward') {
-							safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`)
-							.then(response => {
-								if (!response.ok) {
-									throw new Error('file connected err');
-								}
-								return response.blob();
-							})
-							.then(blob => {
-								const url = URL.createObjectURL(blob);
-								const a = document.createElement('a');
-								a.style.display = 'none';
-								a.href = url;
-								a.download = data.filename;
-								document.body.appendChild(a);
-								a.click();
-								document.body.removeChild(a);
-								URL.revokeObjectURL(url);
-							})
-							.catch(error => {
-								console.error('下载文件时出错:', error);
-							});
-						}
-						last_data = {chats:[{info: "Not True"}]};
-						reload();
-					}, {once: true});
-				}
-			},500);
 		}
 		document.querySelector(".chat").appendChild(nele);
 		document.querySelector(".chat").appendChild(document.createElement("br"));
@@ -539,15 +514,12 @@ function reload() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-		.then(response => {
-			return response.json();
-		})
-		.then(data => {
-			reloadd(data);
-		})
-		.catch(error => {
-			console.error('错误:', error);
-		});
+	.then(data => {
+		reloadd(data);
+	})
+	.catch(error => {
+		console.error('错误:', error);
+	});
 }
 const renderer = new marked.Renderer();
 
@@ -653,9 +625,6 @@ function run(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-	.then(response => {
-		return response.json();
-	})
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
@@ -700,6 +669,119 @@ function copy(me, text){
 		alert("copied");
 	}
 }
+const tableBody = document.querySelector('#codeTable tbody');
+function getUsers(){
+	let inputContent = { type: "get-user-count" };
+	safeFetch(`https://${ip}/api/manage`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+	.then(data => {
+		console.log('服务器返回的数据:', data)
+		if(data.message == "success"){
+			document.querySelector(".usercount").innerText = data.count;
+			let inputContent = { type: "get-users", page: 1 };
+			safeFetch(`https://${ip}/api/manage`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ content: inputContent })
+			})
+			.then(data => {
+				console.log('服务器返回的数据:', data)
+				console.log(data);
+				if(!data[0]){
+					return;
+				}
+				tableBody.innerHTML = '';
+				data.forEach((user, index) => {
+					const row = document.createElement('tr');
+					row.innerHTML = `
+						<td>${user.username}</td>
+						<td>${user.role}</td>
+						<td><button onclick="changeRole('${user.username}', '${user.role}')" class="bt-red">Change role</button>&nbsp;<button onclick="deleteUser('${user.username}')" class="bt-red">Delete</button></td>
+					`;
+					tableBody.appendChild(row);
+				});
+			})
+			.catch(error => {
+				console.error('错误:', error);
+			});
+		}
+	})
+	.catch(error => {
+		console.error('错误:', error);
+	});
+}
+function deleteUser(username){
+	if(!confirm(`Are you sure to delete "${username}"`)){
+		return;
+	}
+	var inputContent = {
+		type: "deleteUser",
+		username
+	};
+	safeFetch(`https://${ip}/api/manage`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+	.then(data => {
+		console.log('服务器返回的数据:', data)
+		if(data.message == "success"){
+			getUsers();
+		}else{
+			alert(data.info || 'Unknow error');
+		}
+	})
+	.catch(error => console.error('错误:', error));
+}
+const roles = Object.freeze(["user", "admin"]);
+function changeRole(username, orole){
+	const role = prompt(`What's new role of "${username}" ("admin"/"user")`, orole);
+	if(!role || !roles.includes(role)){
+		return;
+	}
+	var inputContent = {
+		type: "changeRole",
+		username,
+		role
+	};
+	safeFetch(`https://${ip}/api/manage`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ content: inputContent })
+	})
+	.then(data => {
+		console.log('服务器返回的数据:', data)
+		if(data.message=="success"){
+			getUsers();
+		}else{
+			alert(data.info || 'Unknow error');
+		}
+	})
+	.catch(error => console.error('错误:', error));
+}
+var tsmele = document.querySelector(".transmit");
+var users_get = false;
+function opentsm(){
+	tsmele.hidden = false;
+	if(!users_get){
+		getUsers();
+		users_get = true;
+	}
+}
+function closetsm(){
+	tsmele.hidden = true;
+}
 document.addEventListener("DOMContentLoaded", () => {
 	document.getElementById('inputContent').addEventListener('keydown', function(event) {
 		if (event.key === "Enter") {
@@ -730,9 +812,6 @@ document.addEventListener("DOMContentLoaded", () => {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-	.then(response => {
-		return response.json();
-	})
 	.then(data => {
 		if(data.message === "success"){
 			document.getElementById("bt-manage").hidden = false;
@@ -749,9 +828,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ content: inputContent })
-		})
-		.then(response => {
-			return response.json();
 		})
 		.then(data => {
 			document.getElementById("username").innerText = username = data;

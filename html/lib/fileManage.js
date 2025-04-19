@@ -17,20 +17,54 @@
  */
 
 'use strict';
-async function safeFetch(url, options = {}) {
+async function safeFetch(url, options = {}, isBlob = false) {
 	const res = await fetch(url, options);
 	if (res.status === 401) {
 		const win = window.open('/login', '_blank');
 		if (!win || win.closed || typeof win.closed === "undefined") {
 			window.name="from-href";
 			location.href='/login';
-			return null;
+			return {};
 		}else{
 		 	win.name = 'from-open';
 		}
 		throw new Error('未登录，跳转中...');
+		return {};
 	}
-	return res;
+	if(res.status === 429){
+		throw new Error("访问过量");
+	}
+	if(!isBlob){
+		let data;
+		try{
+			data = await res.json();
+		}catch (err){
+			console.error(res);
+			throw new Error("返回的不是合法 JSON 格式");
+		}
+		if(res.status === 403){
+			if(data.info == 'not admin'){
+				location.replace('/');
+				throw new Error("权限错误");
+			}
+			throw new Error("banned");
+		}
+		if (!res.ok){
+			throw new Error("fetch fault");
+		}
+		return data;
+	}else{
+		try {
+			if (!res.ok){
+				throw new Error("fetch fault");
+			}
+			const result = await res.blob();
+			return result;
+		} catch (err) {
+			console.error(err);
+			throw new Error("Blob 解码失败");
+		}
+	}
 }
 function logout(){
 	let inputContent = { type: "logout" };
@@ -40,9 +74,6 @@ function logout(){
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
 	})
 	.then(data => {
 		console.log("服务器返回的数据：", data);
@@ -63,15 +94,12 @@ function isValidUsername(username){
 }
 function get_key(){
 	let inputContent = { type: "get-key" };
-	safeFetch(`https://${ip}:`, {
+	safeFetch(`https://${ip}/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
 	})
 	.then(data => {
 		publicKey = data;
@@ -120,14 +148,13 @@ function getCodeList() {
 	let inputContent = {
 		type: "getList",
 	};
-	safeFetch(`https://${ip}:/cpp-save`, {
+	safeFetch(`https://${ip}/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-	.then(response => response.json())
 	.then(data => {
 		console.log(data);
 		if(!data[0]){
@@ -167,9 +194,6 @@ function deleteCode(filename, uuid) {
 			},
 			body: JSON.stringify({ content: inputContent })
 		})
-		.then(response => {
-			return response.json();
-		})
 		.then(data => {
 			console.log("服务器返回的数据:", data);
 			if(data.message == 'success'){
@@ -193,9 +217,6 @@ function renameCode(uuid) {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify({ content: inputContent })
-	})
-	.then(response => {
-		return response.json();
 	})
 	.then(data => {
 		console.log("服务器返回的数据:", data);
@@ -257,9 +278,6 @@ document.addEventListener("DOMContentLoaded", () => {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
-	.then(response => {
-		return response.json();
-	})
 	.then(data => {
 		if(data.message === "success"){
 			document.getElementById("bt-manage").hidden = false;
@@ -271,9 +289,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({ content: inputContent })
-		})
-		.then(response => {
-			return response.json();
 		})
 		.then(data => {
 			document.getElementById("username").innerText = username = data;

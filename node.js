@@ -117,6 +117,7 @@ const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.rea
 const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
 const app = express();
+const roles = Object.freeze(["user", "admin"]);
 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '50kb' }));
@@ -495,6 +496,10 @@ const insertUser = db.prepare('INSERT INTO users (username, role, salt, hash) VA
 const getUser = db.prepare('SELECT * FROM users WHERE username = ?');
 const deleteUser = db.prepare('DELETE FROM users WHERE username = ?');
 const getAllUsers = db.prepare('SELECT username, role FROM users');
+const getUserByPage = db.prepare('SELECT username, role FROM users LIMIT ? OFFSET ?');
+const getUserCount = db.prepare('SELECT COUNT(*) AS count FROM users');
+const hasUser = db.prepare('SELECT 1 FROM users WHERE username = ? LIMIT 1');
+const updateUserRole = db.prepare('UPDATE users SET role = ? WHERE username = ?');
 const saveNewCode = db_codes.prepare(`INSERT INTO codes (uuid, filename, readOnly, roname, updated_at) VALUES (?, ?, 0, NULL, ?) ON CONFLICT(uuid) DO UPDATE SET readOnly = 0, roname = NULL, updated_at = ?`);
 const getCode = db_codes.prepare('SELECT * FROM codes WHERE uuid = ?');
 const setRoName = db_codes.prepare('UPDATE codes SET roname = ?, updated_at = ? WHERE uuid = ?');
@@ -510,11 +515,17 @@ const saveCodeList = db_codelist.prepare(`
 `);
 const getCodes = db_codelist.prepare('SELECT uuid, updated_at, filename FROM code_list WHERE username = ? ORDER BY updated_at');
 const deleteCodeListFU = db_codelist.prepare('DELETE FROM code_list WHERE username = ? AND uuid = ?');
+const deleteCodeListUser = db_codelist.prepare('DELETE FROM code_list WHERE username = ?');
 const deleteCodeListFF = db_codelist.prepare('DELETE FROM code_list WHERE uuid = ?');
 const getUsername = db_codelist.prepare('SELECT 1 FROM code_list WHERE uuid = ? LIMIT 1');
 const updateFilenameByUuid = db_codelist.prepare('UPDATE code_list SET filename = ? WHERE uuid = ?');
 function testFilename(filename) {
 	return !!getUsername.get(filename);
+}
+function getUsersByPage(n) {
+	const limit = 20;
+	const offset = (n - 1) * limit;
+	return getUserByPage.all(limit, offset);
 }
 console.log(getAllUsers.all());
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -693,8 +704,6 @@ async function generateCaptcha(options = {}) {
 		data_base64: buffer.toString('base64')
 	};
 }
-
-
 app.post('/api/login/', (req, res) => {
 	const receivedContent = req.body.content || {};
 	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
@@ -760,7 +769,8 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'Password too short'});
 			return;
 		}
-		addUser(receivedContent.username, "user", pwd);
+		const role = (!hasUser.get() ? "admin" : "user");
+		addUser(receivedContent.username, role, pwd);
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "logout"){
@@ -794,7 +804,58 @@ app.get('/api/captcha', async (req, res) => {
 	res.setHeader('Cache-Control', 'no-store');
 	res.send(Buffer.from(captcha.data_base64, 'base64'));
 });
-
+app.post('/api/manage', (req, res) => {
+	const receivedContent = req.body.content || {};
+	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
+		return res.status(403).end();
+	}
+	const now = Date.now();
+	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.main\n`);
+	fs.appendFileSync("log/manage.log", `${ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
+	console.log('收到的内容：');
+	console.log("realip:", ip);
+	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
+		ip = ip.split(".");
+		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
+	}
+	receivedContent.ip=ip;
+	console.log(receivedContent);
+	if(!isValidUsername(req.session.username)){
+		res.status(401).json({ error: 'Unauthorized' });
+		return;
+	}
+	const user = findUser(req.session.username);
+	if(!user || !user?.role){
+		res.status(401).json({ error: 'Unauthorized' });
+		return;
+	}
+	req.session.role = user.role;
+	if(req.session.role != 'admin'){
+		res.status(403).json({ error: 'Unauthorized', info: 'not admin' });
+		return;
+	}
+	if(receivedContent.type == "get-users"){
+		const page = receivedContent.page || '';
+		res.json((isNaN(page) || !Number.isInteger(page)) ? getAllUsers.all() : getUsersByPage(page));
+		return;
+	}else if(receivedContent.type == "get-user-count"){
+		res.json({message: 'success', count: getUserCount.get().count});
+		return;
+	}else if(receivedContent.type == "deleteUser" && receivedContent.username && receivedContent.username != req.session.username){
+		deleteUser.run(receivedContent.username);
+		deleteCodeListUser.run(receivedContent.username);
+		console.log(receivedContent.username);
+		res.json({message: 'success'});
+		return;
+	}else if(receivedContent.type == "changeRole" && receivedContent.username && receivedContent.username != req.session.username && typeof receivedContent.role === 'string' && roles.includes(receivedContent.role)){
+		updateUserRole.run(receivedContent.role, receivedContent.username);
+		console.log(receivedContent.username);
+		res.json({message: 'success'});
+		return;
+	}
+	res.json({ message: 'faild' });
+});
 
 app.post('/api/', (req, res) => {
 	const receivedContent = req.body.content || {};
@@ -834,6 +895,9 @@ app.post('/api/', (req, res) => {
 			res.json({ message: 'faild' });
 			return;
 		}
+		if (receivedContent.info.length > 4096) {
+			return res.json({ message: 'faild', info: 'Message too long' });
+		}
 		const chat = {username:req.session.username, info:receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd(),ip:receivedContent.ip, type:"text"};
 		data[0].chats.push(chat);
 		data[1].chats.push(rawip);
@@ -845,6 +909,9 @@ app.post('/api/', (req, res) => {
 		if(!receivedContent.info || receivedContent.info.replace(/\n+/g, "\n").trimEnd() == ""){
 			res.json({ message: 'faild' });
 			return;
+		}
+		if (receivedContent.info.length > 4096) {
+			return res.json({ message: 'faild', info: 'Message too long' });
 		}
 		let js = {username:req.session.username, info:receivedContent.info.replace(/\n\n\n+/g, "\n\n").trimEnd(),ip:receivedContent.ip, type:"code"};
 		if(receivedContent.language){
@@ -1184,6 +1251,9 @@ app.post('/cpp-save', (req, res) => {
 		}
 		const uuid = receivedContent.link;
 		const filename = receivedContent.filename;
+		if (filename.length > 100 || !/^[\w\-\s]+$/.test(filename)) {
+			return res.json({ message: 'faild', info: 'Filename too long' });
+		}
 		const file = getCode.get(uuid);
 		if(!file){
 			const now = Date.now();
@@ -1244,30 +1314,7 @@ async function requestHandler2(req, res) {
 		// 获取文件的 Content-Type
 
 		// 读取请求的文件
-		if (safePath.startsWith('uploads\\test-connect\\') || safePath == 'uploads\\test-connect') {
-			try {
-				res.writeHead(200, {
-					"Cache-Control": "public, max-age=3600",
-					"Content-Type": "text/html",
-					"X-Content-Type-Options": "nosniff",
-					"X-Frame-Options": "DENY",
-					"Cross-Origin-Resource-Policy": "same-origin",
-					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-				});
-				return res.end();
-			} catch (err) {
-				return res.writeHead(404, {
-					'Content-Type': 'text/plain; charset=utf-8',
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'X-Content-Type-Options': 'nosniff',
-					'X-Frame-Options': 'DENY',
-					'Referrer-Policy': 'no-referrer',
-					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
-					'Cross-Origin-Resource-Policy': 'same-origin',
-					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-				}).end("")
-			}
-		}else if (safePath.startsWith('uploads\\img\\download\\')) {
+		if (safePath.startsWith('uploads\\img\\download\\')) {
 			safePath = safePath.replace(/^uploads\\img\\download\\/, 'uploads\\img\\');
 			// 是以 /img/ 开头的路径
 			try {
@@ -1306,30 +1353,6 @@ async function requestHandler2(req, res) {
 					"X-Frame-Options": "DENY",
 					"Cross-Origin-Resource-Policy": "same-origin",
 					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-				});
-				return res.end(fileContent);
-			} catch (err) {
-				return res.writeHead(404, {
-					'Content-Type': 'text/plain; charset=utf-8',
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					'X-Content-Type-Options': 'nosniff',
-					'X-Frame-Options': 'DENY',
-					'Referrer-Policy': 'no-referrer',
-					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
-					'Cross-Origin-Resource-Policy': 'same-origin',
-					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-				}).end("")
-			}
-		}else if (safePath.startsWith('uploads\\allow-connect\\') || safePath == 'uploads\\allow-connect') {
-			try {
-				let fileContent = await readFileAsync("allow-connect.html");
-				res.writeHead(200, {
-					"Cache-Control": "public, max-age=3600",
-					"Content-Type": "text/html",
-					"X-Content-Type-Options": "nosniff",
-					"X-Frame-Options": "DENY",
-					"Cross-Origin-Resource-Policy": "same-origin",
-					// "Content-Security-Policy": "sandbox"
 				});
 				return res.end(fileContent);
 			} catch (err) {
@@ -1444,6 +1467,7 @@ app.use("/uploads", async (req, res, next) => {
 	if (ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)) {
 		return res.status(403).end();
 	}
+	console.log(req.session.username);
 	if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
@@ -1823,9 +1847,19 @@ http.createServer((req, res) => {
 
 const WebSocket = require('ws');
 const chatClients = new Map();
+const tokenOwnerMap = new Map();
 
 const wss = new WebSocket.Server({ server: httpsServer });
 const wsTokenMap = new Map();
+setInterval(() => {
+    for(const token of cppQueue){
+        const ws = wsTokenMap.get(token);
+        if(!ws || ws.readyState !== WebSocket.OPEN){
+            cppQueue.splice(cppQueue.indexOf(token), 1);
+            console.warn(`Removed stale token ${token} from queue`);
+        }
+    }
+}, 30 * 1000);
 wss.on('connection', (ws, req) => {
 	sessionParser(req, {}, () => {
 		const username = req.session?.username;
@@ -1847,23 +1881,28 @@ wss.on('connection', (ws, req) => {
 			}
 			if (ws.meta?.token) {
 				wsTokenMap.delete(ws.meta.token);
+				tokenOwnerMap.delete(ws.meta.token);
+				const idx = cppQueue.indexOf(ws.meta.token);
+				if(idx !== -1){
+					cppQueue.splice(idx, 1);
+				}
 			}
 		});
 		ws.on('message', (msg) => {
 			try {
 				const data = JSON.parse(msg);
-
 				if (data.type === 'init') {
 					const role = data.role;
 					if (role === 'cpprunner') {
 						let token = data.token;
-						if(isValidUUIDv4(token)){
+						const owner = tokenOwnerMap.get(token);
+						if (isValidUUIDv4(token) && (!owner || owner === username)){
 							wsTokenMap.set(token, ws);
 							ws.meta = { username, token, role: "cpprunner" };
 							ws.send(JSON.stringify({ type: "ack", message: "cpprunner connected", token }));
 						}else{
-							ws.send(JSON.stringify({ type: "error", message: "Invalid token" }));
-							ws.close(4001, "Invalid token");
+							ws.send(JSON.stringify({ type: "error", message: "Invalid or unauthorized token" }));
+							ws.close(4001, "Invalid or unauthorized token");
 						}
 					} else if (role === 'chatroom') {
 						ws.meta = { username, role };
@@ -1906,10 +1945,22 @@ function runcpp(command, callback, username, token){
 	if(!isValidUUIDv4(token || '')){
 		return;
 	}
+	
+	const ws = wsTokenMap.get(token);
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.warn(`Token ${token} is no longer connected. Skipping.`);
+        cppQueue.splice(cppQueue.indexOf(token), 1);
+        return;
+    }
 	cppQueue.push(token);
 	const position = cppQueue.length - 1;
 	notifyStatus(token, `Queued (${position} ahead)`);
 	cpp_runlist = cpp_runlist.then(async () => {
+		if(!ws || ws.readyState !== WebSocket.OPEN){
+			console.warn(`Token ${token} is no longer connected. Skipping.`);
+			cppQueue.splice(cppQueue.indexOf(token), 1);
+			return;
+		}
 		notifyStatus(token, 'Running');
 		const result = await start_runcpp(command);
 		callback(result.error, result.stdout, result.stderr);
