@@ -842,13 +842,33 @@ app.post('/api/manage', (req, res) => {
 	}else if(receivedContent.type == "get-user-count"){
 		res.json({message: 'success', count: getUserCount.get().count});
 		return;
-	}else if(receivedContent.type == "deleteUser" && receivedContent.username && receivedContent.username != req.session.username){
+	}else if(receivedContent.type == "deleteUser"){
+		if(!receivedContent.username){
+			res.json({message: 'faild', info: 'Username not found'});
+			return;
+		}
+		if(receivedContent.username == req.session.username){
+			res.json({message: 'faild', info: 'You cannot delete yourself'});
+			return;
+		}
 		deleteUser.run(receivedContent.username);
 		deleteCodeListUser.run(receivedContent.username);
 		console.log(receivedContent.username);
 		res.json({message: 'success'});
 		return;
-	}else if(receivedContent.type == "changeRole" && receivedContent.username && receivedContent.username != req.session.username && typeof receivedContent.role === 'string' && roles.includes(receivedContent.role)){
+	}else if(receivedContent.type == "changeRole"){
+		if(!receivedContent.username){
+			res.json({message: 'faild', info: 'Username not found'});
+			return;
+		}
+		if(receivedContent.username == req.session.username){
+			res.json({message: 'faild', info: 'You cannot change yourself'});
+			return;
+		}
+		if(typeof receivedContent.role !== 'string' || !roles.includes(receivedContent.role)){
+			res.json({message: 'faild', info: 'Invalid role'});
+			return;
+		}
 		updateUserRole.run(receivedContent.role, receivedContent.username);
 		console.log(receivedContent.username);
 		res.json({message: 'success'});
