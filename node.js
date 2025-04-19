@@ -117,7 +117,9 @@ const credentials = { key: fs.readFileSync("keys/key.pem", 'utf8'), cert: fs.rea
 const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
 const app = express();
-const roles = Object.freeze(["user", "admin"]);
+const roles = Object.freeze(["user", "editor", "admin", "founder"]);
+const editors = Object.freeze(["editor", "admin", "founder"]);
+const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});
 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '50kb' }));
@@ -775,7 +777,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'Password too short'});
 			return;
 		}
-		const role = (!hasUser.get() ? "admin" : "user");
+		const role = (!getUserCount.get().count ? "founder" : "user");
 		addUser(receivedContent.username, role, pwd);
 		res.json({ message: 'success' });
 		return;
@@ -865,6 +867,10 @@ app.post('/api/manage', (req, res) => {
 	}
 	receivedContent.ip=ip;
 	console.log(receivedContent);
+	if(receivedContent.type == "get-role"){
+		res.json(req.session.role || "unlogin");
+		return;
+	}
 	if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
@@ -875,7 +881,7 @@ app.post('/api/manage', (req, res) => {
 		return;
 	}
 	req.session.role = user.role;
-	if(req.session.role != 'admin'){
+	if(!editors.includes(req.session.role)){
 		res.status(403).json({ error: 'Unauthorized', info: 'not admin' });
 		return;
 	}
@@ -895,6 +901,15 @@ app.post('/api/manage', (req, res) => {
 			res.json({message: 'faild', info: 'You cannot delete yourself'});
 			return;
 		}
+		if(!user){
+			res.json({message: 'faild', info: 'User not found'});
+			return;
+		}
+		const userinfo = findUser(receivedContent.username);
+		if(roleToNum[req.session.role] <= roleToNum[receivedContent.role] || roleToNum[req.session.role] <= roleToNum[userinfo.role]){
+			res.json({message: 'faild', info: 'Permission Denied'});
+			return;
+		}
 		deleteUser.run(receivedContent.username);
 		deleteCodeListUser.run(receivedContent.username);
 		console.log(receivedContent.username);
@@ -911,6 +926,15 @@ app.post('/api/manage', (req, res) => {
 		}
 		if(typeof receivedContent.role !== 'string' || !roles.includes(receivedContent.role)){
 			res.json({message: 'faild', info: 'Invalid role'});
+			return;
+		}
+		if(!user){
+			res.json({message: 'faild', info: 'User not found'});
+			return;
+		}
+		const userinfo = findUser(receivedContent.username);
+		if(roleToNum[req.session.role] <= roleToNum[receivedContent.role] || roleToNum[req.session.role] <= roleToNum[userinfo.role]){
+			res.json({message: 'faild', info: 'Permission Denied'});
 			return;
 		}
 		updateUserRole.run(receivedContent.role, receivedContent.username);
@@ -943,13 +967,6 @@ app.post('/api/', (req, res) => {
 		return;
 	}else if(receivedContent.type == "get-key"){
 		res.json(publicKey);
-		return;
-	}else if(receivedContent.type == "command" && receivedContent.info == "/testadmin"){
-		if(isValidUsername(req.session.username) && req.session.role == "admin"){
-			res.json({ message: 'success' });
-		}else{
-			res.json({ message: 'refuse' });
-		}
 		return;
 	}else if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });

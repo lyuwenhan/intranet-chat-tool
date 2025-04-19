@@ -207,6 +207,7 @@ document.getElementById('change-password-form').addEventListener('submit', async
 	});
 });
 
+var role = 'user';
 document.addEventListener("DOMContentLoaded", () => {
 	let mayip="";
 	if(isValidIPv4(window.location.hostname)){
@@ -219,8 +220,8 @@ document.addEventListener("DOMContentLoaded", () => {
 			ip = prompt("Enter a valid server ipv4 address", mayip);
 		}
 	}
-	let inputContent = { type: "command", info: "/testadmin" };
-	safeFetch(`https://${ip}/api`, {
+	let inputContent = { type: "get-role" };
+	safeFetch(`https://${ip}/api/manage`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -228,7 +229,8 @@ document.addEventListener("DOMContentLoaded", () => {
 		body: JSON.stringify({ content: inputContent })
 	})
 	.then(data => {
-		if(data.message === "success"){
+		role = data;
+		if(roleToNum[data] > 1){
 			document.getElementById("bt-manage").hidden = false;
 		}
 		let inputContent = { type: "get-username" };
@@ -264,3 +266,6 @@ document.addEventListener("DOMContentLoaded", () => {
 		getCaptcha();
 	});
 });
+const roles = Object.freeze(["user", "editor", "admin", "founder"]);
+const editors = Object.freeze(["editor", "admin", "founder"]);
+const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});

@@ -704,7 +704,7 @@ function getUsers(){
 						row.innerHTML = `
 							<td>${user.username}</td>
 							<td>${user.role}</td>
-							<td><button type="button" onclick="changeRole('${user.username}', '${user.role}')" class="bt-red">Change role</button>&nbsp;<button type="button" onclick="deleteUser('${user.username}')" class="bt-red">Delete</button></td>
+							<td><button type="button" onclick="changeRole('${user.username}', '${user.role}')" class="bt-red">Change role</button>&nbsp;<button type="button" onclick="deleteUser('${user.username}', '${user.role}')" class="bt-red">Delete</button></td>
 						`;
 					}else{
 						row.innerHTML = `
@@ -725,7 +725,11 @@ function getUsers(){
 		console.error('错误:', error);
 	});
 }
-function deleteUser(username){
+function deleteUser(username, orole){
+	if(roleToNum[orole] >= roleToNum[role]){
+		alert("Permission Denied");
+		return;
+	}
 	if(!confirm(`Are you sure to delete "${username}"`)){
 		return;
 	}
@@ -750,16 +754,28 @@ function deleteUser(username){
 	})
 	.catch(error => console.error('错误:', error));
 }
-const roles = Object.freeze(["user", "admin"]);
+const roles = Object.freeze(["user", "editor", "admin", "founder"]);
+const editors = Object.freeze(["editor", "admin", "founder"]);
+const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});
+var role = 'user';
 function changeRole(username, orole){
-	const role = prompt(`What's new role of "${username}" ("admin"/"user")`, orole);
-	if(!role || !roles.includes(role)){
+	if(roleToNum[orole] >= roleToNum[role]){
+		alert("Permission Denied");
+		return;
+	}
+	let rolestr = "user";
+	for(let i = 1; i < roleToNum[role || "editor"] - 1; i++){
+		rolestr += `/${roles[i]}`;
+	}
+	const nrole = prompt(`What's new role of "${username}" (${rolestr})`, orole);
+	if(!nrole || !roles.includes(nrole) || roleToNum[nrole] >= roleToNum[role]){
+		alert("Permission Denied");
 		return;
 	}
 	var inputContent = {
 		type: "changeRole",
 		username,
-		role
+		role: nrole
 	};
 	safeFetch(`https://${ip}/api/manage`, {
 		method: 'POST',
@@ -812,8 +828,8 @@ document.addEventListener("DOMContentLoaded", () => {
 			ip = prompt("Enter a valid server ipv4 address", mayip);
 		}
 	}
-	let inputContent = { type: "command", info: "/testadmin" };
-	safeFetch(`https://${ip}/api`, {
+	let inputContent = { type: "get-role" };
+	safeFetch(`https://${ip}/api/manage`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -821,14 +837,13 @@ document.addEventListener("DOMContentLoaded", () => {
 		body: JSON.stringify({ content: inputContent })
 	})
 	.then(data => {
-		if(data.message === "success"){
+		role = data;
+		if(roleToNum[data] > 1){
 			document.getElementById("bt-manage").hidden = false;
 		}else{
 			location.replace('/');
 			return;
-
 		}
-		console.log(data.message);
 		let inputContent = { type: "get-username" };
 		safeFetch(`https://${ip}/api`, {
 			method: 'POST',
