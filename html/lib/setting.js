@@ -841,6 +841,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			document.getElementById("username").innerText = username = data;
 			if(data){
 				document.getElementById("logout").hidden = false;
+				document.getElementById("changePwd").hidden = false;
 			}else{
 				document.getElementById("login").hidden = false;
 				document.getElementById("sign_up").hidden = false;

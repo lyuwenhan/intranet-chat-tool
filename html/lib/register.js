@@ -234,6 +234,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 			if(data){
 				location.href = '/';
 				document.getElementById("logout").hidden = false;
+				document.getElementById("changePwd").hidden = false;
 			}else{
 				document.getElementById("login").hidden = false;
 				document.getElementById("sign_up").hidden = false;

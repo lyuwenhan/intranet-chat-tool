@@ -787,17 +787,16 @@ app.post('/api/login/', (req, res) => {
 		req.session.username = "";
 		res.json({ message: 'success' });
 		return;
-	}else if(allow_register && receivedContent.type == "change-pwd" && receivedContent.username && receivedContent.captcha){
-		if(!receivedContent.username){
-			res.json({ message: 'refuse', info:'Username cannot be empty'});
+	}else if(allow_register && receivedContent.type == "change-pwd"){
+		if(!req.session.username){
+			res.json({ message: 'refuse', info:'Not login'});
 			return;
 		}
-		if(!isValidUsername(receivedContent.username)){
-			res.json({ message: 'refuse', info:'Username is not valid'});
+		if(req.session.username !== receivedContent.username){
+			res.json({ message: 'refuse', info:'Username not correct'});
 			return;
 		}
-		receivedContent.username = receivedContent.username.toLowerCase();
-		const userinfo = findUser(receivedContent.username);
+		const userinfo = findUser(req.session.username);
 		if(!userinfo){
 			res.json({ message: 'refuse', info:'User not exists'});
 			return;
@@ -811,7 +810,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'Password cannot be empty'});
 			return;
 		}
-		if(!userinfo || !pwd || sha256(pwd + userinfo.salt) !== userinfo.hash){
+		if(sha256(pwd + userinfo.salt) !== userinfo.hash){
 			res.json({ message: 'refuse', info:'Username or password is incorrect'});
 		}
 		const npwd = encodeRSA(receivedContent.npwd);
@@ -823,7 +822,7 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'New password too short'});
 			return;
 		}
-		changePwd(receivedContent.username, npwd);
+		changePwd(req.session.username, npwd);
 		res.json({ message: 'success' });
 		return;
 	}
