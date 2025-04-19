@@ -700,11 +700,19 @@ function getUsers(){
 				tableBody.innerHTML = '';
 				data.forEach((user, index) => {
 					const row = document.createElement('tr');
-					row.innerHTML = `
-						<td>${user.username}</td>
-						<td>${user.role}</td>
-						<td><button onclick="changeRole('${user.username}', '${user.role}')" class="bt-red">Change role</button>&nbsp;<button onclick="deleteUser('${user.username}')" class="bt-red">Delete</button></td>
-					`;
+					if(user.username !== username){
+						row.innerHTML = `
+							<td>${user.username}</td>
+							<td>${user.role}</td>
+							<td><button type="button" onclick="changeRole('${user.username}', '${user.role}')" class="bt-red">Change role</button>&nbsp;<button type="button" onclick="deleteUser('${user.username}')" class="bt-red">Delete</button></td>
+						`;
+					}else{
+						row.innerHTML = `
+							<td><strong>${user.username}</strong></td>
+							<td>${user.role}</td>
+							<td><button type="button" class="bt-red">Change password</button></td>
+						`;
+					}
 					tableBody.appendChild(row);
 				});
 			})
