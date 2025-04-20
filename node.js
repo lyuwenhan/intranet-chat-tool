@@ -268,7 +268,7 @@ const sessionParser = session({
 		httpOnly: true,
 		secure: true,
 		sameSite: 'Strict',
-		maxAge: 1000 * 60 * 30
+		maxAge: 1000 * 60 * 60 * 2
 	}
 });
 app.use(sessionParser);
