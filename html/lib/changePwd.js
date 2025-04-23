@@ -68,7 +68,7 @@ async function safeFetch(url, options = {}, isBlob = false) {
 }
 function logout(){
 	let inputContent = { type: "logout" };
-	safeFetch(`https://${ip}/api/login`, {
+	safeFetch(`/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -89,7 +89,7 @@ var username;
 function get_key() {
 	var ret = null;
 	var inputContent = { type: "get-key" };
-	safeFetch(`https://${ip}/api`, {
+	safeFetch(`/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -128,7 +128,6 @@ function isValidIPv4(str) {
 	}
 	return true;
 }
-var ip = "";
 var publicKey;
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 1️⃣ 解析 PEM 格式公钥
@@ -180,7 +179,7 @@ document.getElementById('change-password-form').addEventListener('submit', async
 	const encrypted2 = await encryptWithOAEP(npassword, publicKey);
 	var inputContent = { type: "change-pwd", username, pwd: encrypted, npwd: encrypted2, captcha };
 	console.log(inputContent);
-	safeFetch(`https://${ip}/api/login`, {
+	safeFetch(`/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -209,19 +208,8 @@ document.getElementById('change-password-form').addEventListener('submit', async
 
 var role = 'user';
 document.addEventListener("DOMContentLoaded", () => {
-	let mayip="";
-	if(isValidIPv4(window.location.hostname)){
-		mayip = window.location.hostname;
-	}
-	ip = mayip;
-	if(!mayip){
-		ip = prompt("Please enter server ipv4", mayip);
-		while (!isValidIPv4(ip)) {
-			ip = prompt("Enter a valid server ipv4 address", mayip);
-		}
-	}
 	let inputContent = { type: "get-role" };
-	safeFetch(`https://${ip}/api/manage`, {
+	safeFetch(`/api/manage`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -234,7 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			document.getElementById("bt-manage").hidden = false;
 		}
 		let inputContent = { type: "get-username" };
-		safeFetch(`https://${ip}/api`, {
+		safeFetch(`/api`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'

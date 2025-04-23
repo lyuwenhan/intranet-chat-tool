@@ -67,7 +67,7 @@ async function safeFetch(url, options = {}, isBlob = false) {
 }
 function logout(){
 	let inputContent = { type: "logout" };
-	safeFetch(`https://${ip}/api/login`, {
+	safeFetch(`/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -99,11 +99,8 @@ const languageModes = {
 	"yaml": [{ mode: "yaml" }, { mode: "yaml" }],
 	"sql": [{ mode: "text/x-sql", matchBrackets: true, autoCloseBrackets: true }, { mode: "text/x-sql", matchBrackets: true, autoCloseBrackets: true }]
 };
-function isMobileDevice() {
-    return /Mobi|Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
-}
 function tomode(mode, ro = false){
-	return {theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: ro, inputStyle: isMobileDevice() ? "contenteditable" : "textarea", ...mode};
+	return {theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: ro, ...mode};
 }
 var images = document.getElementsByTagName('img');
 for (var i = 0; i < images.length; i++) {
@@ -133,7 +130,7 @@ form.addEventListener('submit', function(e) {
 	}
 	formData.set("file", newFile);
 	formData.append('content', JSON.stringify({type: 'file'}));
-	safeFetch(`https://${ip}/upload`, {
+	safeFetch(`/upload`, {
 		method: 'POST',
 		body: formData,
 	})
@@ -171,7 +168,7 @@ imgform.addEventListener('submit', function(e) {
 	}
 	formData.set("image", newFile);
 	formData.append('content', JSON.stringify({type: 'file'}));
-	safeFetch(`https://${ip}/uploadimg`, {
+	safeFetch(`/uploadimg`, {
 		method: 'POST',
 		body: formData,
 	})
@@ -205,7 +202,7 @@ function formatSize(bytes) {
 var last_data = {chats:[]};
 function get_key() {
 	var inputContent = { type: "get-key" };
-	safeFetch(`https://${ip}/api`, {
+	safeFetch(`/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -220,32 +217,7 @@ function get_key() {
 	});
 }
 var publicKey;
-function isValidIPv4(str) {
-	if (str == null || str == undefined) {
-		return false;
-	}
-	if(str === "localhost"){
-		return true;
-	}
-	let parts = str.split(".");
-	if (parts.length !== 4) {
-		return false;
-	}
-	for (let part of parts) {
-		if (!part.match(/^\d+$/)) {
-			return false;
-		}
-		let num = parseInt(part, 10);
-		if (num < 0 || num > 255) {
-			return false;
-		}
-		if (part !== num.toString()) {
-			return false;
-		}
-	}
-	return true;
-}
-var ip = "", username = "";
+var  username = "";
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	// 1️⃣ 解析 PEM 格式公钥
 	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
@@ -267,7 +239,7 @@ function submitForm() {
 		return;
 	}
 	document.getElementById("inputContent").value = "";
-	safeFetch(`https://${ip}/api`, {
+	safeFetch(`/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -293,7 +265,7 @@ function submitCode() {
 	}
 	editor.setValue("");
 	editor.clearHistory();
-	safeFetch(`https://${ip}/api`, {
+	safeFetch(`/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -397,7 +369,7 @@ function reloaddd(data){
 		nele.title="click to download";
 		nele.innerHTML=`${data.filename}&nbsp;&nbsp;[${formatSize(data.size)}]`;
 		nele.onclick=function(){
-			safeFetch(`https://${ip}/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`, {}, true)
+			safeFetch(`/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`, {}, true)
 			.then(blob => {
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement('a');
@@ -417,7 +389,7 @@ function reloaddd(data){
 		document.querySelector(".chat").appendChild(document.createElement("br"));
 		if(data.type == "image"){
 			let nele2 = document.createElement("img");
-			nele2.src=`https://${ip}/uploads/img/${data.path}`;
+			nele2.src=`/uploads/img/${data.path}`;
 			nele2.id="img";
 			nele2.title="click to copy the link";
 			nele2.onerror=function(){
@@ -489,7 +461,7 @@ function reloadd(data) {
 
 function reload() {
 	var inputContent = { type: "get" };
-	safeFetch(`https://${ip}/api`, {
+	safeFetch(`/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -600,7 +572,7 @@ document.getElementById("code-language").addEventListener("change", function() {
 });
 function run(){
 	let inputContent = { type: "savecpp", link: uuid.v4(), code: editor.getValue() };
-	safeFetch(`https://${ip}/cpp-save`, {
+	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -663,19 +635,8 @@ document.addEventListener("DOMContentLoaded", () => {
 			submitCode();
 		}
 	});
-	let mayip="";
-	if(isValidIPv4(window.location.hostname)){
-		mayip = window.location.hostname;
-	}
-	ip = mayip;
-	if(!mayip){
-		ip = prompt("Please enter server ipv4", mayip);
-		while (!isValidIPv4(ip)) {
-			ip = prompt("Enter a valid server ipv4 address", mayip);
-		}
-	}
 	let inputContent = { type: "get-role" };
-	safeFetch(`https://${ip}/api/manage`, {
+	safeFetch(`/api/manage`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -688,7 +649,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			document.getElementById("bt-manage").hidden = false;
 		}
 		let inputContent = { type: "get-username" };
-		safeFetch(`https://${ip}/api`, {
+		safeFetch(`/api`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -718,7 +679,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	const maxDelay = 30000;
 
 	function connectWS(){
-		ws = new WebSocket(`wss://${ip}`, null, { withCredentials: true });
+		ws = new WebSocket(`wss://${location.host}`, null, { withCredentials: true });
 
 		ws.onopen = () => {
 			console.log("WebSocket connected");

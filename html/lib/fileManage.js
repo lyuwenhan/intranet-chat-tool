@@ -68,7 +68,7 @@ async function safeFetch(url, options = {}, isBlob = false) {
 }
 function logout(){
 	let inputContent = { type: "logout" };
-	safeFetch(`https://${ip}/api/login`, {
+	safeFetch(`/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -94,7 +94,7 @@ function isValidUsername(username){
 }
 function get_key(){
 	let inputContent = { type: "get-key" };
-	safeFetch(`https://${ip}/api`, {
+	safeFetch(`/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -109,32 +109,7 @@ function get_key(){
 	});
 }
 var publicKey;
-function isValidIPv4(str) {
-	if (str == null || str == undefined) {
-		return false;
-	}
-	if(str === "localhost"){
-		return true;
-	}
-	let parts = str.split(".");
-	if (parts.length !== 4) {
-		return false;
-	}
-	for (let part of parts) {
-		if (!part.match(/^\d+$/)) {
-			return false;
-		}
-		let num = parseInt(part, 10);
-		if (num < 0 || num > 255) {
-			return false;
-		}
-		if (part !== num.toString()) {
-			return false;
-		}
-	}
-	return true;
-}
-var ip = "", username = "";
+var username = "";
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
 	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
@@ -148,7 +123,7 @@ function getCodeList() {
 	let inputContent = {
 		type: "getList",
 	};
-	safeFetch(`https://${ip}/cpp-save`, {
+	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -187,7 +162,7 @@ function getCodeList() {
 function deleteCode(filename, uuid) {
 	if (confirm(`Are you sure you want to delete the file "${filename}.cpp"?`)) {
 		let inputContent = { type: "delete", link: uuid };
-		safeFetch(`https://${ip}/cpp-save`, {
+		safeFetch(`/cpp-save`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -211,7 +186,7 @@ function renameCode(uuid) {
 		return;
 	}
 	let inputContent = { type: "rename", link: uuid, filename };
-	safeFetch(`https://${ip}/cpp-save`, {
+	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -260,19 +235,8 @@ function copy(me, text, func){
 
 var role = 'user';
 document.addEventListener("DOMContentLoaded", () => {
-	let mayip="";
-	if(isValidIPv4(window.location.hostname)){
-		mayip = window.location.hostname;
-	}
-	ip = mayip;
-	if(!mayip){
-		ip = prompt("Please enter server ipv4", mayip);
-		while (!isValidIPv4(ip)) {
-			ip = prompt("Enter a valid server ipv4 address", mayip);
-		}
-	}
 	let inputContent = { type: "get-role" };
-	safeFetch(`https://${ip}/api/manage`, {
+	safeFetch(`/api/manage`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -285,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			document.getElementById("bt-manage").hidden = false;
 		}
 		let inputContent = { type: "get-username" };
-		safeFetch(`https://${ip}/api`, {
+		safeFetch(`/api`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'

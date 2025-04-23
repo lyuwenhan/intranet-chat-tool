@@ -68,7 +68,7 @@ async function safeFetch(url, options = {}, isBlob = false) {
 }
 function logout(){
 	let inputContent = { type: "logout" };
-	safeFetch(`https://${ip}/api/login`, {
+	safeFetch(`/api/login`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -117,7 +117,7 @@ function formatSize(bytes) {
 }
 function get_key() {
 	let inputContent = { type: "get-key" };
-	safeFetch(`https://${ip}/api`, {
+	safeFetch(`/api`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -132,32 +132,7 @@ function get_key() {
 	});
 }
 var publicKey;
-function isValidIPv4(str) {
-	if (str == null || str == undefined) {
-		return false;
-	}
-	if(str === "localhost"){
-		return true;
-	}
-	let parts = str.split(".");
-	if (parts.length !== 4) {
-		return false;
-	}
-	for (let part of parts) {
-		if (!part.match(/^\d+$/)) {
-			return false;
-		}
-		let num = parseInt(part, 10);
-		if (num < 0 || num > 255) {
-			return false;
-		}
-		if (part !== num.toString()) {
-			return false;
-		}
-	}
-	return true;
-}
-var ip = "", username = "";
+var  username = "";
 async function encryptWithOAEP(plainText, publicKeyPem) {
 	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
 	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
@@ -192,7 +167,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			outdlele.innerHTML += ` (${formatSize(outsize)})`;
 			outdlele.hidden = false;
 			outdlele.onclick=function(){
-				safeFetch(`https://${ip}/uploads/${outfile}`, {}, true)
+				safeFetch(`/uploads/${outfile}`, {}, true)
 				.then(blob => {
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement('a');
@@ -219,7 +194,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			errdlele.innerHTML += ` (${formatSize(errsize)})`;
 			errdlele.hidden = false;
 			errdlele.onclick=function(){
-				safeFetch(`https://${ip}/uploads/${errfile}`, {}, true)
+				safeFetch(`/uploads/${errfile}`, {}, true)
 				.then(blob => {
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement('a');
@@ -232,7 +207,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 					URL.revokeObjectURL(url);
 				})
 				.catch(error => {
-					const newWindow = window.open(`https://${ip}/${outfile}`, '_blank', 'noopener,noreferrer');
+					const newWindow = window.open(`/${outfile}`, '_blank', 'noopener,noreferrer');
 					if (newWindow) {
 						newWindow.opener = null;
 					}
@@ -255,7 +230,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			errdlele.innerHTML += ` (${formatSize(errsize)})`;
 			outdlele.hidden = false;
 			outdlele.onclick=function(){
-				safeFetch(`https://${ip}/uploads/${outfile}`, {}, true)
+				safeFetch(`/uploads/${outfile}`, {}, true)
 				.then(blob => {
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement('a');
@@ -275,7 +250,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		if(errfile){
 			errdlele.hidden = false;
 			errdlele.onclick=function(){
-				safeFetch(`https://${ip}/uploads/${errfile}`, {}, true)
+				safeFetch(`/uploads/${errfile}`, {}, true)
 				.then(blob => {
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement('a');
@@ -321,7 +296,7 @@ function submitCode() {
 	}
 	savecode();
 	saveinput();
-	safeFetch(`https://${ip}/cpp-run`, {
+	safeFetch(`/cpp-run`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -394,7 +369,7 @@ editor.on("keydown", (cm, event) => {
 	save_unsave = setTimeout(function(){
 		save_unsave = null;
 		let inputContent = { type: "savecpp-unsave", link, code: cm.getValue() };
-		safeFetch(`https://${ip}/cpp-save`, {
+		safeFetch(`/cpp-save`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -418,7 +393,7 @@ edi_input.on("keydown", (cm, event) => {
 function savecode(){
 	lasave = editor.getValue();
 	let inputContent = { type: "savecpp", link, code: lasave };
-	safeFetch(`https://${ip}/cpp-save`, {
+	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -439,7 +414,7 @@ function savecode(){
 }
 function saveinput(){
 	let inputContent = { type: "saveinput", link, code: edi_input.getValue() };
-	safeFetch(`https://${ip}/cpp-save`, {
+	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -460,7 +435,7 @@ function saveinput(){
 }
 function makeonly(){
 	let inputContent = { type: "cpro", link };
-	return safeFetch(`https://${ip}/cpp-save`, {
+	return safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -483,7 +458,7 @@ function makeonly(){
 var rolink;
 function makenonly(){
 	let inputContent = { type: "cp", link1: link, link2: uuid.v4() };
-	return safeFetch(`https://${ip}/cpp-save`, {
+	return safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -512,7 +487,7 @@ function cprolink(me){
 }
 function readcodes(){
 	let inputContent = { type: "read", link };
-	safeFetch(`https://${ip}/cpp-save`, {
+	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -524,7 +499,7 @@ function readcodes(){
 		if(data.message == "success"){
 			if(data.readOnly){
 				let inputContent2 = { type: "cp", link };
-				safeFetch(`https://${ip}/cpp-save`, {
+				safeFetch(`/cpp-save`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -575,7 +550,7 @@ function renameCode() {
 	}
 	let inputContent = { type: "rename", link, filename };
 	console.log(inputContent);
-	safeFetch(`https://${ip}/cpp-save`, {
+	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -621,19 +596,8 @@ function copy(me, text){
 var token = null;
 var role = 'user';
 document.addEventListener("DOMContentLoaded", () => {
-	let mayip="";
-	if(isValidIPv4(window.location.hostname)){
-		mayip = window.location.hostname;
-	}
-	ip = mayip;
-	if(!mayip){
-		ip = prompt("Please enter server ipv4", mayip);
-		while (!isValidIPv4(ip)) {
-			ip = prompt("Enter a valid server ipv4 address", mayip);
-		}
-	}
 	let inputContent = { type: "get-role" };
-	safeFetch(`https://${ip}/api/manage`, {
+	safeFetch(`/api/manage`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
@@ -646,7 +610,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			document.getElementById("bt-manage").hidden = false;
 		}
 		let inputContent = { type: "get-username" };
-		safeFetch(`https://${ip}/api`, {
+		safeFetch(`/api`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
@@ -676,7 +640,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	const maxDelay = 30000;
 
 	function connectWS(){
-		ws = new WebSocket(`wss://${ip}`, null, { withCredentials: true });
+		ws = new WebSocket(`wss://${location.host}`, null, { withCredentials: true });
 
 		ws.onopen = () => {
 			console.log("WebSocket connected");
