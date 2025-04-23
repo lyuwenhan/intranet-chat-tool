@@ -114,7 +114,7 @@ const Database = require('better-sqlite3');
 const db = new Database('./data/users.db');
 const db_codes = new Database('./cppfile/codes.db');
 const db_codelist = new Database('./cppfile/code_list.db');
-const credentials = { key: fs.readFileSync(process.env.key_path || "keys/key.pem", 'utf8'), cert: fs.readFileSync(process.env.cert_path || "keys/cert.pem", 'utf8') };
+const credentials = { key: fs.readFileSync(process.env.KEY_PATH || "keys/key.pem", 'utf8'), cert: fs.readFileSync(process.env.CERT_PATH || "keys/cert.pem", 'utf8') };
 const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
 const app = express();
@@ -250,11 +250,11 @@ function make128(){
 	return crypto.randomBytes(64).toString('hex');
 }
 const private_pwd = make128();
-const session_pwd = process.env.session_pwd;
-const allow_register = process.env.allow_register === 'true';
+const session_pwd = process.env.SESSION_PWD;
+const allow_register = process.env.ALLOW_REGISTER === 'true';
 const host = "0.0.0.0";
-const port = process.env.port || 443;
-const port_http = process.env.port_http || 80;
+const port = process.env.PORT || 443;
+const port_http = process.env.PORT_HTTP || 80;
 const { v4: uuidv4 } = require('uuid');
 const { exec } = require('child_process');
 
