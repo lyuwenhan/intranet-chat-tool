@@ -263,12 +263,12 @@ const BetterSqliteStore = require('better-sqlite3-session-store')(session);
 
 const dbClient = new Database('./data/sessions.db');
 const sessionParser = session({
-    store: new BetterSqliteStore({
-        client: dbClient,
-        expired: {
-            clear: true,
-        }
-    }),
+	store: new BetterSqliteStore({
+		client: dbClient,
+		expired: {
+			clear: true,
+		}
+	}),
 	secret: session_pwd,
 	resave: false,
 	saveUninitialized: true,
@@ -498,7 +498,7 @@ db_codelist.prepare(`
 	CREATE TABLE IF NOT EXISTS code_list (
 		username TEXT NOT NULL,
 		uuid TEXT NOT NULL,
-		filename TEXT NOT NULL,ca
+		filename TEXT NOT NULL,
 		updated_at INTEGER DEFAULT 0,
 		PRIMARY KEY (username, uuid)
 	)
@@ -1942,13 +1942,13 @@ const tokenOwnerMap = new Map();
 const wss = new WebSocket.Server({ server: httpsServer });
 const wsTokenMap = new Map();
 setInterval(() => {
-    for(const token of cppQueue){
-        const ws = wsTokenMap.get(token);
-        if(!ws || ws.readyState !== WebSocket.OPEN){
-            cppQueue.splice(cppQueue.indexOf(token), 1);
-            console.warn(`Removed stale token ${token} from queue`);
-        }
-    }
+	for(const token of cppQueue){
+		const ws = wsTokenMap.get(token);
+		if(!ws || ws.readyState !== WebSocket.OPEN){
+			cppQueue.splice(cppQueue.indexOf(token), 1);
+			console.warn(`Removed stale token ${token} from queue`);
+		}
+	}
 }, 30 * 1000);
 wss.on('connection', (ws, req) => {
 	sessionParser(req, {}, () => {
@@ -2037,11 +2037,11 @@ function runcpp(command, callback, username, token){
 	}
 	
 	const ws = wsTokenMap.get(token);
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-        console.warn(`Token ${token} is no longer connected. Skipping.`);
-        cppQueue.splice(cppQueue.indexOf(token), 1);
-        return;
-    }
+	if (!ws || ws.readyState !== WebSocket.OPEN) {
+		console.warn(`Token ${token} is no longer connected. Skipping.`);
+		cppQueue.splice(cppQueue.indexOf(token), 1);
+		return;
+	}
 	cppQueue.push(token);
 	const position = cppQueue.length - 1;
 	notifyStatus(token, `Queued (${position} ahead)`);
