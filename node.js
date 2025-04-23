@@ -114,7 +114,9 @@ const Database = require('better-sqlite3');
 const db = new Database('./data/users.db');
 const db_codes = new Database('./cppfile/codes.db');
 const db_codelist = new Database('./cppfile/code_list.db');
-const credentials = { key: fs.readFileSync(process.env.KEY_PATH || "keys/key.pem", 'utf8'), cert: fs.readFileSync(process.env.CERT_PATH || "keys/cert.pem", 'utf8') };
+const port = process.env.PORT || 443;
+const port_http = process.env.PORT_HTTP || 80;
+const credentials = (port_http === "only" ? {} : { key: fs.readFileSync(process.env.KEY_PATH || "keys/key.pem", 'utf8'), cert: fs.readFileSync(process.env.CERT_PATH || "keys/cert.pem", 'utf8') });
 const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
 const app = express();
@@ -253,8 +255,6 @@ const private_pwd = make128();
 const session_pwd = process.env.SESSION_PWD;
 const allow_register = process.env.ALLOW_REGISTER === 'true';
 const host = "0.0.0.0";
-const port = process.env.PORT || 443;
-const port_http = process.env.PORT_HTTP || 80;
 const { v4: uuidv4 } = require('uuid');
 const { exec } = require('child_process');
 
@@ -1903,8 +1903,8 @@ app.use((err, req, res, next) => {
 	}
 	next(err); // 如果不是 `multer` 错误，继续传递错误
 });
-const httpsServer = https.createServer(credentials, app);
-httpsServer.listen(port, '0.0.0.0', () => {
+const server = (port_http === "only" ? http.createServer(app) : https.createServer(credentials, app));
+server.listen(port, '0.0.0.0', () => {
 	console.log(`服务器运行在: http://localhost:${port} && `);
 	console.log(`main https server运行在: http://localhost:${port} && `);
 	console.log(`https server2运行在: http://localhost:${port}`);
@@ -1919,31 +1919,32 @@ httpsServer.listen(port, '0.0.0.0', () => {
 		throw err;
 	}
 });
-
-if(port_http !== "close"){
-	http.createServer((req, res) => {
-		res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-		res.end();
-	}).listen(port_http, '0.0.0.0', () => {
-		console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
-	}).on('error', err => {
-		if(err.code === 'EADDRINUSE'){
-			console.log(`http 重定向服务器启动失败: http://localhost:${port_http}`);
-			fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
-			process.exit(1);
-		}else{
-			throw err;
-		}
-	});
-}else{
-	console.log(`http 重定向服务器被禁止开启`);
+if(port_http !== "only"){
+	if(port_http !== "close"){
+		http.createServer((req, res) => {
+			res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+			res.end();
+		}).listen(port_http, '0.0.0.0', () => {
+			console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
+		}).on('error', err => {
+			if(err.code === 'EADDRINUSE'){
+				console.log(`http 重定向服务器启动失败: http://localhost:${port_http}`);
+				fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
+				process.exit(1);
+			}else{
+				throw err;
+			}
+		});
+	}else{
+		console.log(`http 重定向服务器被禁止开启`);
+	}
 }
 
 const WebSocket = require('ws');
 const chatClients = new Map();
 const tokenOwnerMap = new Map();
 
-const wss = new WebSocket.Server({ server: httpsServer });
+const wss = new WebSocket.Server({ server });
 const wsTokenMap = new Map();
 setInterval(() => {
 	for(const token of cppQueue){

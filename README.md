@@ -97,7 +97,8 @@ CERT_PATH=keys/cert.pem
 KEY_PATH=keys/key.pem
 
 # [CERT_PATH & KEY_PATH] can be your own path / [CERT_PATH & KEY_PATH] 可以使用其他的路径
-# if you don't want to offer http service you can set [PORT_HTTP] to "close" / 将 [PORT_HTTP] 设置为 close 可取消http重定向服务
+# if you don't want to offer http service you can set [PORT_HTTP] to "close" / 将 [PORT_HTTP] 设置为 close 可取消http服务
+# if you only want to offer http service you can set [PORT_HTTP] to "only" / 将 [PORT_HTTP] 设置为 only 可只运行http服务
 
 # 3. Run the server / 启动后端服务
 node node.js
