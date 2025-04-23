@@ -109,6 +109,7 @@ const { JSDOM } = require('jsdom');
 const window = new JSDOM('').window;
 const DOMPurify = createDOMPurify(window);
 fs.mkdirSync("./cppfile", { recursive: true });
+fs.mkdirSync("./data", { recursive: true });
 const Database = require('better-sqlite3');
 const db = new Database('./data/users.db');
 const db_codes = new Database('./cppfile/codes.db');
