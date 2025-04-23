@@ -1924,7 +1924,7 @@ if(port_http !== "close"){
 	http.createServer((req, res) => {
 		res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
 		res.end();
-	}).listen(port_http, () => {
+	}).listen(port_http, '0.0.0.0', () => {
 		console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
 	}).on('error', err => {
 		if(err.code === 'EADDRINUSE'){
