@@ -91,7 +91,9 @@ session_pwd=your_secret_key
 port=443
 port_http=80
 allow_register=true
-
+cert_path=keys/cert.pem
+key_path=keys/key.pem
+# [cert_path & key_path] can be your own path / [cert_path & key_path] 可以使用其他的路径
 
 # 3. Run the server / 启动后端服务
 node node.js
