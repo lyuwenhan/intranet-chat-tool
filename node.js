@@ -298,7 +298,7 @@ function to_json(file_name){
 		}
 		return JSON.parse(rawData);
 	}
-	return null;
+	return [];
 }
 
 /**
