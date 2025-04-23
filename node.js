@@ -1920,20 +1920,24 @@ httpsServer.listen(port, () => {
 	}
 });
 
-http.createServer((req, res) => {
-	res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-	res.end();
-}).listen(port_http, () => {
-	console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
-}).on('error', err => {
-	if(err.code === 'EADDRINUSE'){
-		console.log(`http 重定向服务器启动失败: http://localhost:${port_http}`);
-		fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
-		process.exit(1);
-	}else{
-		throw err;
-	}
-});
+if(port_http !== "close"){
+	http.createServer((req, res) => {
+		res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+		res.end();
+	}).listen(port_http, () => {
+		console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
+	}).on('error', err => {
+		if(err.code === 'EADDRINUSE'){
+			console.log(`http 重定向服务器启动失败: http://localhost:${port_http}`);
+			fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
+			process.exit(1);
+		}else{
+			throw err;
+		}
+	});
+}else{
+	console.log(`http 重定向服务器被禁止开启`);
+}
 
 const WebSocket = require('ws');
 const chatClients = new Map();

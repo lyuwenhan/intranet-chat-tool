@@ -87,13 +87,17 @@ node.js             → Main backend server
 npm install
 
 # 2. Add .env configuration / 添加环境配置
+# (You can copy the template below into a file named ".env")
+# (你可以将下方内容复制为 ".env" 文件)
 session_pwd=your_secret_key
 port=443
 port_http=80
 allow_register=true
 cert_path=keys/cert.pem
 key_path=keys/key.pem
+
 # [cert_path & key_path] can be your own path / [cert_path & key_path] 可以使用其他的路径
+# if you don't want to offer http service you can set [port_http] to "close" / 将 [port_http] 设置为 close 可取消http重定向服务
 
 # 3. Run the server / 启动后端服务
 node node.js
