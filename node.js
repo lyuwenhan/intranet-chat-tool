@@ -120,6 +120,7 @@ const credentials = (port_http === "only" ? {} : { key: fs.readFileSync(process.
 const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
 const app = express();
+app.set('trust proxy', true);
 const roles = Object.freeze(["user", "editor", "admin", "founder"]);
 const editors = Object.freeze(["editor", "admin", "founder"]);
 const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});
