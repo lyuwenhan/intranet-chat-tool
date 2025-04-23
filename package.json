@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "better-sqlite3": "^11.9.1",
+    "better-sqlite3-session-store": "^0.1.0",
     "body-parser": "^1.20.3",
     "child_process": "^1.0.2",
     "cors": "^2.8.5",

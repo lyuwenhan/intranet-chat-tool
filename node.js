@@ -259,8 +259,16 @@ const { v4: uuidv4 } = require('uuid');
 const { exec } = require('child_process');
 
 const session = require('express-session');
+const BetterSqliteStore = require('better-sqlite3-session-store')(session);
 
+const dbClient = new Database('./data/sessions.db');
 const sessionParser = session({
+    store: new BetterSqliteStore({
+        client: dbClient,
+        expired: {
+            clear: true,
+        }
+    }),
 	secret: session_pwd,
 	resave: false,
 	saveUninitialized: true,
