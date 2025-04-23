@@ -99,8 +99,11 @@ const languageModes = {
 	"yaml": [{ mode: "yaml" }, { mode: "yaml" }],
 	"sql": [{ mode: "text/x-sql", matchBrackets: true, autoCloseBrackets: true }, { mode: "text/x-sql", matchBrackets: true, autoCloseBrackets: true }]
 };
+function isMobileDevice() {
+    return /Mobi|Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
+}
 function tomode(mode, ro = false){
-	return Object.assign({}, mode, {theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: ro});
+	return {theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: ro, inputStyle: isMobileDevice() ? "contenteditable" : "textarea", ...mode};
 }
 var images = document.getElementsByTagName('img');
 for (var i = 0; i < images.length; i++) {

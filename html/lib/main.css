@@ -22,11 +22,6 @@
 	min-height: calc(3.9em + 8px);
 	max-height: calc(26em + 8px);
 }
-
-body{
-	margin: 0;
-	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-}
 .well{
 	background-color: rgb(247, 247, 247);
 	border: 1px solid rgb(227, 227, 227);
@@ -51,11 +46,6 @@ body{
 	overflow-y: inherit;
 	padding:5px
 }
-#get-cnt{
-	right: 20px;
-	bottom: 20px;
-	position: fixed;
-}
 code[class^="language-"] .token.operator{
 	background-color: transparent;
 }
@@ -76,9 +66,6 @@ code[class^="language-"] .token.operator{
 	bottom: 20px;
 	right: 20px;
 	position: fixed;
-}
-#get-cnt{
-	pointer-events: none;
 }
 .lang-now{
 	cursor: pointer;
@@ -184,18 +171,6 @@ input {
 	overflow-x: auto;
 }
 
-html{
-	tab-size: 4;
-}
-
-img,br,button,[for=auto-fresh],.lang > a,.no-select{
-	user-select: none;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	-webkit-user-drag: none;
-}
-
 #img{
 	max-height: 180px;
 	max-width: 320px;
@@ -203,9 +178,6 @@ img,br,button,[for=auto-fresh],.lang > a,.no-select{
 #noimg{
 	max-height: 126px;
 	max-width: 224px;
-}
-a{
-	text-decoration: none;
 }
 .show0:hover .show1{
 	display: unset;

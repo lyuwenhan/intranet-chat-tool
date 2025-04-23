@@ -1,3 +1,22 @@
+/*
+ * Project: Intranet Chat Tool
+ * Copyright (C) 2025 lyuwenhan
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+
 nav {
 	z-index: 10000002;
 	position: relative;
@@ -60,20 +79,12 @@ nav>ul>li>ul{
 	padding: 6px 0;
 	height: auto !important;
 }
-nav>ul>li>ul>li>span{
+nav>ul>li>ul>li>span,nav>ul>li>ul>li>a>span,nav>ul>li>ul>li>a{
 	background-color: #33a8e7;
 	line-height: 20px;
 	height: calc(100% - 8px);
 }
-nav>ul>li>ul>li>a>span{
-	background-color: #33a8e7;
-	line-height: 20px;
-	height: calc(100% - 8px);
-}
-nav>ul>li>ul>li>span:hover{
-	background-color: rgb(60, 138, 226);
-}
-nav>ul>li>ul>li>a>span:hover{
+nav>ul>li>ul>li>span:hover,nav>ul>li>ul>li>a>span:hover{
 	background-color: rgb(60, 138, 226);
 }
 [hidden]{
@@ -87,4 +98,28 @@ nav>ul>li>ul>li>a>span:hover{
 }
 .mob-only{
 	display: none;
+}
+a{
+	text-decoration: none;
+}
+body{
+	margin: 0;
+	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+}
+html{
+	tab-size: 4;
+}
+img,br,button,[for=auto-fresh],.lang > a,.no-select{
+	user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-webkit-user-drag: none;
+}
+#get-cnt{
+	right: max(0px, min(20px, 100vw - 125px));
+	width: min(125px, 100vw);
+	bottom: 20px;
+	position: fixed;
+	pointer-events: none;
 }

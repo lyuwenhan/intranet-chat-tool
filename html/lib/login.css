@@ -17,22 +17,7 @@
  */
 
 
-html{
-	tab-size: 4;
-}
 
-body{
-	margin: 0;
-	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-}
-
-img,br,button,[for=auto-fresh],.lang > a,.no-select{
-	user-select: none;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	-webkit-user-drag: none;
-}
 .ban{
 	color:red;
 	font-size: 2em;
@@ -58,10 +43,9 @@ img,br,button,[for=auto-fresh],.lang > a,.no-select{
 	margin: 10px;
 	border-radius: 10px;
 }
-
-a{
-	text-decoration: none;
-}
 .main{
 	padding: 10px;
+}
+.show0:hover .show1{
+	display: unset;
 }

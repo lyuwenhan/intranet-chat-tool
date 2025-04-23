@@ -184,7 +184,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		inele.classList += "hei10 full";
 	}else if(!err){
 		inele.classList += "hei6 top";
-		outele.classList += "hei4 pla6 bottom";
+		outele.classList += "hei4 pla6 place2 bottom";
 		outele.hidden = false;
 		edi_output.setValue(out);
 		edi_output.refresh();
@@ -211,7 +211,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		}
 	}else if(!out){
 		inele.classList += "hei6 top";
-		errele.classList += "hei4 pla6 bottom";
+		errele.classList += "hei4 pla6 place2 bottom";
 		errele.hidden = false;
 		edi_error.setValue(err);
 		edi_error.refresh();
@@ -242,8 +242,8 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		}
 	}else{
 		inele.classList += "hei4 top";
-		outele.classList += "hei3 pla4 no";
-		errele.classList += "hei3 pla7 bottom";
+		outele.classList += "hei3 pla4 place2 no";
+		errele.classList += "hei3 pla7 place3 bottom";
 		outele.hidden = false;
 		errele.hidden = false;
 		edi_output.setValue(out);

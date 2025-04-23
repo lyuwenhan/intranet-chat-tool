@@ -30,50 +30,54 @@
 	<link rel="stylesheet" href="/lib/codeEditor.css">
 	<link rel="stylesheet" href="/lib/common.css">
 	<link rel="stylesheet" href="/lib/mobile.css" media="only screen and (max-width: 768px)">
+	<link rel="stylesheet" href="/lib/ce_mob.css" media="only screen and (max-width: 768px)">
 </head>
 
 <body>
-	<nav class="no-select show0-mb" style="font-size: medium;">
-		<span class="unshow1-mb" style="line-height: 1em;font-size: 0; display: flex;">
-			<svg class="mob-only" style="width:52px; height: 52px; padding: 4px;" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="#B9F3FB">
-				<rect x="20" y="25" width="60" height="8" rx="4"/>
-				<rect x="20" y="46" width="60" height="8" rx="4"/>
-				<rect x="20" y="67" width="60" height="8" rx="4"/>
-			</svg>
-		</span>
-		<a class="show1-mb mob-only" style="line-height: 1em;font-size: 0;"><img src="favicon.png" style="width:52px; height: 52px; padding: 4px;"></a>
-		<a class="unshow-mb" href="/" style="line-height: 1em;font-size: 0;"><img src="favicon.png" style="width:52px; height: 52px; padding: 4px;"></a>
-		<ul class="show1-mb">
-			<li><a href="/"><span>Home</span></a></li>
-			<li><a href="/fileManage"><span>Files</span></a></li>
-			<li><a href="/manage" id="bt-manage" hidden><span>Manage</span></a></li>
-		</ul>
-		<ul class="pos-right show1-mb">
-			<li>
-				<span>
-					username:&nbsp;<span id="username"></span>
-				</span>
-				<ul>
-					<li id="login" hidden>
-						<span class="can-click"><a class="bt-white" href="/login">Login</a></span>
-					</li>
-					<li id="sign_up" hidden>
-						<span class="can-click"><a class="bt-white" href="/register">Sign up</a></span>
-					</li>
-					<li id="changePwd" hidden>
-						<span class="can-click"><a class="bt-white" href="/changePassword">Change password</a></span>
-					</li>
-					<li id="logout" hidden>
-						<span class="can-click" onclick="logout()">Logout</span>
-					</li>
-				</ul>
-			</li>
-		</ul>
-	</nav>
+	<div class="nav">
+		<nav class="no-select show0-mb" style="font-size: medium;">
+			<span class="unshow1-mb" style="line-height: 1em;font-size: 0; display: flex;">
+				<svg class="mob-only" style="width:52px; height: 52px; padding: 4px;" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="#B9F3FB">
+					<rect x="20" y="25" width="60" height="8" rx="4"/>
+					<rect x="20" y="46" width="60" height="8" rx="4"/>
+					<rect x="20" y="67" width="60" height="8" rx="4"/>
+				</svg>
+			</span>
+			<a class="show1-mb mob-only" style="line-height: 1em;font-size: 0;"><img src="favicon.png" style="width:52px; height: 52px; padding: 4px;"></a>
+			<a class="unshow-mb" href="/" style="line-height: 1em;font-size: 0;"><img src="favicon.png" style="width:52px; height: 52px; padding: 4px;"></a>
+			<ul class="show1-mb">
+				<li><a href="/"><span>Home</span></a></li>
+				<li><a href="/fileManage"><span>Files</span></a></li>
+				<li><a href="/manage" id="bt-manage" hidden><span>Manage</span></a></li>
+			</ul>
+			<ul class="pos-right show1-mb">
+				<li>
+					<span>
+						username:&nbsp;<span id="username"></span>
+					</span>
+					<ul>
+						<li id="login" hidden>
+							<span class="can-click"><a class="bt-white" href="/login">Login</a></span>
+						</li>
+						<li id="sign_up" hidden>
+							<span class="can-click"><a class="bt-white" href="/register">Sign up</a></span>
+						</li>
+						<li id="changePwd" hidden>
+							<span class="can-click"><a class="bt-white" href="/changePassword">Change password</a></span>
+						</li>
+						<li id="logout" hidden>
+							<span class="can-click" onclick="logout()">Logout</span>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</nav>
+	</div>
 	<div class="mobtop"></div>
+	<div class="moball"></div>
 	<div class="left">
 		<div class="well code-we">
-			<div style="height:calc(1.2em + 12px);line-height:1em;display: flex;justify-content: space-around;padding-bottom: 10px;">
+			<div style="height:calc(1.2em + 12px);line-height:1em;display: flex;justify-content: space-around;padding-bottom: 10px;overflow-x: auto;">
 				<a style="line-height:calc(1.2em + 12px);" class="filename">Untitled.cpp</a>
 				<button type="button" class="run bt-grey-text" onclick="renameCode()" title="rename">
 					<span style="font-size: 1.2em; line-height:1em;">rename</span>
@@ -92,13 +96,13 @@
 						<polygon points="10 8 16 12 10 16 10 8" fill="green"/>
 					</svg>
 				</button>
-				<button type="button" class="bt-grey noborder-bt" onclick="location.href='/';" title="back to home page">
+				<!-- <button type="button" class="bt-grey noborder-bt" onclick="location.href='/';" title="back to home page">
 					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
 						<path d="M8 28 L32 8 L56 28" />
 						<rect x="16" y="28" width="32" height="28" rx="2" />
 						<rect x="28" y="40" width="8" height="16" stroke-width="4" />
 					</svg>
-				</button>
+				</button> -->
 				<button type="button" class="bt-grey noborder-bt" onclick="tolast()" title="back to last save">
 					<svg style="width: calc(1.2em + 12px); height: calc(1.2em + 12px);" viewBox="0 0 5 5" xmlns="http://www.w3.org/2000/svg">
 						<path fill="black" d="M 2,4 L 0,2 L 2,0 Z M 5,4 A 3,3 0 0 0 2,1 L 2,3 A 1,1 0 0 1 3,4 Z M 3,4 A 1,1 0 0 0 5,4 Z"></path>
@@ -196,6 +200,7 @@
 			<br>
 		</div>
 	</div>
+	<img src="/get.svg" id="get-cnt" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22125%22 height=%2220%22%3E%3Crect x=%220%22 y=%220%22 width=%22125%22 height=%2220%22 style=%22fill-opacity:1.00; fill:rgb(90,90,90);%22/%3E%3Crect x=%220%22 y=%220%22 width=%2280%22 height=%2220%22 style=%22fill-opacity:1.00; fill:rgb(49, 197, 83);%22/%3E%3Ctext x=%226%22 y=%2214%22 style=%22text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;%22%3EPage Views%3C/text%3E%3Ctext x=%2286%22 y=%2214%22 style=%22text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;%22%3EFailed%3C/text%3E%3C/svg%3E';" alt="访问量">
 	<script src="/lib/codeEditor.js"></script>
 </body>
 </html>

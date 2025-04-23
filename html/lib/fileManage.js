@@ -162,7 +162,7 @@ function getCodeList() {
 		}
 		tableBody.innerHTML = '';
 		data.forEach((code, index) => {
-			const updated = new Date(code.updated_at).toLocaleString('zh-CN', {
+			const updated = new Date(code.updated_at).toLocaleString('CA', {
 				year: 'numeric',
 				month: '2-digit',
 				day: '2-digit',

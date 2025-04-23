@@ -201,7 +201,7 @@ const limiterConfig = [
 	{
 		path: '/',
 		label: 'global',
-		max: 300,
+		max: 500,
 		levels: ['s', 'm', 'l', 's_ban', 'm_ban', 'l_ban'] // 全站访问
 	}
 ];
@@ -268,7 +268,7 @@ const sessionParser = session({
 		httpOnly: true,
 		secure: true,
 		sameSite: 'Strict',
-		maxAge: 1000 * 60 * 60 * 2
+		maxAge: 1000 * 60 * 60 * 2,
 	}
 });
 app.use(sessionParser);
