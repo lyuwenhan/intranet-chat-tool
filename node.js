@@ -1904,7 +1904,7 @@ app.use((err, req, res, next) => {
 	next(err); // 如果不是 `multer` 错误，继续传递错误
 });
 const httpsServer = https.createServer(credentials, app);
-httpsServer.listen(port, () => {
+httpsServer.listen(port, '0.0.0.0', () => {
 	console.log(`服务器运行在: http://localhost:${port} && `);
 	console.log(`main https server运行在: http://localhost:${port} && `);
 	console.log(`https server2运行在: http://localhost:${port}`);
