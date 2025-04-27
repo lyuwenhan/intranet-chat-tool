@@ -118,6 +118,8 @@ const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
 const app = express();
 app.set('trust proxy', 1);
+const helmet = require('helmet');
+app.use(helmet());
 const roles = Object.freeze(["user", "editor", "admin", "founder"]);
 const editors = Object.freeze(["editor", "admin", "founder"]);
 const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});
