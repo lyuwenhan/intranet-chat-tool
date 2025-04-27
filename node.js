@@ -21,9 +21,6 @@ fs.mkdirSync("./error/critical", { recursive: true });
 fs.mkdirSync("./error/normal", { recursive: true });
 const ERROR_FLAG_FILE = './error/.error_status.json';
 const CLOSE_FLAG_FILE = './error/.close_status.json';
-// if (process.stdout.isTTY) {
-// 	process.exit(1);
-// }
 function killOldOnErrorProcess() {
 	if (fs.existsSync(ERROR_FLAG_FILE)) {
 		const { pid } = JSON.parse(fs.readFileSync(ERROR_FLAG_FILE));
