@@ -538,6 +538,23 @@ function getUsersByPage(n) {
 	return getUserByPage.all(limit, offset);
 }
 console.log(getAllUsers.all());
+function formatCodes(data) {
+    const result = [];
+	const toIndex = {};
+    for(const item of data){
+        if(!toIndex[item.username]){
+			result[toIndex[item.username] = result.length] = {
+				username: item.username,
+				codes: []
+			}
+        }
+		result[toIndex[item.username]].codes.push({uuid: item.uuid, filename: item.filename, updated_at: item.updated_at});
+    }
+    return result;
+}
+
+// fs.writeFile("log/codes.json", JSON.stringify(db_codes.prepare('SELECT * FROM codes').all(), null, '\t'), ()=>{});
+// fs.writeFile("log/codelist.json", JSON.stringify(formatCodes(db_codelist.prepare('SELECT * FROM code_list').all()), null, '\t'), ()=>{});
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1146,7 +1163,10 @@ function saveCode(code, filename, type, realname){
 }
 function getRoName(filename) {
 	const record = getCode.get(filename);
-	if (record?.roname) return record.roname;
+	if(record?.roname){
+		refreshFile(record.roname);
+		return record.roname
+	};
 	const filename2 = uuidv4();
 	const basePath = "cppfile/";
 	const cppcode = fs.readFileSync(path.join(basePath, `${filename}.cpp`), 'utf-8') || "";
