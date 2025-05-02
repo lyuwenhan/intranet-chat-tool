@@ -15,62 +15,17 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 console.log("Starting...");
 const fs = require('fs');
-const { spawn, execSync } = require('child_process');
 
 fs.mkdirSync("./error/critical", { recursive: true });
 fs.mkdirSync("./error/normal", { recursive: true });
-const ERROR_FLAG_FILE = './error/.error_status.json';
-const CLOSE_FLAG_FILE = './error/.close_status.json';
-function killOldOnErrorProcess() {
-	if (fs.existsSync(ERROR_FLAG_FILE)) {
-		const { pid } = JSON.parse(fs.readFileSync(ERROR_FLAG_FILE));
-		try {
-			process.kill(pid);
-			console.log("error.js killed");
-		} catch (e) {
-			console.warn(`进程结束失败: ${e.message}`);
-		}
-		fs.unlinkSync(ERROR_FLAG_FILE);
-	}
-	if (fs.existsSync(CLOSE_FLAG_FILE)) {
-		const { pid } = JSON.parse(fs.readFileSync(CLOSE_FLAG_FILE));
-		try {
-			process.kill(pid);
-			console.log("close.js killed");
-		} catch (e) {
-			console.warn(`进程结束失败: ${e.message}`);
-		}
-		fs.unlinkSync(CLOSE_FLAG_FILE);
-	}
-}
-
-killOldOnErrorProcess();
 
 function critical_error(err){
 	fs.writeFileSync(`error/critical/error_${Date.now()}.log`, `Critical Error (${(new Date()).toString()})\nfrom: node.js\n${err}`);
 	console.log(err);
-	const child = spawn('node', ['error.js'], {
-		detached: true,
-		stdio: 'ignore',
-	});
-	child.unref();
-	fs.writeFileSync(ERROR_FLAG_FILE, JSON.stringify({
-		pid: child.pid,
-		time: Date.now()
-	}, null, 2));
 	process.exit(1);
 }
 function sigint_exit(err){
-	// fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\nClosed by user (${err})`);
-	// const child = spawn('node', ['close.js'], {
-	// 	detached: true,
-	// 	stdio: 'ignore',
-	// });
-	// child.unref();
-	// fs.writeFileSync(CLOSE_FLAG_FILE, JSON.stringify({
-	// 	pid: child.pid,
-	// 	time: Date.now()
-	// }, null, 2));
+	fs.writeFileSync(`error/normal/error_${Date.now()}.log`, `Normal Error (${(new Date()).toString()})\nfrom: node.js\nClosed by user (${err})`);
 	process.exit(0);
 }
 process.on('uncaughtException', (err) => {
@@ -85,7 +40,6 @@ process.on('SIGHUP', () => sigint_exit('SIGHUP (Terminal closed)'));
 process.on('SIGQUIT', () => sigint_exit('SIGQUIT'));
 
 
-// throw new Error("test");
 const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
@@ -254,7 +208,8 @@ function make128(){
 const private_pwd = make128();
 const session_pwd = process.env.SESSION_PWD;
 const allow_register = process.env.ALLOW_REGISTER === 'true';
-const host = "0.0.0.0";
+// const host = "0.0.0.0";
+const host = "::";
 const { v4: uuidv4 } = require('uuid');
 const { exec } = require('child_process');
 
@@ -593,6 +548,26 @@ function findUser(username){
 /*
 main server
 */
+function maskIp(ip){
+    if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
+        const parts = ip.split('.');
+        const part0 = parts[0];
+        const part3 = parts[3];
+        return '**' + part0[part0.length - 1] + '.*.*.**' + part3[part3.length - 1];
+    }else if (/^[0-9a-fA-F:]+$/.test(ip)){
+        const parts = ip.split(':');
+        const maskedParts = parts.map(part => {
+            if (part.length === 0) return '';
+            const stars = '*'.repeat(part.length - 1);
+            const lastChar = part[part.length - 1];
+            return stars + lastChar;
+        });
+        return maskedParts.join(':');
+    }else{
+        return ip;
+    }
+}
+
 app.use(cors());
 app.use(bodyParser.json());
 
@@ -749,10 +724,7 @@ app.post('/api/login/', (req, res) => {
 	fs.appendFileSync("log/login.log", `${ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
 	console.log("realip:", ip);
-	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-		ip = ip.split(".");
-		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
-	}
+	ip = maskIp(ip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(receivedContent.type == "login"){
@@ -866,10 +838,7 @@ app.get('/api/captcha', async (req, res) => {
 	fs.appendFileSync("log/captcha.log", `${ip} ${now} ${(new Date()).toString()}\n`);
 	console.log('收到的内容：');
 	console.log("realip:", ip);
-	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-		ip = ip.split(".");
-		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
-	}
+	ip = maskIp(ip);
 	const captcha = await generateCaptcha();
 	req.session.captcha = captcha.text.toLowerCase();
 	res.setHeader('Content-Type', 'image/png');
@@ -887,10 +856,7 @@ app.post('/api/manage', (req, res) => {
 	fs.appendFileSync("log/manage.log", `${ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
 	console.log("realip:", ip);
-	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-		ip = ip.split(".");
-		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
-	}
+	ip = maskIp(ip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(receivedContent.type == "get-role"){
@@ -982,10 +948,7 @@ app.post('/api/', (req, res) => {
 	fs.appendFileSync("log/main.log", `${ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
 	console.log("realip:", ip);
-	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-		ip = ip.split(".");
-		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
-	}
+	ip = maskIp(ip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(receivedContent.type == "get-username"){
@@ -1089,10 +1052,7 @@ app.post('/cpp-run', (req, res) => {
 	}
 	console.log('收到的内容：');
 	console.log("realip:", ip);
-	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-		ip = ip.split(".");
-		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
-	}
+	ip = maskIp(ip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(!isValidUsername(req.session.username)){
@@ -1241,10 +1201,7 @@ app.post('/cpp-save', (req, res) => {
 	}
 	console.log('收到的内容：');
 	console.log("realip:", ip);
-	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-		ip = ip.split(".");
-		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/g,"*").replace(/\d/g,"*")+ip[3][ip[3].length - 1];
-	}
+	ip = maskIp(ip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(!isValidUsername(req.session.username)){
@@ -1628,11 +1585,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
 	}
-	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-		ip = ip.split(".");
-		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[3][ip[3].length - 1];
-		// ip=ip[0].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[0].replace(/(.*)(.)/,"$2")+".*.*.*"+ip[3].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[3].replace(/(.*)(.)/,"$2");
-	}
+	ip = maskIp(ip);
 	if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
@@ -1703,11 +1656,7 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
 	}
-	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-		ip = ip.split(".");
-		ip = ip[0].slice(0, ip[0].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[0][ip[0].length - 1] + ".*.*." + ip[3].slice(0, ip[3].length - 1).replace(/\d/,"*").replace(/\d/,"*")+ip[3][ip[3].length - 1];
-		// ip=ip[0].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[0].replace(/(.*)(.)/,"$2")+".*.*.*"+ip[3].replace(/(.*)(.)/,"$1").replace(/\d/,"*").replace(/\d/,"*").replace(/\d/,"*")+ip[3].replace(/(.*)(.)/,"$2");
-	}
+	ip = maskIp(ip);
 	if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
@@ -1924,7 +1873,7 @@ app.use((err, req, res, next) => {
 	next(err); // 如果不是 `multer` 错误，继续传递错误
 });
 const server = (port_http === "only" ? http.createServer(app) : https.createServer(credentials, app));
-server.listen(port, '0.0.0.0', () => {
+server.listen(port, host, () => {
 	console.log(`服务器运行在: http://localhost:${port} && `);
 	console.log(`main https server运行在: http://localhost:${port} && `);
 	console.log(`https server2运行在: http://localhost:${port}`);
@@ -1944,7 +1893,7 @@ if(port_http !== "only"){
 		http.createServer((req, res) => {
 			res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
 			res.end();
-		}).listen(port_http, '0.0.0.0', () => {
+		}).listen(port_http, host, () => {
 			console.log(`http 重定向服务器运行在: http://localhost:${port_http}`);
 		}).on('error', err => {
 			if(err.code === 'EADDRINUSE'){
