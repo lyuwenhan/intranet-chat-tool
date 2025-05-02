@@ -109,6 +109,16 @@ node node.js
 
 ---
 
+```bash
+chmod u+x update.sh
+./update.sh
+```
+
+> This script resets local changes and pulls the latest code from the remote main branch.
+> 为确保本地代码为最新版本，并避免冲突，请定期运行此脚本。
+
+---
+
 ## License / 授权协议
 
 This project is licensed under the **GNU General Public License v3.0**  
