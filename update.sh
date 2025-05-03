@@ -12,7 +12,7 @@ if ! git diff --quiet HEAD origin/main; then
     git pull --rebase --autostash origin main
     echo "[Git] Running npm install..."
     npm install --no-audit --no-fund --prefer-offline
+    chmod u+x *.sh
 else
     echo "[Git] Already up-to-date."
 fi
-chmod u+x *.sh
