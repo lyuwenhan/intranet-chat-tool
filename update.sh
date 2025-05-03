@@ -15,3 +15,4 @@ if ! git diff --quiet HEAD origin/main; then
 else
     echo "[Git] Already up-to-date."
 fi
+chmod u+x *.sh
