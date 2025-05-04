@@ -86,6 +86,12 @@ node.js             → Main backend server
 # 1. Install Node dependencies / 安装依赖
 npm install
 
+# for Windows
+g++ judge/judge.cpp -o judge/judge.exe
+
+#for Linux
+g++ judge/judge.cpp -o judge/judge.out
+
 # 2. Add .env configuration / 添加环境配置
 # (You can copy the template below into a file named ".env")
 # (你可以将下方内容复制为 ".env" 文件)
@@ -104,10 +110,12 @@ KEY_PATH=keys/key.pem
 node node.js
 ```
 
-> Make sure judge.exe and SSL keys are in place.  
-> 请确保 `judge.exe` 与 HTTPS 密钥存在。
+> Make sure `judge/judge.exe` *(Windows)* / `judge/judge.out` *(Linux)* and SSL keys are in place *(if you need https server)* .
+> 请确保 `judge/judge.exe` *(Windows)* / `judge/judge.out` *(Linux)* 与 HTTPS 密钥存在 *(如果你需要 https 服务)* 。
 
 ---
+
+## Get version updates / 获取版本更新
 
 ```bash
 chmod u+x update.sh
