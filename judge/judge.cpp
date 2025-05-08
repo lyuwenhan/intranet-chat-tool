@@ -17,6 +17,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/prctl.h>
 #endif
 
 long get_file_size(const std::string &filename) {
@@ -146,6 +147,7 @@ std::string run_code(const std::string &exe_path, const std::string &input_file,
     pid_t pid = fork();
     if (pid < 0) return "Fork Failed";
     if (pid == 0) {
+        prctl(PR_SET_PDEATHSIG, SIGKILL);
         int in_fd  = open(input_file.c_str(), O_RDONLY);
         int out_fd = open(output_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         int err_fd = open(error_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
