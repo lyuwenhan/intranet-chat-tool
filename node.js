@@ -1924,6 +1924,7 @@ setInterval(() => {
 		}
 	}
 }, 30 * 1000);
+var running_token = null;
 wss.on('connection', (ws, req) => {
 	sessionParser(req, {}, () => {
 		const username = req.session?.username;
@@ -1949,6 +1950,17 @@ wss.on('connection', (ws, req) => {
 				const idx = cppQueue.indexOf(ws.meta.token);
 				if(idx !== -1){
 					cppQueue.splice(idx, 1);
+				}
+				req.session.cppRunning = null;
+				req.session.save(err=>{});
+				if(ws.meta.token === running_token){
+					return;
+				}
+				for(let i = 0; i < cppQueue.length; i++){
+					const t = cppQueue[i];
+					if(t != running_token){
+						notifyStatus(t, `Queued (${i} ahead)`);
+					}
 				}
 			}
 		});
@@ -2020,6 +2032,7 @@ function runcpp(command, callback, username, token){
 	const position = cppQueue.length - 1;
 	notifyStatus(token, `Queued (${position} ahead)`);
 	cpp_runlist = cpp_runlist.then(async () => {
+		running_token = token;
 		if(!ws || ws.readyState !== WebSocket.OPEN){
 			console.warn(`Token ${token} is no longer connected. Skipping.`);
 			cppQueue.splice(cppQueue.indexOf(token), 1);
@@ -2036,6 +2049,7 @@ function runcpp(command, callback, username, token){
 			const t = cppQueue[i];
 			notifyStatus(t, `Queued (${i} ahead)`);
 		}
+		running_token = null;
 	}).catch(()=>{});
 }
 
