@@ -65,7 +65,8 @@ bool restrict_process(HANDLE process, int memory_limit_mb, int /*time_limit_ms*/
         JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
         JOB_OBJECT_LIMIT_PROCESS_MEMORY |
         JOB_OBJECT_LIMIT_JOB_MEMORY |
-        JOB_OBJECT_LIMIT_PRIORITY_CLASS;
+        JOB_OBJECT_LIMIT_PRIORITY_CLASS | 
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 
     job_info.BasicLimitInformation.ActiveProcessLimit = 1;
     job_info.BasicLimitInformation.PriorityClass = IDLE_PRIORITY_CLASS;
