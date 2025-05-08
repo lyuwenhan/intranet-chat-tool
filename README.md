@@ -87,10 +87,10 @@ node.js             → Main backend server
 npm install
 
 # for Windows
-g++ judge/judge.cpp -o judge/judge.exe
+g++ judge/judge.cpp -o judge/judge.exe -O2
 
 #for Linux
-g++ judge/judge.cpp -o judge/judge.out
+g++ judge/judge.cpp -o judge/judge.out -O2
 
 # 2. Add .env configuration / 添加环境配置
 # (You can copy the template below into a file named ".env")
