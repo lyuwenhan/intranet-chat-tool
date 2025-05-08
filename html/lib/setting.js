@@ -17,74 +17,6 @@
  */
 
 'use strict';
-async function safeFetch(url, options = {}, isBlob = false) {
-	const res = await fetch(url, options);
-	if (res.status === 401) {
-		const win = window.open('/login', '_blank');
-		if (!win || win.closed || typeof win.closed === "undefined") {
-			window.name="from-href";
-			location.href='/login';
-			return {};
-		}else{
-		 	win.name = 'from-open';
-		}
-		throw new Error('未登录，跳转中...');
-		return {};
-	}
-	if(res.status === 429){
-		throw new Error("访问过量");
-	}
-	if(!isBlob){
-		let data;
-		try{
-			data = await res.json();
-		}catch (err){
-			console.error(res);
-			throw new Error("返回的不是合法 JSON 格式");
-		}
-		if(res.status === 403){
-			if(data.info == 'not admin'){
-				location.replace('/');
-				throw new Error("权限错误");
-			}
-			throw new Error("banned");
-		}
-		if (!res.ok){
-			throw new Error("fetch fault");
-		}
-		return data;
-	}else{
-		try {
-			if (!res.ok){
-				throw new Error("fetch fault");
-			}
-			const result = await res.blob();
-			return result;
-		} catch (err) {
-			console.error(err);
-			throw new Error("Blob 解码失败");
-		}
-	}
-}
-function logout(){
-	let inputContent = { type: "logout" };
-	safeFetch(`/api/login`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(data => {
-		console.log("服务器返回的数据：", data);
-		if(data.message == "success"){
-			location.reload();
-		}
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-}
 const languageModes = {
 	"plain text": [{ mode: "null" }, {  mode: "null" }],
 	"c": [{ mode: "text/x-csrc", matchBrackets: true, autoCloseBrackets: true }, {  mode: "text/x-csrc", matchBrackets: true, autoCloseBrackets: true }],
@@ -135,6 +67,7 @@ form.addEventListener('submit', function(e) {
 		method: 'POST',
 		body: formData,
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -173,6 +106,7 @@ imgform.addEventListener('submit', function(e) {
 		method: 'POST',
 		body: formData,
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -201,36 +135,7 @@ function formatSize(bytes) {
 }
 
 var last_data = {chats:[]};
-function get_key() {
-	var inputContent = { type: "get-key" };
-	safeFetch(`/api`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(data => {
-		publicKey = data;
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-}
-var publicKey;
 var username = "";
-async function encryptWithOAEP(plainText, publicKeyPem) {
-	// 1️⃣ 解析 PEM 格式公钥
-	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-
-	// 2️⃣ 使用 `RSA-OAEP` 加密数据
-	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
-		md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
-	});
-
-	// 3️⃣ Base64 编码，方便传输
-	return forge.util.encode64(encrypted);
-}
 function fun_clear_by_pwd() {
 	if(!confirm("Are you sure to clear it")){
 		return;
@@ -246,6 +151,7 @@ function fun_clear_by_pwd() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message=="success"){
@@ -270,6 +176,7 @@ function submitForm() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 	})
@@ -296,6 +203,7 @@ function submitCode() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 	})
@@ -307,7 +215,7 @@ function show(ele, ele2){
 }
 async function loadImageAsDataURL(url, a) {
 	try {
-		const blob = await safeFetch(url, {}, true);
+		const blob = await safeFetch(url);
 		const base64 = await new Promise((resolve, reject) => {
 			const reader = new FileReader();
 			reader.onloadend = () => resolve(reader.result);
@@ -390,7 +298,7 @@ function reloaddd(data){
 		nele.title="click to download";
 		nele.innerHTML=`${data.filename}&nbsp;&nbsp;[${formatSize(data.size)}]`;
 		nele.onclick=function(){
-			safeFetch(`/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`, {}, true)
+			safeFetch(`/uploads${(data.type == "file" ? `` : `/img`)}/download/${data.path}`)
 			.then(blob => {
 				const url = URL.createObjectURL(blob);
 				const a = document.createElement('a');
@@ -489,6 +397,7 @@ function reload() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		reloadd(data);
 	})
@@ -600,6 +509,7 @@ function run(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
@@ -654,6 +564,7 @@ function getUsers(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -666,6 +577,7 @@ function getUsers(){
 				},
 				body: JSON.stringify({ content: inputContent })
 			})
+			.then(async(blob)=>JSON.parse(await blob.text()))
 			.then(data => {
 				console.log('服务器返回的数据:', data)
 				console.log(data);
@@ -719,6 +631,7 @@ function deleteUser(username, orole){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -729,9 +642,6 @@ function deleteUser(username, orole){
 	})
 	.catch(error => console.error('错误:', error));
 }
-const roles = Object.freeze(["user", "editor", "admin", "founder"]);
-const editors = Object.freeze(["editor", "admin", "founder"]);
-const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});
 var role = 'user';
 function changeRole(username, orole){
 	if(roleToNum[orole] >= roleToNum[role]){
@@ -759,6 +669,7 @@ function changeRole(username, orole){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message=="success"){
@@ -800,6 +711,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		role = data;
 		if(roleToNum[data] > 1){
@@ -816,6 +728,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			},
 			body: JSON.stringify({ content: inputContent })
 		})
+		.then(async(blob)=>JSON.parse(await blob.text()))
 		.then(data => {
 			document.getElementById("username").innerText = username = data;
 			if(data){
@@ -828,7 +741,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				location.href='/login';
 			}
 			reload();
-			get_key();
 		})
 		.catch(error => {
 			console.error('错误:', error);

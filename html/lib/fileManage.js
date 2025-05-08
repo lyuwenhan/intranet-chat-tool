@@ -17,106 +17,10 @@
  */
 
 'use strict';
-async function safeFetch(url, options = {}, isBlob = false) {
-	const res = await fetch(url, options);
-	if (res.status === 401) {
-		const win = window.open('/login', '_blank');
-		if (!win || win.closed || typeof win.closed === "undefined") {
-			window.name="from-href";
-			location.href='/login';
-			return {};
-		}else{
-		 	win.name = 'from-open';
-		}
-		throw new Error('未登录，跳转中...');
-		return {};
-	}
-	if(res.status === 429){
-		throw new Error("访问过量");
-	}
-	if(!isBlob){
-		let data;
-		try{
-			data = await res.json();
-		}catch (err){
-			console.error(res);
-			throw new Error("返回的不是合法 JSON 格式");
-		}
-		if(res.status === 403){
-			if(data.info == 'not admin'){
-				location.replace('/');
-				throw new Error("权限错误");
-			}
-			throw new Error("banned");
-		}
-		if (!res.ok){
-			throw new Error("fetch fault");
-		}
-		return data;
-	}else{
-		try {
-			if (!res.ok){
-				throw new Error("fetch fault");
-			}
-			const result = await res.blob();
-			return result;
-		} catch (err) {
-			console.error(err);
-			throw new Error("Blob 解码失败");
-		}
-	}
-}
-function logout(){
-	let inputContent = { type: "logout" };
-	safeFetch(`/api/login`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(data => {
-		console.log("服务器返回的数据：", data);
-		if(data.message == "success"){
-			location.reload();
-		}
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-}
-function isValidUUIDv4(uuid) {
-	const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-	return regex.test(uuid);
-}
 function isValidUsername(username){
 	return username && username.length <= 20 && /^\w+$/.test(username);
 }
-function get_key(){
-	let inputContent = { type: "get-key" };
-	safeFetch(`/api`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(data => {
-		publicKey = data;
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-}
-var publicKey;
 var username = "";
-async function encryptWithOAEP(plainText, publicKeyPem) {
-	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
-		md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
-	});
-	return forge.util.encode64(encrypted);
-}
 const mainele = document.querySelector(".main");
 const tableBody = document.querySelector('#codeTable tbody');
 function getCodeList() {
@@ -130,6 +34,7 @@ function getCodeList() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log(data);
 		if(!data[0]){
@@ -169,6 +74,7 @@ function deleteCode(filename, uuid) {
 			},
 			body: JSON.stringify({ content: inputContent })
 		})
+		.then(async(blob)=>JSON.parse(await blob.text()))
 		.then(data => {
 			console.log("服务器返回的数据:", data);
 			if(data.message == 'success'){
@@ -193,6 +99,7 @@ function renameCode(uuid) {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log("服务器返回的数据:", data);
 		if(data.message == 'success'){
@@ -243,6 +150,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		role = data;
 		if(roleToNum[data] > 1){
@@ -256,6 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			},
 			body: JSON.stringify({ content: inputContent })
 		})
+		.then(async(blob)=>JSON.parse(await blob.text()))
 		.then(data => {
 			document.getElementById("username").innerText = username = data;
 			if(data){
@@ -268,13 +177,9 @@ document.addEventListener("DOMContentLoaded", () => {
 				location.href='/login';
 			}
 			getCodeList();
-			// get_key();
 		})
 		.catch(error => {
 			console.error('错误:', error);
 		});
 	});
 });
-const roles = Object.freeze(["user", "editor", "admin", "founder"]);
-const editors = Object.freeze(["editor", "admin", "founder"]);
-const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});

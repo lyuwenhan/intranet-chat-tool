@@ -17,80 +17,9 @@
  */
 
 'use strict';
-async function safeFetch(url, options = {}, isBlob = false) {
-	const res = await fetch(url, options);
-	if (res.status === 401) {
-		const win = window.open('/login', '_blank');
-		if (!win || win.closed || typeof win.closed === "undefined") {
-			window.name="from-href";
-			location.href='/login';
-			return {};
-		}else{
-		 	win.name = 'from-open';
-		}
-		throw new Error('未登录，跳转中...');
-		return {};
-	}
-	if(res.status === 429){
-		throw new Error("访问过量");
-	}
-	if(!isBlob){
-		let data;
-		try{
-			data = await res.json();
-		}catch (err){
-			console.error(res);
-			throw new Error("返回的不是合法 JSON 格式");
-		}
-		if(res.status === 403){
-			if(data.info == 'not admin'){
-				location.replace('/');
-				throw new Error("权限错误");
-			}
-			throw new Error("banned");
-		}
-		if (!res.ok){
-			throw new Error("fetch fault");
-		}
-		return data;
-	}else{
-		try {
-			if (!res.ok){
-				throw new Error("fetch fault");
-			}
-			const result = await res.blob();
-			return result;
-		} catch (err) {
-			console.error(err);
-			throw new Error("Blob 解码失败");
-		}
-	}
-}
-function logout(){
-	let inputContent = { type: "logout" };
-	safeFetch(`/api/login`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(data => {
-		console.log("服务器返回的数据：", data);
-		if(data.message == "success"){
-			location.reload();
-		}
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-}
 function isValidUUIDv4(uuid) {
 	const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 	return regex.test(uuid);
-}
-function isValidUsername(username){
-	return username && username.length <= 20 && /^\w+$/.test(username);
 }
 var usp = new URLSearchParams(window.location.search);
 function getParam(param) {
@@ -115,31 +44,7 @@ function formatSize(bytes) {
 
 	return `${bytes.toFixed(2)} ${units[unitIndex]}`;
 }
-function get_key() {
-	let inputContent = { type: "get-key" };
-	safeFetch(`/api`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(data => {
-		publicKey = data;
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-}
-var publicKey;
 var  username = "";
-async function encryptWithOAEP(plainText, publicKeyPem) {
-	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
-		md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
-	});
-	return forge.util.encode64(encrypted);
-}
 const inele = document.querySelector(".input-we"), outele = document.querySelector(".output-we"), errele = document.querySelector(".error-we")
 const outdlele = document.querySelector(".download-out"), errdlele = document.querySelector(".download-err");
 function show(out, err, outfile, errfile, outsize, errsize){
@@ -167,7 +72,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			outdlele.innerHTML += ` (${formatSize(outsize)})`;
 			outdlele.hidden = false;
 			outdlele.onclick=function(){
-				safeFetch(`/uploads/${outfile}`, {}, true)
+				safeFetch(`/uploads/${outfile}`)
 				.then(blob => {
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement('a');
@@ -194,7 +99,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			errdlele.innerHTML += ` (${formatSize(errsize)})`;
 			errdlele.hidden = false;
 			errdlele.onclick=function(){
-				safeFetch(`/uploads/${errfile}`, {}, true)
+				safeFetch(`/uploads/${errfile}`)
 				.then(blob => {
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement('a');
@@ -230,7 +135,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 			errdlele.innerHTML += ` (${formatSize(errsize)})`;
 			outdlele.hidden = false;
 			outdlele.onclick=function(){
-				safeFetch(`/uploads/${outfile}`, {}, true)
+				safeFetch(`/uploads/${outfile}`)
 				.then(blob => {
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement('a');
@@ -250,7 +155,7 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		if(errfile){
 			errdlele.hidden = false;
 			errdlele.onclick=function(){
-				safeFetch(`/uploads/${errfile}`, {}, true)
+				safeFetch(`/uploads/${errfile}`)
 				.then(blob => {
 					const url = URL.createObjectURL(blob);
 					const a = document.createElement('a');
@@ -303,6 +208,7 @@ function submitCode() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		running = false;
 		console.log('服务器返回的数据:', data)
@@ -376,6 +282,7 @@ editor.on("keydown", (cm, event) => {
 			},
 			body: JSON.stringify({ content: inputContent })
 		})
+		.then(async(blob)=>JSON.parse(await blob.text()))
 		.then(data => {
 			console.log('服务器返回的数据:', data)
 		})
@@ -400,6 +307,7 @@ function savecode(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
@@ -421,6 +329,7 @@ function saveinput(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message != "success"){
@@ -442,6 +351,7 @@ function makeonly(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -465,6 +375,7 @@ function makenonly(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -494,6 +405,7 @@ function readcodes(){
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -506,6 +418,7 @@ function readcodes(){
 					},
 					body: JSON.stringify({ content: inputContent2 })
 				})
+				.then(async(blob)=>JSON.parse(await blob.text()))
 				.then(data => {
 					console.log('服务器返回的数据:', data)
 					if(data.message == "success"){
@@ -557,6 +470,7 @@ function renameCode() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log("服务器返回的数据:", data);
 		if(data.message == 'success'){
@@ -604,6 +518,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		role = data;
 		if(roleToNum[data] > 1){
@@ -617,6 +532,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			},
 			body: JSON.stringify({ content: inputContent })
 		})
+		.then(async(blob)=>JSON.parse(await blob.text()))
 		.then(data => {
 			document.getElementById("username").innerText = username = data;
 			if(data){
@@ -629,7 +545,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				location.href='/login';
 			}
 			readcodes();
-			// get_key();
 		})
 		.catch(error => {
 			console.error('错误:', error);
@@ -689,6 +604,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	connectWS();
 });
-const roles = Object.freeze(["user", "editor", "admin", "founder"]);
-const editors = Object.freeze(["editor", "admin", "founder"]);
-const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});

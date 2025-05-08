@@ -17,74 +17,6 @@
  */
 
 'use strict';
-async function safeFetch(url, options = {}, isBlob = false) {
-	const res = await fetch(url, options);
-	if (res.status === 401) {
-		const win = window.open('/login', '_blank');
-		if (!win || win.closed || typeof win.closed === "undefined") {
-			window.name="from-href";
-			location.href='/login';
-			return {};
-		}else{
-		 	win.name = 'from-open';
-		}
-		throw new Error('未登录，跳转中...');
-		return {};
-	}
-	if(res.status === 429){
-		throw new Error("访问过量");
-	}
-	if(!isBlob){
-		let data;
-		try{
-			data = await res.json();
-		}catch (err){
-			console.error(res);
-			throw new Error("返回的不是合法 JSON 格式");
-		}
-		if(res.status === 403){
-			if(data.info == 'not admin'){
-				location.replace('/');
-				throw new Error("权限错误");
-			}
-			throw new Error("banned");
-		}
-		if (!res.ok){
-			throw new Error("fetch fault");
-		}
-		return data;
-	}else{
-		try {
-			if (!res.ok){
-				throw new Error("fetch fault");
-			}
-			const result = await res.blob();
-			return result;
-		} catch (err) {
-			console.error(err);
-			throw new Error("Blob 解码失败");
-		}
-	}
-}
-function logout(){
-	let inputContent = { type: "logout" };
-	safeFetch(`/api/login`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(data => {
-		console.log("服务器返回的数据：", data);
-		if(data.message == "success"){
-			location.reload();
-		}
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-}
 var username;
 function get_key() {
 	var ret = null;
@@ -96,6 +28,7 @@ function get_key() {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		publicKey = data;
 	})
@@ -103,42 +36,12 @@ function get_key() {
 		console.error('错误:', error);
 	});
 }
-function isValidIPv4(str) {
-	if (str == null || str == undefined) {
-		return false;
-	}
-	if(str === "localhost"){
-		return true;
-	}
-	let parts = str.split(".");
-	if (parts.length !== 4) {
-		return false;
-	}
-	for (let part of parts) {
-		if (!part.match(/^\d+$/)) {
-			return false;
-		}
-		let num = parseInt(part, 10);
-		if (num < 0 || num > 255) {
-			return false;
-		}
-		if (part !== num.toString()) {
-			return false;
-		}
-	}
-	return true;
-}
 var publicKey;
 async function encryptWithOAEP(plainText, publicKeyPem) {
-	// 1️⃣ 解析 PEM 格式公钥
 	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-
-	// 2️⃣ 使用 `RSA-OAEP` 加密数据
 	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
-		md: forge.md.sha256.create() // 采用 SHA-256 作为哈希
+		md: forge.md.sha256.create()
 	});
-
-	// 3️⃣ Base64 编码，方便传输
 	return forge.util.encode64(encrypted);
 }
 const captchaele = document.getElementById("captcha-img");
@@ -186,6 +89,7 @@ document.getElementById('change-password-form').addEventListener('submit', async
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		console.log('服务器返回的数据:', data)
 		if(data.message == "success"){
@@ -216,6 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		},
 		body: JSON.stringify({ content: inputContent })
 	})
+	.then(async(blob)=>JSON.parse(await blob.text()))
 	.then(data => {
 		role = data;
 		if(roleToNum[data] > 1){
@@ -229,6 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			},
 			body: JSON.stringify({ content: inputContent })
 		})
+		.then(async(blob)=>JSON.parse(await blob.text()))
 		.then(data => {
 			document.getElementById("username").innerText = username = data;
 			if(data){
@@ -254,6 +160,3 @@ document.addEventListener("DOMContentLoaded", () => {
 		getCaptcha();
 	});
 });
-const roles = Object.freeze(["user", "editor", "admin", "founder"]);
-const editors = Object.freeze(["editor", "admin", "founder"]);
-const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});

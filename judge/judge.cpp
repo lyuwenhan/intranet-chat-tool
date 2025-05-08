@@ -1,24 +1,49 @@
 #include <iostream>
-#include <string>
-#include <cstdlib>
-#include <regex>
+#include <fstream>
 #include <sstream>
-#include <windows.h>
+#include <string>
+#include <regex>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 #include <sys/stat.h>
+
+#ifdef _WIN32
+#include <windows.h>
 #include <TlHelp32.h>
+#else
+#include <sys/types.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
+#endif
+
+long get_file_size(const std::string &filename) {
+    struct stat stat_buf;
+    return (stat(filename.c_str(), &stat_buf) == 0) ? stat_buf.st_size : -1;
+}
 
 std::string execute_and_capture_stderr(const std::string &command) {
     std::string result;
     char buffer[512];
+#ifdef _WIN32
     FILE *pipe = _popen((command + " 2>&1").c_str(), "r");
+#else
+    FILE *pipe = popen((command + " 2>&1").c_str(), "r");
+#endif
     if (!pipe) return "Failed to execute command";
     while (fgets(buffer, sizeof(buffer), pipe)) result += buffer;
+#ifdef _WIN32
     _pclose(pipe);
+#else
+    pclose(pipe);
+#endif
     return result;
 }
 
-bool compile_code(const std::string &cpp_file, const std::string &runfile, bool O2) {
-    std::string command = "g++ -o " + runfile + " " + cpp_file + (O2 ? " -O2" : "");
+bool compile_code(const std::string &cpp_file, const std::string &runfile, bool use_O2) {
+    std::string command = "g++ -o " + runfile + " " + cpp_file + (use_O2 ? " -O2" : "");
     std::string errorMessage = execute_and_capture_stderr(command);
     if (!errorMessage.empty()) {
         std::regex file_path_regex(R"(judge/codes/[a-f0-9\-]{36}\.cpp: ?)");
@@ -28,12 +53,9 @@ bool compile_code(const std::string &cpp_file, const std::string &runfile, bool 
     return true;
 }
 
-long get_file_size(const std::string &filename) {
-    struct stat stat_buf;
-    return (stat(filename.c_str(), &stat_buf) == 0) ? stat_buf.st_size : -1;
-}
+#ifdef _WIN32
 
-bool restrict_process(HANDLE process, int memory_limit_mb, int time_limit_ms) {
+bool restrict_process(HANDLE process, int memory_limit_mb, int /*time_limit_ms*/) {
     HANDLE job = CreateJobObject(NULL, NULL);
     if (!job) return false;
 
@@ -100,15 +122,72 @@ std::string run_code(const std::string &exe_path, const std::string &input_file,
     CloseHandle(hOutput);
     CloseHandle(hError);
 
-    // TODO: 检查 output 文件大小，超出则认为 Output Limit Exceeded
-    if (get_file_size(output_file) > max_output_bytes) return "Output Limit Exceeded";
+    if (get_file_size(output_file) > max_output_bytes)
+        return "Output Limit Exceeded";
 
     return exitCode == 0 ? "Execution Success" : "Runtime Error";
 }
 
+#else // Linux
+
+void set_limits(int time_limit_sec, int memory_limit_mb, int output_limit_bytes) {
+    struct rlimit r;
+    r.rlim_cur = r.rlim_max = time_limit_sec;
+    setrlimit(RLIMIT_CPU, &r);
+    r.rlim_cur = r.rlim_max = memory_limit_mb * 1024ULL * 1024;
+    setrlimit(RLIMIT_AS, &r);
+    r.rlim_cur = r.rlim_max = output_limit_bytes;
+    setrlimit(RLIMIT_FSIZE, &r);
+}
+
+std::string run_code(const std::string &exe_path, const std::string &input_file,
+                     const std::string &output_file, const std::string &error_file,
+                     int time_limit_ms, int memory_limit_mb, int max_output_bytes) {
+    pid_t pid = fork();
+    if (pid < 0) return "Fork Failed";
+    if (pid == 0) {
+        int in_fd  = open(input_file.c_str(), O_RDONLY);
+        int out_fd = open(output_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        int err_fd = open(error_file.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (in_fd < 0 || out_fd < 0 || err_fd < 0) exit(101);
+        dup2(in_fd, 0); dup2(out_fd, 1); dup2(err_fd, 2);
+        close(in_fd); close(out_fd); close(err_fd);
+        set_limits((time_limit_ms + 999) / 1000, memory_limit_mb, max_output_bytes);
+        execl(exe_path.c_str(), exe_path.c_str(), nullptr);
+        exit(102);
+    }
+
+    int status = 0, waited = 0;
+    while (waited < time_limit_ms) {
+        usleep(10000); waited += 10;
+        pid_t ret = waitpid(pid, &status, WNOHANG);
+        if (ret == pid) break;
+    }
+
+    if (waited >= time_limit_ms) {
+        kill(pid, SIGKILL);
+        return "Time Limit Exceeded";
+    }
+
+    if (WIFEXITED(status)) {
+        int exitCode = WEXITSTATUS(status);
+        if (exitCode == 0) {
+            if (get_file_size(output_file) > max_output_bytes)
+                return "Output Limit Exceeded";
+            return "Execution Success";
+        } else {
+            return "Runtime Error";
+        }
+    }
+
+    return "Abnormal Termination";
+}
+
+#endif
+
 int main(int argc, char *argv[]) {
     if (argc < 10) {
-        std::cerr << "Usage: judge.exe <cpp_file> <input_file> <output_file> <error_file> <exe_file> <time_limit_ms> <memory_limit_mb> <max_output_bytes> [-O2]" << std::endl;
+        std::cerr << "Usage: judge[.exe] <cpp_file> <input_file> <output_file> <error_file> <exe_file> <time_limit_ms> <memory_limit_mb> <max_output_bytes> [-O2]\n";
         return 1;
     }
 

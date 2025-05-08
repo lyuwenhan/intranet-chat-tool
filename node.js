@@ -496,18 +496,18 @@ function getUsersByPage(n) {
 }
 console.log(getAllUsers.all());
 function formatCodes(data) {
-    const result = [];
+	const result = [];
 	const toIndex = {};
-    for(const item of data){
-        if(!toIndex[item.username]){
+	for(const item of data){
+		if(!toIndex[item.username]){
 			result[toIndex[item.username] = result.length] = {
 				username: item.username,
 				codes: []
 			}
-        }
+		}
 		result[toIndex[item.username]].codes.push({uuid: item.uuid, filename: item.filename, updated_at: item.updated_at});
-    }
-    return result;
+	}
+	return result;
 }
 
 // fs.writeFile("log/codes.json", JSON.stringify(db_codes.prepare('SELECT * FROM codes').all(), null, '\t'), ()=>{});
@@ -549,23 +549,23 @@ function findUser(username){
 main server
 */
 function maskIp(ip){
-    if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
-        const parts = ip.split('.');
-        const part0 = parts[0];
-        const part3 = parts[3];
-        return '**' + part0[part0.length - 1] + '.*.*.**' + part3[part3.length - 1];
-    }else if (/^[0-9a-fA-F:]+$/.test(ip)){
-        const parts = ip.split(':');
-        const maskedParts = parts.map(part => {
-            if (part.length === 0) return '';
-            const stars = '*'.repeat(part.length - 1);
-            const lastChar = part[part.length - 1];
-            return stars + lastChar;
-        });
-        return maskedParts.join(':');
-    }else{
-        return ip;
-    }
+	if(/^[0-9]+(?:\.[0-9]+){3}$/.test(ip)){
+		const parts = ip.split('.');
+		const part0 = parts[0];
+		const part3 = parts[3];
+		return '**' + part0[part0.length - 1] + '.*.*.**' + part3[part3.length - 1];
+	}else if (/^[0-9a-fA-F:]+$/.test(ip)){
+		const parts = ip.split(':');
+		const maskedParts = parts.map(part => {
+			if (part.length === 0) return '';
+			const stars = '*'.repeat(part.length - 1);
+			const lastChar = part[part.length - 1];
+			return stars + lastChar;
+		});
+		return maskedParts.join(':');
+	}else{
+		return ip;
+	}
 }
 
 app.use(cors());
@@ -2009,7 +2009,7 @@ function runcpp(command, callback, username, token){
 	if(!isValidUUIDv4(token || '')){
 		return;
 	}
-	
+
 	const ws = wsTokenMap.get(token);
 	if (!ws || ws.readyState !== WebSocket.OPEN) {
 		console.warn(`Token ${token} is no longer connected. Skipping.`);
