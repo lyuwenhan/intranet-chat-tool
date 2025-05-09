@@ -77,8 +77,8 @@ form.addEventListener('submit', function(e) {
 		}
 	})
 	.catch(error => {
-		alert(`Upload failure`);
 		console.error(error);
+		alert(`Upload failure`);
 	});
 	fileInput.value = '';
 });

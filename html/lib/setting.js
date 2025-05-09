@@ -136,8 +136,8 @@ function formatSize(bytes) {
 
 var last_data = {chats:[]};
 var username = "";
-function fun_clear_by_pwd() {
-	if(!confirm("Are you sure to clear it")){
+async function fun_clear_by_pwd() {
+	if(!await confirm("Are you sure to clear it")){
 		return;
 	}
 	var inputContent = {
@@ -612,12 +612,12 @@ function getUsers(){
 		console.error('错误:', error);
 	});
 }
-function deleteUser(username, orole){
+async function deleteUser(username, orole){
 	if(roleToNum[orole] >= roleToNum[role]){
 		alert("Permission Denied");
 		return;
 	}
-	if(!confirm(`Are you sure to delete "${username}"`)){
+	if(!await confirm(`Are you sure to delete "${username}"`)){
 		return;
 	}
 	var inputContent = {

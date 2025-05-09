@@ -808,8 +808,14 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse'});
 			return;
 		}
-		req.session.username = "";
-		res.json({ message: 'success' });
+		req.session.username = null;
+		req.session.role = null;
+		req.session.destroy((err) => {
+			if (err) {
+				return res.json({ message: 'faild', info: 'logout failed' });
+			}
+			res.json({ message: 'success' });
+		});
 		return;
 	}else if(allow_register && receivedContent.type == "change-pwd"){
 		if(!req.session.username){

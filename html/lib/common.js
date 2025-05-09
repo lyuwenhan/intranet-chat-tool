@@ -20,6 +20,61 @@
 const roles = Object.freeze(["user", "editor", "admin", "founder"]);
 const editors = Object.freeze(["editor", "admin", "founder"]);
 const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});
+
+document.addEventListener('DOMContentLoaded', () => {
+	let confirmResolve = null;
+	let alert_chain = Promise.resolve();
+	const alert_ele = document.querySelector(".alert-transmit"), alert_ok = document.querySelector(".alert-ok"), alert_cancel = document.querySelector('.alert-cancel'), alert_msgbox = document.querySelector(".alert-msgbox");
+	const mask = document.querySelector('.alert_ele-transblack');
+	if(mask){
+		mask.addEventListener('wheel', (e) => {e.preventDefault();}, { passive: false });
+		mask.addEventListener('click', (e) => {e.preventDefault();}, { passive: false });
+		mask.addEventListener('mousedown', (e) => {e.preventDefault();}, { passive: false });
+		mask.addEventListener('mouseup', (e) => {e.preventDefault();}, { passive: false });
+		mask.addEventListener('mouseleave', (e) => {e.preventDefault();}, { passive: false });
+	}
+	alert_ok.addEventListener('click', function(){
+		if(confirmResolve){
+			confirmResolve(true);
+			confirmResolve = null;
+		}
+	});
+	alert_cancel.addEventListener('click', function(){
+		if(confirmResolve){
+			confirmResolve(false);
+			confirmResolve = null;
+		}
+	});
+
+	window.confirm = function confirm(message){
+		alert_msgbox.innerText = message || "";
+		alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = false;
+		const pro = new Promise((resolve) => {
+			confirmResolve = (result) => {
+				if(result === true || result === false){
+					alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = true;
+					resolve(result);
+				}
+			};
+		});
+		alert_chain = alert_chain.then(()=>pro).catch(()=>{});
+		return pro;
+	}
+
+	window.alert = function alert(message){
+		alert_msgbox.innerText = message || "";
+		alert_ele.hidden = alert_ok.hidden = false;
+		const pro = new Promise((resolve) => {
+			confirmResolve = () => {
+				alert_ele.hidden = alert_ok.hidden = true;
+				resolve();
+			};
+		});
+		alert_chain = alert_chain.then(()=>pro).catch(()=>{});
+		return pro;
+	}
+});
+
 var jumping = 0;
 var jumptiout = null;
 function jump(){
