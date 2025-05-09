@@ -38,7 +38,7 @@ nav li>a>span {
 }
 nav > *{
 	position: relative;
-	z-index: 10000002;
+	z-index: 12;
 }
 nav ul {
 	display: flex;
@@ -84,7 +84,7 @@ nav>ul>li>ul>li>span,nav>ul>li>ul>li>a>span,nav>ul>li>ul>li>a{
 	background-color: #2a83e9;
 }
 .moball{
-	z-index: 10000001;
+	z-index: 11;
 	height: 100vh;
 	width: 100vw;
 	position: fixed;

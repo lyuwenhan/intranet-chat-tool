@@ -18,7 +18,7 @@
 
 
 nav {
-	z-index: 10000002;
+	z-index: 12;
 	position: relative;
 	left: 0;
 	top: 0;
@@ -70,7 +70,7 @@ nav>ul>li:hover ul{
 	display: block;
 }
 nav>ul>li>ul{
-	z-index: 10000002;
+	z-index: 12;
 	background-color: #33c9e7;
 	display: none;
 	position:absolute;

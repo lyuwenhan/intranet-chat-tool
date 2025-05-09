@@ -151,13 +151,13 @@ html{
 	height: 100vh;
 	width: 100vw;
 	overflow: hidden;
-	z-index: 10000001;
+	z-index: 11;
 	/* display: grid; */
 	align-items: center;
 }
 
 .trans{
-	z-index: 10000004;
+	z-index: 14;
 	position: fixed;
 	background-color: white;
 	max-height: calc(100vh - 40px);
@@ -178,7 +178,7 @@ html{
 	width: 100vw;
 	height: 100vh;
 	position: fixed;
-	z-index: 10000004;
+	z-index: 14;
 }
 .close-btn {
 	position: absolute;

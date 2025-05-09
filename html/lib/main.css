@@ -146,7 +146,7 @@ code[class^="language-"] .token.operator{
 	margin-bottom: 0;
 	top: 0px;
 	left: 0px;
-	z-index: 10000001;
+	z-index: 11;
 }
 
 .can-click,.bt-grey,.bt-white {
