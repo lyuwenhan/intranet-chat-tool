@@ -11,6 +11,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <TlHelp32.h>
+static HANDLE global_job = NULL;
 #else
 #include <sys/types.h>
 #include <sys/resource.h>
@@ -57,27 +58,33 @@ bool compile_code(const std::string &cpp_file, const std::string &runfile, bool 
 #ifdef _WIN32
 
 bool restrict_process(HANDLE process, int memory_limit_mb, int /*time_limit_ms*/) {
-    HANDLE job = CreateJobObject(NULL, NULL);
-    if (!job) return false;
+    if (!global_job) {
+        global_job = CreateJobObject(NULL, NULL);
+        if (!global_job) return false;
 
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION job_info = {0};
-    job_info.BasicLimitInformation.LimitFlags =
-        JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
-        JOB_OBJECT_LIMIT_PROCESS_MEMORY |
-        JOB_OBJECT_LIMIT_JOB_MEMORY |
-        JOB_OBJECT_LIMIT_PRIORITY_CLASS | 
-        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION job_info = {0};
+        job_info.BasicLimitInformation.LimitFlags =
+            JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
+            JOB_OBJECT_LIMIT_PROCESS_MEMORY |
+            JOB_OBJECT_LIMIT_JOB_MEMORY |
+            JOB_OBJECT_LIMIT_PRIORITY_CLASS |
+            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 
-    job_info.BasicLimitInformation.ActiveProcessLimit = 1;
-    job_info.BasicLimitInformation.PriorityClass = IDLE_PRIORITY_CLASS;
-    job_info.ProcessMemoryLimit = memory_limit_mb * 1024ULL * 1024;
-    job_info.JobMemoryLimit = memory_limit_mb * 1024ULL * 1024;
+        job_info.BasicLimitInformation.ActiveProcessLimit = 1;
+        job_info.BasicLimitInformation.PriorityClass = IDLE_PRIORITY_CLASS;
+        job_info.ProcessMemoryLimit = memory_limit_mb * 1024ULL * 1024;
+        job_info.JobMemoryLimit = memory_limit_mb * 1024ULL * 1024;
 
-    if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &job_info, sizeof(job_info)))
-        return false;
+        if (!SetInformationJobObject(global_job, JobObjectExtendedLimitInformation, &job_info, sizeof(job_info))) {
+            CloseHandle(global_job);
+            global_job = NULL;
+            return false;
+        }
+    }
 
-    return AssignProcessToJobObject(job, process);
+    return AssignProcessToJobObject(global_job, process);
 }
+
 
 std::string run_code(const std::string &exe_path, const std::string &input_file,
                      const std::string &output_file, const std::string &error_file,
@@ -100,7 +107,8 @@ std::string run_code(const std::string &exe_path, const std::string &input_file,
     if (!CreateProcessA(exe_path.c_str(), NULL, NULL, NULL, TRUE,
         CREATE_SUSPENDED, NULL, NULL, &si, &pi)) {
         return "Execution Failed";
-    }
+    }std::cout << "Child PID: " << pi.dwProcessId << std::endl;
+
 
     if (!restrict_process(pi.hProcess, memory_limit_mb, time_limit_ms)) {
         TerminateProcess(pi.hProcess, 1);
@@ -189,6 +197,7 @@ std::string run_code(const std::string &exe_path, const std::string &input_file,
 #endif
 
 int main(int argc, char *argv[]) {
+    std::cout << "My PID: " << GetCurrentProcessId() << std::endl;
     if (argc < 10) {
         std::cerr << "Usage: judge[.exe] <cpp_file> <input_file> <output_file> <error_file> <exe_file> <time_limit_ms> <memory_limit_mb> <max_output_bytes> [-O2]\n";
         return 1;
@@ -220,6 +229,8 @@ int main(int argc, char *argv[]) {
 
     if (result != "Execution Success") std::cerr << result << std::endl;
     else std::cout << result << std::endl;
-
+	#ifdef _WIN32
+	if (global_job) CloseHandle(global_job); // ✅ 释放 Job 对象资源
+	#endif
     return 0;
 }

@@ -15,7 +15,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 console.log("Starting...");
 const fs = require('fs');
-
+const isWin = process.platform == 'win32';
 fs.mkdirSync("./error/critical", { recursive: true });
 fs.mkdirSync("./error/normal", { recursive: true });
 
@@ -211,7 +211,7 @@ const allow_register = process.env.ALLOW_REGISTER === 'true';
 // const host = "0.0.0.0";
 const host = "::";
 const { v4: uuidv4 } = require('uuid');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 
 const session = require('express-session');
 const BetterSqliteStore = require('better-sqlite3-session-store')(session);
@@ -581,13 +581,37 @@ var data = [{chats : []}, {chats : []}];
 const cleartime = 1000 * 60 * 60 * 24 * 14;
 let cpp_runlist = Promise.resolve();
 const cppQueue = [];
-
-function start_runcpp(command) {
+let exec_child = null;
+const timeout = 1000 * 10;
+function start_runcpp(command, args){
 	return new Promise(resolve => {
-		exec(command, (error, stdout, stderr) => {
-			resolve({ error, stdout, stderr });
+		exec_child = spawn(command, args);
+		let resolved = false;
+		let stdout = '';
+		let stderr = '';
+		exec_child.stdout.on('data', data => {stdout += data.toString();});
+		exec_child.stderr.on('data', data => {stderr += data.toString();});
+		exec_child.on('error', error => {
+			if(!resolved){
+				resolved = true;
+				resolve({ stdout, stderr: `Error:\n${error}\n\n` + stderr});
+				exec_child = null;
+			}
+		});
+		exec_child.on('close', code => {
+			if(!resolved){
+				resolved = true;
+				resolve({stdout, stderr: (code !== 0 ? `Error:\nExited with code ${code}\n\n` : "") + stderr});
+				exec_child = null;
+			}
 		});
 	});
+}
+function kill_exec(){
+	if(exec_child){
+		exec_child.kill();
+		exec_child = null;
+	}
 }
 function getToday() {
 	return new Date().toISOString().split('T')[0];
@@ -1063,7 +1087,6 @@ app.post('/cpp-run', (req, res) => {
 			res.json({ message: 'faild' });
 			return;
 		}
-		console.log(req.session.cppRunning);
 		req.session.cppRunning = true;
 		req.session.save(err=>{});
 		const filename = uuidv4() + "";
@@ -1074,7 +1097,7 @@ app.post('/cpp-run', (req, res) => {
 		const exefile = "judge/exefiles/" + filename + ".exe";
 		fs.writeFileSync(cpp, receivedContent.code || "");
 		fs.writeFileSync(input, (receivedContent.input ? receivedContent.input : ""));
-		runcpp("judge\\judge.exe " + cpp + " " + input + " uploads/" + output + " uploads/" + errfile + " " + exefile + " 10000 128 1048576 -O2", (error, stdout, stderr) => {
+		runcpp(`judge${isWin ? '\\' : '/'}judge`, [cpp, input, "uploads/" + output, "uploads/" + errfile, exefile, String(timeout), "128", "1048576", "-O2"], (stdout, stderr) => {
 			fs.rm(cpp, (err)=>{});
 			fs.rm(input, (err)=>{});
 			fs.rm(exefile, (err)=>{});
@@ -1097,7 +1120,7 @@ app.post('/cpp-run', (req, res) => {
 			req.session.save(err=>{});
 			fs.appendFileSync("log/run.log", `${ip} ${now} ${(new Date()).toString()} end\n`);
 			res.json({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
-		}, req.session.username, receivedContent.token);
+		}, receivedContent.token);
 		return;
 	}
 	res.json({ message: 'faild' });
@@ -1954,12 +1977,16 @@ wss.on('connection', (ws, req) => {
 				req.session.cppRunning = null;
 				req.session.save(err=>{});
 				if(ws.meta.token === running_token){
-					return;
+					kill_exec();
 				}
 				for(let i = 0; i < cppQueue.length; i++){
 					const t = cppQueue[i];
 					if(t != running_token){
-						notifyStatus(t, `Queued (${i} ahead)`);
+						if(i == 0){
+							notifyStatus(t, `Queued (1 ahead)`);
+						}else{
+							notifyStatus(t, `Queued (${i} ahead)`);
+						}
 					}
 				}
 			}
@@ -2017,7 +2044,7 @@ function sendFinalResult(token, result){
 	}
 }
 
-function runcpp(command, callback, username, token){
+function runcpp(command, args, callback, token){
 	if(!isValidUUIDv4(token || '')){
 		return;
 	}
@@ -2039,8 +2066,8 @@ function runcpp(command, callback, username, token){
 			return;
 		}
 		notifyStatus(token, 'Running');
-		const result = await start_runcpp(command);
-		callback(result.error, result.stdout, result.stderr);
+		const result = await start_runcpp(command, args);
+		callback(result.stdout, result.stderr);
 		const idx = cppQueue.indexOf(token);
 		if(idx !== -1){
 			cppQueue.splice(idx, 1);

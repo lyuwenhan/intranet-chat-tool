@@ -38,11 +38,8 @@ function jump(){
 			jumping = 2;
 			jumptiout = setTimeout(function(){
 				jumping = 0;
-				jumptiout = setTimeout(function(){
-					jumping = 0;
-					jumptiout = null;
-				}, 5000);
-			}, 200);
+				jumptiout = null;
+			}, 5000);
 		}, 200);
 		return;
 	}else{
