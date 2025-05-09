@@ -46,12 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	});
 
-	window.confirm = function confirm(message){
+	window.confirm = function confirm(message, okMSG = "OK", cancelMSG = "Cancel"){
 		alert_msgbox.innerText = message || "";
+		alert_ok.innerText = okMSG || "OK";
+		alert_cancel.innerText = cancelMSG || "Cancel";
 		alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = false;
 		const pro = new Promise((resolve) => {
 			confirmResolve = (result) => {
 				if(result === true || result === false){
+					alert_msgbox.innerText = alert_ok.innerText = alert_cancel.innerText = "";
 					alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = true;
 					resolve(result);
 				}
@@ -61,11 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		return pro;
 	}
 
-	window.alert = function alert(message){
+	window.alert = function alert(message, okMSG = "OK"){
 		alert_msgbox.innerText = message || "";
+		alert_ok.innerText = okMSG || "OK";
 		alert_ele.hidden = alert_ok.hidden = false;
 		const pro = new Promise((resolve) => {
 			confirmResolve = () => {
+				alert_msgbox.innerText = alert_ok.innerText = "";
 				alert_ele.hidden = alert_ok.hidden = true;
 				resolve();
 			};
