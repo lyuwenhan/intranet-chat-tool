@@ -56,7 +56,11 @@
 	overflow: visible;
 }
 .alert-trans>h2{
-	margin: 0;
+	margin-top: 0;
+}
+.alert-trans>input{
+	width:calc(100% - 8px);
+	font-size: large;
 }
 .alert-transmit{
 	width: 100vw;
@@ -64,7 +68,10 @@
 	position: fixed;
 	z-index: 22;
 }
-
+.nimportant{
+	font-style: italic;
+	color: grey;
+}
 .bt-alert{
 	background-color: transparent;
 	border: 1px solid black;
@@ -84,7 +91,7 @@
     background-color: #43a6e5;
 }
 
-.alert-ok{
+.alert-ok, .alert-submit{
 	position: absolute;
 	bottom: 20px;
 	right: 20px;

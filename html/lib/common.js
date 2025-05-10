@@ -24,7 +24,7 @@ const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 
 document.addEventListener('DOMContentLoaded', () => {
 	let confirmResolve = null;
 	let alert_chain = Promise.resolve();
-	const alert_ele = document.querySelector(".alert-transmit"), alert_ok = document.querySelector(".alert-ok"), alert_cancel = document.querySelector('.alert-cancel'), alert_msgbox = document.querySelector(".alert-msgbox");
+	const alert_ele = document.querySelector(".alert-transmit"), alert_ok = document.querySelector(".alert-ok"), alert_cancel = document.querySelector('.alert-cancel'), alert_msgbox = document.querySelector(".alert-msgbox"), alert_submit = document.querySelector(".alert-submit"), alert_input = document.querySelector(".alert-input");
 	const mask = document.querySelector('.alert_ele-transblack');
 	if(mask){
 		mask.addEventListener('wheel', (e) => {e.preventDefault();}, { passive: false });
@@ -45,9 +45,20 @@ document.addEventListener('DOMContentLoaded', () => {
 			confirmResolve = null;
 		}
 	});
+	alert_submit.addEventListener('click', function(){
+		if(confirmResolve){
+			confirmResolve(alert_input.value);
+			alert_input.value = "";
+			confirmResolve = null;
+		}
+	});
 
 	window.confirm = function confirm(message, okMSG = "OK", cancelMSG = "Cancel"){
-		alert_msgbox.innerText = message || "";
+		if(message){
+			alert_msgbox.innerText = message;
+		}else{
+			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
+		}
 		alert_ok.innerText = okMSG || "OK";
 		alert_cancel.innerText = cancelMSG || "Cancel";
 		alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = false;
@@ -65,7 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	window.alert = function alert(message, okMSG = "OK"){
-		alert_msgbox.innerText = message || "";
+		if(message){
+			alert_msgbox.innerText = message;
+		}else{
+			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
+		}
 		alert_ok.innerText = okMSG || "OK";
 		alert_ele.hidden = alert_ok.hidden = false;
 		const pro = new Promise((resolve) => {
@@ -73,6 +88,25 @@ document.addEventListener('DOMContentLoaded', () => {
 				alert_msgbox.innerText = alert_ok.innerText = "";
 				alert_ele.hidden = alert_ok.hidden = true;
 				resolve();
+			};
+		});
+		alert_chain = alert_chain.then(()=>pro).catch(()=>{});
+		return pro;
+	}
+
+	window.prompt = function prompt(message, okMSG = "OK"){
+		if(message){
+			alert_msgbox.innerText = message;
+		}else{
+			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
+		}
+		alert_submit.innerText = okMSG || "OK";
+		alert_ele.hidden = alert_submit.hidden = alert_input.hidden = false;
+		const pro = new Promise((resolve) => {
+			confirmResolve = (result) => {
+				alert_msgbox.innerText = alert_submit.innerText = "";
+				alert_ele.hidden = alert_submit.hidden = alert_input.hidden = true;
+				resolve(result);
 			};
 		});
 		alert_chain = alert_chain.then(()=>pro).catch(()=>{});

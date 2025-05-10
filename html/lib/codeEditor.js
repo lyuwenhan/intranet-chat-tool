@@ -456,8 +456,8 @@ function opentsm(){
 function closetsm(){
 	tsmele.hidden = true;
 }
-function renameCode() {
-	const filename = prompt("New file name");
+async function renameCode() {
+	const filename = await prompt("New file name");
 	if(!filename){
 		return;
 	}
@@ -475,6 +475,10 @@ function renameCode() {
 		console.log("服务器返回的数据:", data);
 		if(data.message == 'success'){
 			location.reload();
+		}else{
+			if(data.info){
+				alert(data.info);
+			}
 		}
 	})
 	.catch(error => {
