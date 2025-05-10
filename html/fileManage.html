@@ -92,7 +92,9 @@
 	</div>
 	<div class="main">
 		<h2>Cpp files</h2>
-		<a href="/codeEditor" class="bt-grey">Create new files</a>
+		<a href="/codeEditor" class="bt-grey" target="_blank">Create new files</a>
+		<br>
+		<a class="bt-grey" onclick="prompt('Enter the uuid of your file').then(r=>{open_uuid(r, true)})">Open file by uuid</a>
 		<br>
 		<br>
 		<table id="codeTable">

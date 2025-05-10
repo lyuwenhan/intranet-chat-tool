@@ -21,6 +21,11 @@ const roles = Object.freeze(["user", "editor", "admin", "founder"]);
 const editors = Object.freeze(["editor", "admin", "founder"]);
 const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});
 
+function isValidUUIDv4(uuid) {
+	const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+	return regex.test(uuid);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 	let confirmResolve = null;
 	let alert_chain = Promise.resolve();
@@ -35,21 +40,23 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 	alert_ok.addEventListener('click', function(){
 		if(confirmResolve){
-			confirmResolve(true);
+			const c = confirmResolve;
 			confirmResolve = null;
+			c(true);
 		}
 	});
 	alert_cancel.addEventListener('click', function(){
 		if(confirmResolve){
-			confirmResolve(false);
+			const c = confirmResolve;
+			c(false);
 			confirmResolve = null;
 		}
 	});
 	alert_submit.addEventListener('click', function(){
 		if(confirmResolve){
-			confirmResolve(alert_input.value);
-			alert_input.value = "";
+			const c = confirmResolve;
 			confirmResolve = null;
+			c(alert_input.value);
 		}
 	});
 
@@ -94,18 +101,20 @@ document.addEventListener('DOMContentLoaded', () => {
 		return pro;
 	}
 
-	window.prompt = function prompt(message, okMSG = "OK"){
+	window.prompt = function prompt(message, okMSG = "OK", cancelMSG = "Cancel"){
 		if(message){
 			alert_msgbox.innerText = message;
 		}else{
 			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
 		}
 		alert_submit.innerText = okMSG || "OK";
-		alert_ele.hidden = alert_submit.hidden = alert_input.hidden = false;
+		alert_cancel.innerText = cancelMSG || "Cancel";
+		alert_ele.hidden = alert_submit.hidden = alert_input.hidden = alert_cancel.hidden = false;
 		const pro = new Promise((resolve) => {
 			confirmResolve = (result) => {
-				alert_msgbox.innerText = alert_submit.innerText = "";
-				alert_ele.hidden = alert_submit.hidden = alert_input.hidden = true;
+				alert_msgbox.innerText = alert_submit.innerText = alert_cancel.innerText = "";
+				alert_ele.hidden = alert_submit.hidden = alert_input.hidden = alert_cancel.hidden = true;
+				alert_input.value = "";
 				resolve(result);
 			};
 		});

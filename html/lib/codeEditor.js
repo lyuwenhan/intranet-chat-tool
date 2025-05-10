@@ -457,9 +457,19 @@ function closetsm(){
 	tsmele.hidden = true;
 }
 async function renameCode() {
-	const filename = await prompt("New file name");
-	if(!filename){
+	const filename = await prompt("Enter your new file name\nYou should not write the \".cpp\"");
+	if(filename === false){
 		return;
+	}
+	if(!filename){
+		alert("File name cannot be empty");
+		return;
+	}
+	if(filename.length > 100){
+		return res.json({ message: 'faild', info: 'Filename too long' });
+	}
+	if(!/^[\w\-\s]+$/.test(filename)){
+		return res.json({ message: 'faild', info: 'Invalid filename' });
 	}
 	let inputContent = { type: "rename", link, filename };
 	console.log(inputContent);

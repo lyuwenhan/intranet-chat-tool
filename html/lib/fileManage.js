@@ -23,6 +23,24 @@ function isValidUsername(username){
 var username = "";
 const mainele = document.querySelector(".main");
 const tableBody = document.querySelector('#codeTable tbody');
+async function open_uuid(uuid, openonly = false){
+	if(uuid === false){
+		return;
+	}
+	if(!uuid){
+		alert("UUID cannot be empty");
+		return;
+	}
+	if(!isValidUUIDv4(uuid)){
+		alert("Invalid UUID");
+		return;
+	}
+	if(!openonly && await confirm(" ", "Copy UUID", "Open in new tab")){
+		copy(null, uuid, ()=>{alert('copied')});
+	}else{
+		window.open(`/codeEditor?uuid=${uuid}`, '_blank');
+	}
+}
 function getCodeList() {
 	let inputContent = {
 		type: "getList",
@@ -52,11 +70,24 @@ function getCodeList() {
 			});
 
 			const row = document.createElement('tr');
-			row.innerHTML = `
-				<td class="show0"><a href="/codeEditor?uuid=${code.uuid}" class="bt-grey">${code.filename}.cpp</a><span class="show1 can-click bt-grey" title="click to copy" onclick="copy(null, '${code.uuid}', ()=>{alert('copied')})">copy uuid</span></td>
-				<td>${updated}</td>
-				<td><button onclick="renameCode('${code.uuid}')" class="bt-red">Rename</button>&nbsp;<button onclick="deleteCode('${code.filename}', '${code.uuid}')" class="bt-red">Delete</button></td>
-			`;
+			let nele = document.createElement("td");
+			let nele2 = document.createElement("a");
+			nele2.addEventListener('click', function (e) {
+				if(e.button === 0){
+					e.preventDefault();
+					open_uuid(code.uuid);
+				}
+			});
+			nele2.href = `/codeEditor?uuid=${code.uuid}`;
+			nele2.innerText = `${code.filename}.cpp`;
+			nele2.target = "_blank";
+			nele2.className = "bt-grey"
+			nele.appendChild(nele2);
+			row.appendChild(nele);
+			row.insertAdjacentHTML(
+				"beforeend", 
+				`<td>${updated}</td><td><button onclick="renameCode('${code.uuid}')" class="bt-red">Rename</button>&nbsp;<button onclick="deleteCode('${code.filename}', '${code.uuid}')" class="bt-red">Delete</button></td>`
+			);
 			tableBody.appendChild(row);
 		});
 	})
@@ -86,10 +117,20 @@ async function deleteCode(filename, uuid) {
 		});
 	}
 }
-function renameCode(uuid) {
-	const filename = prompt("New file name");
-	if(!filename){
+async function renameCode(uuid) {
+	const filename = await prompt("Enter your new file name\nYou should not write the \".cpp\"");
+	if(filename === false){
 		return;
+	}
+	if(!filename){
+		alert("File name cannot be empty");
+		return;
+	}
+	if(filename.length > 100){
+		return res.json({ message: 'faild', info: 'Filename too long' });
+	}
+	if(!/^[\w\-\s]+$/.test(filename)){
+		return res.json({ message: 'faild', info: 'Invalid filename' });
 	}
 	let inputContent = { type: "rename", link: uuid, filename };
 	safeFetch(`/cpp-save`, {

@@ -79,18 +79,6 @@ code[class^="language-"] .token.operator{
 .lang-new{
 	cursor: pointer;
 }
-.bt-grey{
-	color:black;
-}
-.bt-white{
-	color:white;
-}
-.bt-grey:hover,.bt-white:hover{
-	opacity: 0.7;
-}
-.bt-grey:active,.bt-white:active{
-	opacity: 0.8;
-}
 .lang-left{
 	padding: 10px;
 	margin:-10px;
@@ -147,10 +135,6 @@ code[class^="language-"] .token.operator{
 	top: 0px;
 	left: 0px;
 	z-index: 11;
-}
-
-.can-click,.bt-grey,.bt-white {
-	cursor: pointer;
 }
 
 .code {

@@ -21,9 +21,6 @@
 	color:red;
 	font-size: 2em;
 }
-.can-click,.bt-grey,.bt-white {
-	cursor: pointer;
-}
 .bt-grey{
 	color:black;
 }

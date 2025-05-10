@@ -220,25 +220,3 @@ html{
 	padding: 0;
 	cursor: pointer;
 }
-
-.bt-grey{
-	color:black;
-}
-.bt-white{
-	color:white;
-}
-.bt-grey:hover,.bt-white:hover{
-	opacity: 0.7;
-}
-.bt-grey:active,.bt-white:active{
-	opacity: 0.8;
-}
-.bt-grey-text{
-	color:black;
-}
-.bt-grey-text:hover{
-	color:#4c4c4c;
-}
-.bt-grey-text:active{
-	color:#333333;
-}
