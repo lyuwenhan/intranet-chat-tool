@@ -1347,8 +1347,14 @@ app.post('/cpp-save', (req, res) => {
 		}
 		const uuid = receivedContent.link;
 		const filename = receivedContent.filename;
-		if (filename.length > 100 || !/^[\w\-\s]+$/.test(filename)) {
+		if (!filename.length) {
+			return res.json({ message: 'faild', info: 'Filename cannot be empty' });
+		}
+		if (filename.length > 100) {
 			return res.json({ message: 'faild', info: 'Filename too long' });
+		}
+		if (!/^[\w\-\s]+$/.test(filename)) {
+			return res.json({ message: 'faild', info: 'Invalid filename' });
 		}
 		const file = getCode.get(uuid);
 		if(!file){
