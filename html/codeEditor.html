@@ -209,10 +209,16 @@
 		</div>
 		<div class="trans">
 			<div class="close-btn" onclick="closetsm()"></div>
-			<a onclick="copy(this, window.location.href)" class="copy">Copy current link<span hidden>&nbsp;copied</span></a>
+			<a onclick="copy(this, window.location.href)" class="bt-grey">Copy current link<span hidden>&nbsp;copied</span></a>
 			<br>
 			<br>
-			<a onclick="cprolink(this)" class="copy">Copy read-only link<span hidden>&nbsp;copied</span></a>
+			<a onclick="copy(this, link)" class="bt-grey">Copy current uuid<span hidden>&nbsp;copied</span></a>
+			<br>
+			<br>
+			<a onclick="cprolink(this)" class="bt-grey">Copy read-only link<span hidden>&nbsp;copied</span></a>
+			<br>
+			<br>
+			<a onclick="cprouuid(this)" class="bt-grey">Copy read-only uuid<span hidden>&nbsp;copied</span></a>
 			<br>
 		</div>
 	</div>

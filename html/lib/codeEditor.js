@@ -396,6 +396,11 @@ function cprolink(me){
 		copy(me, url.href.toString());
 	}))
 }
+function cprouuid(me){
+	makeonly().then((data=>{
+		copy(me, data);
+	}))
+}
 function readcodes(){
 	let inputContent = { type: "read", link };
 	safeFetch(`/cpp-save`, {

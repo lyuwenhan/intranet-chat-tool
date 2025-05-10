@@ -210,10 +210,6 @@ html{
 	transform: translate(-50%, -50%) rotate(-45deg);
 }
 
-.copy{
-	cursor: pointer;
-}
-
 .noborder-bt {
 	background: none;
 	border: none;
