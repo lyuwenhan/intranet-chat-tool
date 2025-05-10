@@ -96,22 +96,20 @@
 	font-style: italic;
 	color: grey;
 }
-.bt-alert{
+button{
 	background-color: transparent;
 	border: 1px solid black;
 	cursor: pointer;
 	padding: 9px;
-	display: flex;
-	align-items: center;
 	border-radius: 5px;
 	background-color: #48afe9;
 }
 
-.bt-alert:hover{
+button:hover{
 	background-color: #3b9ede;
 }
 
-.bt-alert:active{
+button:active{
     background-color: #43a6e5;
 }
 
