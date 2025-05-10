@@ -53,7 +53,7 @@ function getCodeList() {
 
 			const row = document.createElement('tr');
 			row.innerHTML = `
-				<td class="show0"><a href="/codeEditor?uuid=${code.uuid}" class="bt-grey">${code.filename}.cpp</a><span class="show1 can-click bt-grey" title="click to copy" onclick="copy(null, '${code.uuid}', ()=>{alert('copied')})">uuid:${code.uuid}</span></td>
+				<td class="show0"><a href="/codeEditor?uuid=${code.uuid}" class="bt-grey">${code.filename}.cpp</a><span class="show1 can-click bt-grey" title="click to copy" onclick="copy(null, '${code.uuid}', ()=>{alert('copied')})">copy uuid</span></td>
 				<td>${updated}</td>
 				<td><button onclick="renameCode('${code.uuid}')" class="bt-red">Rename</button>&nbsp;<button onclick="deleteCode('${code.filename}', '${code.uuid}')" class="bt-red">Delete</button></td>
 			`;
