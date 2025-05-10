@@ -125,34 +125,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 var jumping = 0;
 var jumptiout = null;
+var loging = false;
+let logto = null;
 function jump(){
-	if(jumping == 2){
+	if(loging){
 		return;
 	}
-	if(jumptiout){
-		clearTimeout(jumptiout);
+	if(logto){
+		clearTimeout(logto);
 	}
-	const win = window.open('/login', '_blank');
-	if (!win || win.closed || typeof win.closed === "undefined") {
-		jumping = 1;
-		jumptiout = setTimeout(function(){
-			window.name="from-href";
-			location.href='/login';
-			jumping = 2;
-			jumptiout = setTimeout(function(){
-				jumping = 0;
-				jumptiout = null;
-			}, 5000);
-		}, 200);
-		return;
-	}else{
-		jumping = 2;
-		win.name = 'from-open';
-		jumptiout = setTimeout(function(){
-			jumping = 0;
-			jumptiout = null;
-		}, 5000);
-	}
+	loging = true;
+	alert("Please login").then(()=>{
+		const win = window.open('/login', '_blank');
+		if (win && !win.closed && typeof win.closed !== "undefined"){
+			win.name = "from-open";
+			if(logto){
+				clearTimeout(logto);
+			}
+			logto = setTimeout(()=>{loging = false;logto = null;}, 60000);
+		}
+	})
 }
 async function safeFetch(url, options = {}) {
 	const res = await fetch(url, options);

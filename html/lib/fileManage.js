@@ -214,8 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			}else{
 				document.getElementById("login").hidden = false;
 				document.getElementById("sign_up").hidden = false;
-				window.name="from-href";
-				location.href='/login';
+				jump();
 			}
 			getCodeList();
 		})

@@ -128,7 +128,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 		.then(data => {
 			document.getElementById("username").innerText = username = data;
 			if(data){
-				location.href = '/';
+				if(window.name === 'from-open'){
+					window.close();
+				}else{
+					location.href='/';
+				}
 				document.getElementById("logout").hidden = false;
 				document.getElementById("changePwd").hidden = false;
 			}else{

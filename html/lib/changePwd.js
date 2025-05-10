@@ -95,9 +95,6 @@ document.getElementById('change-password-form').addEventListener('submit', async
 		if(data.message == "success"){
 			if(window.name === 'from-open'){
 				window.close();
-			}else if(window.name === 'from-href'){
-				window.name = "";
-				history.back();
 			}else{
 				location.href='/';
 			}
@@ -145,9 +142,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				document.getElementById("sign_up").hidden = false;
 				if(window.name === 'from-open'){
 					window.close();
-				}else if(window.name === 'from-href'){
-					window.name = "";
-					history.back();
 				}else{
 					location.href='/';
 				}

@@ -65,9 +65,6 @@ document.getElementById('login-form').addEventListener('submit', async function(
 		if(data.message == "success"){
 			if(window.name === 'from-open'){
 				window.close();
-			}else if(window.name === 'from-href'){
-				window.name = "";
-				history.back();
 			}else{
 				location.href='/';
 			}
@@ -110,9 +107,6 @@ document.addEventListener("DOMContentLoaded", () => {
 			if(data){
 				if(window.name === 'from-open'){
 					window.close();
-				}else if(window.name === 'from-href'){
-					window.name = "";
-					history.back();
 				}else{
 					location.href='/';
 				}
