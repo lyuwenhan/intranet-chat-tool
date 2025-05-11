@@ -124,7 +124,7 @@ PORT_HTTP=close
 # This allows you to register a new account
 ALLOW_REGISTER=true
 
-# If you have a proxy, write the proxy number.
+# If you have a proxy, write the proxy number. (or 0 for no proxy)
 ALLOW_PROXY=0
 
 # If you have a https server, write the path of the cert and key.
