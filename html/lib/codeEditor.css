@@ -16,6 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+textarea{
+	resize: none;
+	line-height: 1.3em !important;
+}
 .CodeMirror {
 	line-height: 1.3em !important;
 	height: 100% !important;
@@ -85,6 +89,14 @@
 }
 .code-cm{
 	height: calc(100% - 1.32em - 24px) !important;
+}
+#code, #input{
+	height: calc(100% - 1.32em - 30px) !important;
+	width: calc(100% - 6px);
+}
+#output, #error{
+	height: calc(100% - 1.32em - 18px) !important;
+	width: calc(100% - 6px);
 }
 .code-short-cm{
 	height: calc(100% - 1.32em - 12px) !important;

@@ -142,13 +142,17 @@ if(isMob){
 		}
 		loging = true;
 		alert("Please login").then(()=>{
-			const win = window.open('/login', '_blank');
-			if (win && !win.closed && typeof win.closed !== "undefined"){
-				win.name = "from-open";
-				if(logto){
-					clearTimeout(logto);
+			if(isMob){
+				location.href = '/login';
+			}else{
+				const win = window.open('/login', '_blank');
+				if (win && !win.closed && typeof win.closed !== "undefined"){
+					win.name = "from-open";
+					if(logto){
+						clearTimeout(logto);
+					}
+					logto = setTimeout(()=>{loging = false;logto = null;}, 60000);
 				}
-				logto = setTimeout(()=>{loging = false;logto = null;}, 60000);
 			}
 		})
 	}

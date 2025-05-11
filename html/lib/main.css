@@ -17,6 +17,9 @@
  */
 
 
+textarea{
+	line-height: 1.3em !important;
+}
 .CodeMirror {
 	line-height: 1.3em !important;
 	min-height: calc(3.9em + 8px);

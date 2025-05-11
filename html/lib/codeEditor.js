@@ -55,7 +55,9 @@ function show(out, err, outfile, errfile, outsize, errsize){
 	errele.hidden = true;
 	outdlele.hidden = true;
 	errdlele.hidden = true;
-	edi_input.refresh();
+	if(!isMob){
+		edi_input.refresh();
+	}
 	outdlele.onclick = null;
 	errdlele.onclick = null;
 	outdlele.innerHTML = "output.txt";
@@ -66,8 +68,12 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		inele.classList += "hei6 top";
 		outele.classList += "hei4 pla6 place2 bottom";
 		outele.hidden = false;
-		edi_output.setValue(out);
-		edi_output.refresh();
+		if(isMob){
+			edi_output.value = out;
+		}else{
+			edi_output.setValue(out);
+			edi_output.refresh();
+		}
 		if(outfile){
 			outdlele.innerHTML += ` (${formatSize(outsize)})`;
 			outdlele.hidden = false;
@@ -93,8 +99,12 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		inele.classList += "hei6 top";
 		errele.classList += "hei4 pla6 place2 bottom";
 		errele.hidden = false;
-		edi_error.setValue(err);
-		edi_error.refresh();
+		if(isMob){
+			edi_output.value = err;
+		}else{
+			edi_error.setValue(err);
+			edi_error.refresh();
+		}
 		if(errfile){
 			errdlele.innerHTML += ` (${formatSize(errsize)})`;
 			errdlele.hidden = false;
@@ -122,10 +132,18 @@ function show(out, err, outfile, errfile, outsize, errsize){
 		errele.classList += "hei3 pla7 place3 bottom";
 		outele.hidden = false;
 		errele.hidden = false;
-		edi_output.setValue(out);
-		edi_output.refresh();
-		edi_error.setValue(err);
-		edi_error.refresh();
+		if(isMob){
+			edi_output.value = out;
+		}else{
+			edi_output.setValue(out);
+			edi_output.refresh();
+		}
+		if(isMob){
+			edi_output.value = err;
+		}else{
+			edi_error.setValue(err);
+			edi_error.refresh();
+		}
 		if(outfile){
 			outdlele.innerHTML += ` (${formatSize(outsize)})`;
 			errdlele.innerHTML += ` (${formatSize(errsize)})`;
@@ -171,13 +189,17 @@ function show(out, err, outfile, errfile, outsize, errsize){
 	}
 }
 var lasave = "";
-function tolast(){
-	if(lasave !== editor.getValue()){
-		let now = editor.getValue();
-		editor.setValue(lasave);
-		editor.clearHistory()
-		editor.setValue(now);
-		editor.undo();
+if(isMob){
+	document.querySelectorAll("#nmb").forEach(e=>{e.hidden = true});
+}else{
+	window.tolast = function(){
+		if(lasave !== editor.getValue()){
+			let now = editor.getValue();
+			editor.setValue(lasave);
+			editor.clearHistory()
+			editor.setValue(now);
+			editor.undo();
+		}
 	}
 }
 var running = false;
@@ -188,8 +210,8 @@ function submitCode() {
 	running = true;
 	let inputContent = {
 		type: "run-code",
-		code: editor.getValue().trimStart().trimEnd(),
-		input: edi_input.getValue().trimStart().trimEnd(),
+		code: (isMob ? editor.value.trimStart().trimEnd() : editor.getValue().trimStart().trimEnd()),
+		input: (isMob ? edi_input.value.trimStart().trimEnd() : edi_input.getValue().trimStart().trimEnd()),
 		token
 	};
 	if(!inputContent.code){
@@ -215,86 +237,12 @@ function submitCode() {
 		show("", "something error");
 	});
 }
-var editor = CodeMirror.fromTextArea(document.getElementById("code"), { mode: "text/x-c++src", matchBrackets: true, autoCloseBrackets: true, theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true });
-editor.setOption("extraKeys", {"Ctrl-Enter": () => submitCode(editor)});
-editor.getWrapperElement().classList.add("code-cm");
-var saveele1 = document.getElementById("save1");
-var saveele2 = document.getElementById("save2");
-var saveele12 = document.getElementById("savetext1");
-var saveele22 = document.getElementById("savetext2");
-var savebtele1 = document.querySelector(".save-bt1");
-var savebtele2 = document.querySelector(".save-bt2");
-function save(ele, ele2, ele3) {
-	if (!ele || !ele2) return;
-	if (ele.fadeTimeout) clearTimeout(ele.fadeTimeout);
-	if (ele.fadeInterval) clearInterval(ele.fadeInterval);
-	ele.hidden = false;
-	ele2.hidden = true;
-	ele3.setAttribute("fill-opacity", 1);
-	ele.fadeTimeout = setTimeout(() => {
-		let opacity = 1;
-		ele.fadeInterval = setInterval(() => {
-			opacity -= 0.05;
-			ele3.setAttribute("fill-opacity", opacity);
-			if (opacity <= 0) {
-				clearInterval(ele.fadeInterval);
-				ele.hidden = true;
-				ele2.hidden = false;
-				ele3.setAttribute("fill-opacity", 1);
-			}
-		}, 100);
-	}, 500);
-}
-
-var edi_input = CodeMirror.fromTextArea(document.getElementById("input"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true });
-var edi_output = CodeMirror.fromTextArea(document.getElementById("output"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: true });
-var edi_error = CodeMirror.fromTextArea(document.getElementById("error"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: true });
-var save_unsave = null, la_unsavecode = null;
-edi_input.getWrapperElement().classList.add("code-cm");
-edi_output.getWrapperElement().classList.add("code-short-cm");
-edi_error.getWrapperElement().classList.add("code-short-cm");
-editor.on("keydown", (cm, event) => {
-	if(save_unsave){
-		clearTimeout(save_unsave);
-	}
-	if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-		event.preventDefault();
-		la_unsavecode = cm.getValue();
-		savecode();
-		return;
-	}
-	if(la_unsavecode !== cm.getValue()){
-		la_unsavecode = cm.getValue();
-	}else{
-		return;
-	}
-	save_unsave = setTimeout(function(){
-		save_unsave = null;
-		let inputContent = { type: "savecpp-unsave", link, code: cm.getValue() };
-		safeFetch(`/cpp-save`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({ content: inputContent })
-		})
-		.then(async(blob)=>JSON.parse(await blob.text()))
-		.then(data => {
-			console.log('服务器返回的数据:', data)
-		})
-		.catch(error => {
-			console.error('错误:', error);
-		});
-	},200);
-});
-edi_input.on("keydown", (cm, event) => {
-	if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
-		event.preventDefault();
-		saveinput();
-	}
-});
 function savecode(){
-	lasave = editor.getValue();
+	if(isMob){
+		lasave = editor.value;
+	}else{
+		lasave = editor.getValue();
+	}
 	let inputContent = { type: "savecpp", link, code: lasave };
 	safeFetch(`/cpp-save`, {
 		method: 'POST',
@@ -317,7 +265,7 @@ function savecode(){
 	});
 }
 function saveinput(){
-	let inputContent = { type: "saveinput", link, code: edi_input.getValue() };
+	let inputContent = { type: "saveinput", link, code: (isMob ? edi_input.value : edi_input.getValue()) };
 	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
@@ -433,14 +381,20 @@ function readcodes(){
 				});
 				return;
 			}
-			editor.setValue(data.cppfile);
-			editor.clearHistory();
-			if(data.cppfile != data.unsave_cppfile){
-				editor.setValue(data.unsave_cppfile);
+			if(isMob){
+				editor.value = data.cppfile;
+				lasave = data.cppfile;
+				edi_input.value = data.inputfile;
+			}else{
+				editor.setValue(data.cppfile);
+				editor.clearHistory();
+				if(data.cppfile != data.unsave_cppfile){
+					editor.setValue(data.unsave_cppfile);
+				}
+				lasave = data.cppfile;
+				edi_input.setValue(data.inputfile);
+				edi_input.clearHistory();
 			}
-			lasave = data.cppfile;
-			edi_input.setValue(data.inputfile);
-			edi_input.clearHistory();
 			document.querySelector(".filename").innerText = data.filename + '.cpp';
 		}else{
 			alert("Code acquisition failure");
@@ -525,6 +479,141 @@ function copy(me, text){
 var token = null;
 var role = 'user';
 document.addEventListener("DOMContentLoaded", () => {
+	window.saveele1 = document.getElementById("save1");
+	window.saveele2 = document.getElementById("save2");
+	window.saveele12 = document.getElementById("savetext1");
+	window.saveele22 = document.getElementById("savetext2");
+	window.savebtele1 = document.querySelector(".save-bt1");
+	window.savebtele2 = document.querySelector(".save-bt2");
+	window.save = function(ele, ele2, ele3) {
+		if (!ele || !ele2) return;
+		if (ele.fadeTimeout) clearTimeout(ele.fadeTimeout);
+		if (ele.fadeInterval) clearInterval(ele.fadeInterval);
+		ele.hidden = false;
+		ele2.hidden = true;
+		ele3.setAttribute("fill-opacity", 1);
+		ele.fadeTimeout = setTimeout(() => {
+			let opacity = 1;
+			ele.fadeInterval = setInterval(() => {
+				opacity -= 0.05;
+				ele3.setAttribute("fill-opacity", opacity);
+				if (opacity <= 0) {
+					clearInterval(ele.fadeInterval);
+					ele.hidden = true;
+					ele2.hidden = false;
+					ele3.setAttribute("fill-opacity", 1);
+				}
+			}, 100);
+		}, 500);
+	}
+	if(isMob){
+		window.editor = document.getElementById("code");
+		editor.addEventListener("keydown", (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+				e.preventDefault();
+				submitCode();
+			}
+			
+			if(save_unsave){
+				clearTimeout(save_unsave);
+			}
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+				e.preventDefault();
+				la_unsavecode = editor.value;
+				savecode();
+				return;
+			}
+			if(la_unsavecode !== editor.value){
+				la_unsavecode = editor.value;
+			}else{
+				return;
+			}
+			save_unsave = setTimeout(function(){
+				save_unsave = null;
+				let inputContent = { type: "savecpp-unsave", link, code: editor.value };
+				safeFetch(`/cpp-save`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ content: inputContent })
+				})
+				.then(async(blob)=>JSON.parse(await blob.text()))
+				.then(data => {
+					console.log('服务器返回的数据:', data)
+				})
+				.catch(error => {
+					console.error('错误:', error);
+				});
+			},200);
+		});
+		
+		var save_unsave = null, la_unsavecode = null;
+		window.edi_input = document.getElementById("input");
+		window.edi_output = document.getElementById("output");
+		window.edi_error = document.getElementById("error");
+
+		edi_input.addEventListener("keydown", (e) => {
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+				e.preventDefault();
+				saveinput();
+				return;
+			}
+		});
+	}else{
+		window.editor = CodeMirror.fromTextArea(document.getElementById("code"), { mode: "text/x-c++src", matchBrackets: true, autoCloseBrackets: true, theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true });
+		editor.setOption("extraKeys", {"Ctrl-Enter": () => submitCode()});
+		editor.getWrapperElement().classList.add("code-cm");
+
+		window.edi_input = CodeMirror.fromTextArea(document.getElementById("input"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true });
+		window.edi_output = CodeMirror.fromTextArea(document.getElementById("output"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: true });
+		window.edi_error = CodeMirror.fromTextArea(document.getElementById("error"), { mode: "null", theme: "default",lineNumbers: true,tabSize: 4,indentUnit: 4,indentWithTabs: true,styleActiveLine: true, readOnly: true });
+		var save_unsave = null, la_unsavecode = null;
+		edi_input.getWrapperElement().classList.add("code-cm");
+		edi_output.getWrapperElement().classList.add("code-short-cm");
+		edi_error.getWrapperElement().classList.add("code-short-cm");
+		editor.on("keydown", (cm, event) => {
+			if(save_unsave){
+				clearTimeout(save_unsave);
+			}
+			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+				event.preventDefault();
+				la_unsavecode = cm.getValue();
+				savecode();
+				return;
+			}
+			if(la_unsavecode !== cm.getValue()){
+				la_unsavecode = cm.getValue();
+			}else{
+				return;
+			}
+			save_unsave = setTimeout(function(){
+				save_unsave = null;
+				let inputContent = { type: "savecpp-unsave", link, code: cm.getValue() };
+				safeFetch(`/cpp-save`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ content: inputContent })
+				})
+				.then(async(blob)=>JSON.parse(await blob.text()))
+				.then(data => {
+					console.log('服务器返回的数据:', data)
+				})
+				.catch(error => {
+					console.error('错误:', error);
+				});
+			},200);
+		});
+		edi_input.on("keydown", (cm, event) => {
+			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+				event.preventDefault();
+				saveinput();
+			}
+		});
+	}
+
 	let inputContent = { type: "get-role" };
 	safeFetch(`/api/manage`, {
 		method: 'POST',
