@@ -161,7 +161,7 @@ function submitForm() {
 function submitCode() {
 	var inputContent = {
 		type: "send-code",
-		info: editor.getValue().trimEnd()
+		info: (isMob ? editor.value : editor.getValue().trimEnd())
 	};
 	if(!inputContent.info.replace(/\n+/g, "\n").trimEnd()){
 		return;
@@ -170,8 +170,11 @@ function submitCode() {
 	if(lang && lang.value){
 		inputContent.language = lang.value.replace(/\n+/g, "\n").trimStart().trimEnd();
 	}
-	editor.setValue("");
-	editor.clearHistory();
+	if(isMob){
+		editor.value = "";
+	}else{
+		editor.setValue("");
+	}
 	safeFetch(`/api`, {
 		method: 'POST',
 		headers: {
@@ -416,71 +419,8 @@ marked.setOptions({
 		return Prism.highlight(code, language, lang);
 	}
 });
-var edtlang = languageModes[document.querySelector("#code-language").value || "plain text"][0];
-var editor = CodeMirror.fromTextArea(document.getElementById("code"), tomode(edtlang));
-var mdele = document.querySelector(".md"), prele = document.querySelector(".preview");
-var showto = null;
-function showmd(text, force){
-	text = DOMPurify.sanitize(text, {
-		FORBID_TAGS: ['style', 'iframe', 'script'],
-		FORBID_ATTR: ['onclick','ondblclick','onmousedown','onmouseup','onmouseenter','onmouseleave','onmouseover','onmouseout','onmousemove','oncontextmenu','onkeydown','onkeypress','onkeyup','onfocus','onblur','onchange','oninput','onreset','onsubmit','oninvalid','ondrag','ondragstart','ondragend','ondragenter','ondragleave','ondragover','ondrop','oncopy','oncut','onpaste','ontouchstart','ontouchmove','ontouchend','ontouchcancel','onscroll','onwheel','onresize','onload','onerror','onabort','onbeforeunload','onunload','onplay','onpause','onended','onvolumechange','oncanplay','oncanplaythrough','onwaiting','onseeking','onseeked','ontimeupdate','onanimationstart','onanimationend','onanimationiteration','ontransitionend','onshow','ontoggle','onmessage','onopen','onclose']
-	});
-	if(!showto || force){
-		mdele.hidden = false;
-		prele.innerHTML = text;
-		MathJax.typesetPromise([prele]);
-		Prism.highlightAll();
-		if(!force){
-			showto = setTimeout(()=>{
-				showmd(text, true);
-				showto = null;
-			}, 100);
-		}
-	}else{
-		clearTimeout(showto);
-		showto = setTimeout(()=>{
-			showmd(text, true);
-			showto = null;
-		}, 100);
-	}
-}
-function unshowmd(){
-	mdele.hidden = true;
-	prele.innerHTML = "";
-	clearTimeout(showto);
-	showto=null;
-}
-function ed_init(){
-	editor.setOption("extraKeys", {"Ctrl-Enter": () => submitCode(editor)});
-	editor.getWrapperElement().classList.add("code-cm");
-	editor.setSize("auto", `calc(${editor.lineCount() * 1.3 + 2.6}em + 8px)`);
-	editor.on("change", function (cm) {
-		if(edtlang.mode == "markdown"){
-			showmd(marked.parse(cm.getValue()))
-		}
-		cm.setSize("auto", `calc(${cm.lineCount() * 1.3 + 2.6}em + 8px)`);
-	});
-}
-ed_init();
-const runele = document.querySelector(".runele");
-document.getElementById("code-language").addEventListener("change", function() {
-	editor.toTextArea();
-	edtlang = languageModes[this.value || "plain text"][0];
-	editor = CodeMirror.fromTextArea(document.getElementById("code"), tomode(edtlang));
-	ed_init();
-	if(edtlang.mode == "markdown"){
-		showmd(marked.parse(editor.getValue()));
-	}else{
-		unshowmd();
-	}
-	if(edtlang.mode == "text/x-c++src"){
-		runele.hidden = false;
-	}else{
-		runele.hidden = true;
-	}
-});
 function run(){
-	let inputContent = { type: "savecpp", link: uuid.v4(), code: editor.getValue() };
+	let inputContent = { type: "savecpp", link: uuid.v4(), code: (isMob ? editor.value : editor.getValue()) };
 	safeFetch(`/cpp-save`, {
 		method: 'POST',
 		headers: {
@@ -495,7 +435,7 @@ function run(){
 			alert("Code save failure");
 		}else{
 			const currentUrl = new URL(window.location.href);
-			currentUrl.pathname = "/cpprunner";
+			currentUrl.pathname = "/codeEditor";
 			currentUrl.search = `?uuid=${inputContent.link}`;
 			currentUrl.hash = "";
 			window.location.href = currentUrl.href;
@@ -632,4 +572,97 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	connectWS();
+	
+	var edtlang = languageModes[document.querySelector("#code-language").value || "plain text"][0];
+	const runele = document.querySelector(".runele");
+	if(!isMob){
+		window.editor = CodeMirror.fromTextArea(document.getElementById("code"), tomode(edtlang));
+		function ed_init(){
+			editor.setOption("extraKeys", {"Ctrl-Enter": () => submitCode()});
+			editor.getWrapperElement().classList.add("code-cm");
+			editor.setSize("auto", `calc(${editor.lineCount() * 1.3 + 2.6}em + 8px)`);
+			editor.on("change", function (cm) {
+				if(edtlang.mode == "markdown"){
+					showmd(marked.parse(cm.getValue()))
+				}
+				cm.setSize("auto", `calc(${cm.lineCount() * 1.3 + 2.6}em + 8px)`);
+			});
+		}
+		ed_init();
+		document.getElementById("code-language").addEventListener("change", function() {
+			editor.toTextArea();
+			edtlang = languageModes[this.value || "plain text"][0];
+			editor = CodeMirror.fromTextArea(document.getElementById("code"), tomode(edtlang));
+			ed_init();
+			if(edtlang.mode == "markdown"){
+				showmd(marked.parse(editor.getValue()));
+			}else{
+				unshowmd();
+			}
+			if(edtlang.mode == "text/x-c++src"){
+				runele.hidden = false;
+			}else{
+				runele.hidden = true;
+			}
+		});
+	}else{
+		window.editor = document.getElementById("code");
+		function ed_init(){
+			editor.addEventListener("keydown", (e) => {
+				if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+					e.preventDefault();
+					submitCode();
+				}
+				if(edtlang.mode == "markdown"){
+					showmd(marked.parse(editor.value));
+				}
+			});
+		}
+		ed_init();
+		document.getElementById("code-language").addEventListener("change", function() {
+			edtlang = languageModes[this.value || "plain text"][0];
+			if(edtlang.mode == "markdown"){
+				showmd(marked.parse(editor.value));
+			}else{
+				unshowmd();
+			}
+			if(edtlang.mode == "text/x-c++src"){
+				runele.hidden = false;
+			}else{
+				runele.hidden = true;
+			}
+		});
+	}
+	var mdele = document.querySelector(".md"), prele = document.querySelector(".preview");
+	var showto = null;
+	function showmd(text, force){
+		text = DOMPurify.sanitize(text, {
+			FORBID_TAGS: ['style', 'iframe', 'script'],
+			FORBID_ATTR: ['onclick','ondblclick','onmousedown','onmouseup','onmouseenter','onmouseleave','onmouseover','onmouseout','onmousemove','oncontextmenu','onkeydown','onkeypress','onkeyup','onfocus','onblur','onchange','oninput','onreset','onsubmit','oninvalid','ondrag','ondragstart','ondragend','ondragenter','ondragleave','ondragover','ondrop','oncopy','oncut','onpaste','ontouchstart','ontouchmove','ontouchend','ontouchcancel','onscroll','onwheel','onresize','onload','onerror','onabort','onbeforeunload','onunload','onplay','onpause','onended','onvolumechange','oncanplay','oncanplaythrough','onwaiting','onseeking','onseeked','ontimeupdate','onanimationstart','onanimationend','onanimationiteration','ontransitionend','onshow','ontoggle','onmessage','onopen','onclose']
+		});
+		if(!showto || force){
+			mdele.hidden = false;
+			prele.innerHTML = text;
+			MathJax.typesetPromise([prele]);
+			Prism.highlightAll();
+			if(!force){
+				showto = setTimeout(()=>{
+					showmd(text, true);
+					showto = null;
+				}, 100);
+			}
+		}else{
+			clearTimeout(showto);
+			showto = setTimeout(()=>{
+				showmd(text, true);
+				showto = null;
+			}, 100);
+		}
+	}
+	function unshowmd(){
+		mdele.hidden = true;
+		prele.innerHTML = "";
+		clearTimeout(showto);
+		showto=null;
+	}
 });

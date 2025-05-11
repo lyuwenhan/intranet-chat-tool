@@ -22,6 +22,9 @@
 	min-height: calc(3.9em + 8px);
 	max-height: calc(26em + 8px);
 }
+#code{
+	width: calc(100% - 6px);
+}
 .well{
 	background-color: rgb(247, 247, 247);
 	border: 1px solid rgb(227, 227, 227);
