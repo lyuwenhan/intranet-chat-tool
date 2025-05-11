@@ -71,7 +71,7 @@ const credentials = (port_http === "only" ? {} : { key: fs.readFileSync(process.
 const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', process.env.ALLOW_PROXY);
 const helmet = require('helmet');
 app.use(helmet());
 const roles = Object.freeze(["user", "editor", "admin", "founder"]);

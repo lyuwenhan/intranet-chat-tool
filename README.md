@@ -82,6 +82,8 @@ node.js             → Main backend server
 
 ## Installation / 安装与运行
 
+## 1. Configure the initial environment/ 配置初始环境
+
 ```bash
 # 1. Install Node dependencies / 安装依赖
 npm install
@@ -91,22 +93,53 @@ g++ judge/judge.cpp -o judge/judge.exe -O2
 
 #for Linux
 g++ judge/judge.cpp -o judge/judge.out -O2
+```
 
-# 2. Add .env configuration / 添加环境配置
-# (You can copy the template below into a file named ".env")
-# (你可以将下方内容复制为 ".env" 文件)
-SESSION_PWD=your_secret_key
+## 2. Add .env configuration / 添加环境配置
+
+*You can copy the template below into a file named ".env"*
+*你可以将下方内容复制为 ".env" 文件*
+```bash
+# demo
+# encoding: UTF-8
+
+# You need to write another password
+SESSION_PWD=Your_Password
+
+# Please only choose one of those three.
+
+# If you only want to have a https server
 PORT=443
-PORT_HTTP=80
+PORT_HTTP=close
+
+# If you only want to have a http server
+# **You Use This Only If You Have a Proxy To Https**
+# PORT=80
+# PORT_HTTP=only
+
+# If you want to have a https server
+# And a redirect http server
+# PORT=80
+# PORT_HTTP=80
+
+# This allow you to register a new account
 ALLOW_REGISTER=true
+
+# If you have a proxy, wrote the number of your proxy. Or just write 0
+ALLOW_PROXY=0
+
+# If you have a https server, write the path of the cert and key.
 CERT_PATH=keys/cert.pem
 KEY_PATH=keys/key.pem
 
 # [CERT_PATH & KEY_PATH] can be your own path / [CERT_PATH & KEY_PATH] 可以使用其他的路径
 # if you don't want to offer http service you can set [PORT_HTTP] to "close" / 将 [PORT_HTTP] 设置为 close 可取消http服务
 # if you only want to offer http service you can set [PORT_HTTP] to "only" / 将 [PORT_HTTP] 设置为 only 可只运行http服务
+```
 
 # 3. Run the server / 启动后端服务
+
+```bash
 node node.js
 ```
 
@@ -115,7 +148,7 @@ node node.js
 
 ---
 
-## Get version updates / 获取版本更新
+## Get version updates (only for linux) / 获取版本更新 (仅 linux 可用)
 
 ```bash
 chmod u+x update.sh
