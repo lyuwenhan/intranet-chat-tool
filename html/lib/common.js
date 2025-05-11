@@ -20,6 +20,7 @@
 const roles = Object.freeze(["user", "editor", "admin", "founder"]);
 const editors = Object.freeze(["editor", "admin", "founder"]);
 const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 4});
+const isMob = /Mobi|Android|iPhone|iPad|iPod|Phone/i.test(navigator.userAgent);
 
 function isValidUUIDv4(uuid) {
 	const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -123,28 +124,34 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 });
 
-var jumping = 0;
-var jumptiout = null;
-var loging = false;
-let logto = null;
-function jump(){
-	if(loging){
-		return;
+if(isMob){
+	window.jump = function(){
+		location.href = '/login';
 	}
-	if(logto){
-		clearTimeout(logto);
-	}
-	loging = true;
-	alert("Please login").then(()=>{
-		const win = window.open('/login', '_blank');
-		if (win && !win.closed && typeof win.closed !== "undefined"){
-			win.name = "from-open";
-			if(logto){
-				clearTimeout(logto);
-			}
-			logto = setTimeout(()=>{loging = false;logto = null;}, 60000);
+}else{
+	var jumping = 0;
+	var jumptiout = null;
+	var loging = false;
+	let logto = null;
+	window.jump = function(){
+		if(loging){
+			return;
 		}
-	})
+		if(logto){
+			clearTimeout(logto);
+		}
+		loging = true;
+		alert("Please login").then(()=>{
+			const win = window.open('/login', '_blank');
+			if (win && !win.closed && typeof win.closed !== "undefined"){
+				win.name = "from-open";
+				if(logto){
+					clearTimeout(logto);
+				}
+				logto = setTimeout(()=>{loging = false;logto = null;}, 60000);
+			}
+		})
+	}
 }
 async function safeFetch(url, options = {}) {
 	const res = await fetch(url, options);
