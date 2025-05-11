@@ -112,7 +112,7 @@ PORT=443
 PORT_HTTP=close
 
 # If you only want to have a http server
-# **You Use This Only If You Have a Proxy To Https**
+# **Use this only if your proxy handles HTTPS**
 # PORT=80
 # PORT_HTTP=only
 
