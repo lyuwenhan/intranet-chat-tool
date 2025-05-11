@@ -101,7 +101,6 @@ g++ judge/judge.cpp -o judge/judge.out -O2
 *你可以将下方内容复制为 ".env" 文件*
 ```bash
 # demo
-# encoding: UTF-8
 
 # You need to write another password
 SESSION_PWD=Your_Password
@@ -122,19 +121,15 @@ PORT_HTTP=close
 # PORT=80
 # PORT_HTTP=80
 
-# This allow you to register a new account
+# This allows you to register a new account
 ALLOW_REGISTER=true
 
-# If you have a proxy, wrote the number of your proxy. Or just write 0
+# If you have a proxy, write the proxy number.
 ALLOW_PROXY=0
 
 # If you have a https server, write the path of the cert and key.
 CERT_PATH=keys/cert.pem
 KEY_PATH=keys/key.pem
-
-# [CERT_PATH & KEY_PATH] can be your own path / [CERT_PATH & KEY_PATH] 可以使用其他的路径
-# if you don't want to offer http service you can set [PORT_HTTP] to "close" / 将 [PORT_HTTP] 设置为 close 可取消http服务
-# if you only want to offer http service you can set [PORT_HTTP] to "only" / 将 [PORT_HTTP] 设置为 only 可只运行http服务
 ```
 
 # 3. Run the server / 启动后端服务
