@@ -174,6 +174,7 @@ function submitCode() {
 		editor.value = "";
 	}else{
 		editor.setValue("");
+		editor.clearHistory();
 	}
 	safeFetch(`/api`, {
 		method: 'POST',
