@@ -112,10 +112,6 @@ function show(out, err, outfile, errfile, outsize, errsize){
 					URL.revokeObjectURL(url);
 				})
 				.catch(error => {
-					const newWindow = window.open(`/${outfile}`, '_blank', 'noopener,noreferrer');
-					if (newWindow) {
-						newWindow.opener = null;
-					}
 					console.error('下载文件时出错:', error);
 				});
 			}

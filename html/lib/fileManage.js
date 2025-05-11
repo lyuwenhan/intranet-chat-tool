@@ -35,8 +35,10 @@ async function open_uuid(uuid, openonly = false){
 		alert("Invalid UUID");
 		return;
 	}
-	if(!openonly && await confirm(" ", "Copy UUID", "Open in new tab")){
+	if(!openonly && await confirm(" ", "Copy UUID", (isMob ? "Open in this tab" : "Open in new tab"))){
 		copy(null, uuid, ()=>{alert('copied')});
+	}else if(isMob){
+		location.href = `/codeEditor?uuid=${uuid}`;
 	}else{
 		window.open(`/codeEditor?uuid=${uuid}`, '_blank');
 	}
