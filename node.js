@@ -480,7 +480,7 @@ const saveCodeList = db_codelist.prepare(`
 	VALUES (?, ?, ?, ?)
 	ON CONFLICT(username, uuid) DO UPDATE SET updated_at = excluded.updated_at
 `);
-const getCodes = db_codelist.prepare('SELECT uuid, updated_at, filename FROM code_list WHERE username = ? ORDER BY updated_at');
+const getCodes = db_codelist.prepare('SELECT uuid, updated_at, filename FROM code_list WHERE username = ? ORDER BY updated_at DESC');
 const deleteCodeListFU = db_codelist.prepare('DELETE FROM code_list WHERE username = ? AND uuid = ?');
 const deleteCodeListUser = db_codelist.prepare('DELETE FROM code_list WHERE username = ?');
 const deleteCodeListFF = db_codelist.prepare('DELETE FROM code_list WHERE uuid = ?');
