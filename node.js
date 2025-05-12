@@ -71,7 +71,13 @@ const credentials = (port_http === "only" ? {} : { key: fs.readFileSync(process.
 const svgCaptcha = require('svg-captcha');
 const sharp = require('sharp');
 const app = express();
-app.set('trust proxy', process.env.ALLOW_PROXY);
+const ALLOW_PROXY = process.env.ALLOW_PROXY;
+app.set('trust proxy', ALLOW_PROXY);
+function getRealIP(req) {
+    return ((ALLOW_PROXY && ALLOW_PROXY !== '0' && ALLOW_PROXY !== 'false' && req.headers['x-forwarded-for']?.split(',')[0])
+        || req.headers['cf-connecting-ip']
+        || req.socket.remoteAddress).replace("::ffff:","");
+}
 const helmet = require('helmet');
 app.use(helmet());
 const roles = Object.freeze(["user", "editor", "admin", "founder"]);
@@ -105,7 +111,7 @@ function createLimiter(label, level, baseMax, ban = false) {
 		message: { message: `请求频率过高（${tag}）${level}` },
 		handler: ban
 			? (req, res) => {
-				const ip = req.ip.replace("::ffff:", "");
+				const ip = getRealIP(req);
 				banIp(ip);
 				res.status(429).json({ message: `访问过于频繁，已封禁（${tag}）` });
 			}
@@ -739,7 +745,7 @@ async function generateCaptcha(options = {}) {
 }
 app.post('/api/login/', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	var ip=getRealIP(req), rawip = ip;
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
 	}
@@ -859,7 +865,7 @@ app.post('/api/login/', (req, res) => {
 	res.json({ message: 'faild' });
 });
 app.get('/api/captcha', async (req, res) => {
-	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	var ip=getRealIP(req), rawip = ip;
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
 	}
@@ -877,7 +883,7 @@ app.get('/api/captcha', async (req, res) => {
 });
 app.post('/api/manage', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	var ip=getRealIP(req), rawip = ip;
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
 	}
@@ -969,7 +975,7 @@ app.post('/api/manage', (req, res) => {
 
 app.post('/api/', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	var ip=getRealIP(req), rawip = ip;
 	if(ban_list.some(user => user == ip) || ban_list2.some(user => user == ip)){
 		return res.status(403).end();
 	}
@@ -1068,7 +1074,7 @@ function readFirst(filename) {
 
 app.post('/cpp-run', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	var ip=getRealIP(req), rawip = ip;
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} cpp.run\n`);
 	if(req.session.cppRunning){
@@ -1221,7 +1227,7 @@ setInterval(cleanOldCode, 10 * 60 * 1000);
 
 app.post('/cpp-save', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	var ip=getRealIP(req), rawip = ip;
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} cpp.save\n`);
 	fs.appendFileSync("log/save.log", `${ip} ${now} ${(new Date()).toString()} ${receivedContent.code}\n`);
@@ -1613,7 +1619,7 @@ const upload = multer({
 app.post('/upload', upload.single('file'), (req, res) => {
 	// 如果文件上传成功，multer 会将文件信息保存在 req.file 中
 	const receivedContent = JSON.parse(req.body.content);
-	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	var ip=getRealIP(req), rawip = ip;
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.upload\n`);
 	fs.appendFileSync("log/upload.log", `${ip} ${now} ${(new Date()).toString()}\n`);
@@ -1625,7 +1631,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}else if (req.file) {
-		console.log(req.ip);
+		console.log(rawip);
 		console.log('收到的内容：');
 		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
 		receivedContent.filename = req.file.originalname;
@@ -1684,7 +1690,7 @@ const uploadImg = multer({
 app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 	// 如果文件上传成功，multer 会将文件信息保存在 req.file 中
 	const receivedContent = JSON.parse(req.body.content);
-	var ip=req.ip.replace("::ffff:", ""), rawip = ip;
+	var ip=getRealIP(req), rawip = ip;
 	const now = Date.now();
 	fs.appendFileSync("log/ip.log", `${ip} ${now} ${(new Date()).toString()} server.upload\n`);
 	fs.appendFileSync("log/upload-image.log", `${ip} ${now} ${(new Date()).toString()}\n`);
@@ -1698,7 +1704,7 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 	}
 	console.log(receivedContent);
 	if (req.file) {
-		console.log(req.ip);
+		console.log(rawip);
 		console.log('收到的内容：');
 		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
 		receivedContent.filename = req.file.originalname;
