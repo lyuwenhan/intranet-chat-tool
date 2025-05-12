@@ -13,6 +13,7 @@ if ! git diff --quiet HEAD origin/main; then
     echo "[Git] Running npm install..."
     npm install --no-audit --no-fund --prefer-offline
     chmod u+x *.sh
+    g++ judge/judge.cpp -o judge/judge.out -O2
 else
     echo "[Git] Already up-to-date."
 fi
