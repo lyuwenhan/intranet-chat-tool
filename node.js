@@ -82,10 +82,9 @@ const roleToNum = Object.freeze({"user": 1, "editor": 2, "admin": 3, "founder": 
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: false, limit: '50kb' }));
 app.use((req, res, next) => {
-	req.ip = (
+	req.Rip = (
 		(ALLOW_PROXY && ALLOW_PROXY !== '0' && ALLOW_PROXY !== 'false' && req.headers['x-forwarded-for']?.split(',')[0])
-		|| req.headers['cf-connecting-ip']
-		|| req.socket.remoteAddress || ''
+		|| req.headers['cf-connecting-ip'] || req.socket.remoteAddress || req.ip || ""
 	).replace("::ffff:", '');
 	next();
 });
@@ -114,7 +113,7 @@ function createLimiter(label, level, baseMax, ban = false) {
 		message: { message: `请求频率过高（${tag}）${level}` },
 		handler: ban
 			? (req, res) => {
-				banIp(req.ip);
+				banIp(req.Rip);
 				res.status(429).json({ message: `访问过于频繁，已封禁（${tag}）` });
 			}
 			: undefined
@@ -747,15 +746,15 @@ async function generateCaptcha(options = {}) {
 }
 app.post('/api/login/', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=maskIp(req.ip);
-	if(ban_list.some(user => user == req.ip) || ban_list2.some(user => user == req.ip)){
+	var ip=maskIp(req.Rip);
+	if(ban_list.some(user => user == req.Rip) || ban_list2.some(user => user == req.Rip)){
 		return res.status(403).end();
 	}
 	const now = Date.now();
-	fs.appendFileSync("log/ip.log", `${req.ip} ${now} ${(new Date()).toString()} server.login\n`);
-	fs.appendFileSync("log/login.log", `${req.ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
+	fs.appendFileSync("log/ip.log", `${req.Rip} ${now} ${(new Date()).toString()} server.login\n`);
+	fs.appendFileSync("log/login.log", `${req.Rip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
-	console.log("realip:", req.ip);
+	console.log("realip:", req.Rip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(receivedContent.type == "login"){
@@ -866,15 +865,15 @@ app.post('/api/login/', (req, res) => {
 	res.json({ message: 'faild' });
 });
 app.get('/api/captcha', async (req, res) => {
-	var ip=maskIp(req.ip);
-	if(ban_list.some(user => user == req.ip) || ban_list2.some(user => user == req.ip)){
+	var ip=maskIp(req.Rip);
+	if(ban_list.some(user => user == req.Rip) || ban_list2.some(user => user == req.Rip)){
 		return res.status(403).end();
 	}
 	const now = Date.now();
-	fs.appendFileSync("log/ip.log", `${req.ip} ${now} ${(new Date()).toString()} server.captcha\n`);
-	fs.appendFileSync("log/captcha.log", `${req.ip} ${now} ${(new Date()).toString()}\n`);
+	fs.appendFileSync("log/ip.log", `${req.Rip} ${now} ${(new Date()).toString()} server.captcha\n`);
+	fs.appendFileSync("log/captcha.log", `${req.Rip} ${now} ${(new Date()).toString()}\n`);
 	console.log('收到的内容：');
-	console.log("realip:", req.ip);
+	console.log("realip:", req.Rip);
 	const captcha = await generateCaptcha();
 	req.session.captcha = captcha.text.toLowerCase();
 	res.setHeader('Content-Type', 'image/png');
@@ -883,15 +882,15 @@ app.get('/api/captcha', async (req, res) => {
 });
 app.post('/api/manage', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=maskIp(req.ip);
-	if(ban_list.some(user => user == req.ip) || ban_list2.some(user => user == req.ip)){
+	var ip=maskIp(req.Rip);
+	if(ban_list.some(user => user == req.Rip) || ban_list2.some(user => user == req.Rip)){
 		return res.status(403).end();
 	}
 	const now = Date.now();
-	fs.appendFileSync("log/ip.log", `${req.ip} ${now} ${(new Date()).toString()} server.main\n`);
-	fs.appendFileSync("log/manage.log", `${req.ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
+	fs.appendFileSync("log/ip.log", `${req.Rip} ${now} ${(new Date()).toString()} server.main\n`);
+	fs.appendFileSync("log/manage.log", `${req.Rip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
-	console.log("realip:", req.ip);
+	console.log("realip:", req.Rip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(receivedContent.type == "get-role"){
@@ -974,15 +973,15 @@ app.post('/api/manage', (req, res) => {
 
 app.post('/api/', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=maskIp(req.ip);
-	if(ban_list.some(user => user == req.ip) || ban_list2.some(user => user == req.ip)){
+	var ip=maskIp(req.Rip);
+	if(ban_list.some(user => user == req.Rip) || ban_list2.some(user => user == req.Rip)){
 		return res.status(403).end();
 	}
 	const now = Date.now();
-	fs.appendFileSync("log/ip.log", `${req.ip} ${now} ${(new Date()).toString()} server.main\n`);
-	fs.appendFileSync("log/main.log", `${req.ip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
+	fs.appendFileSync("log/ip.log", `${req.Rip} ${now} ${(new Date()).toString()} server.main\n`);
+	fs.appendFileSync("log/main.log", `${req.Rip} ${now} ${(new Date()).toString()} ${JSON.stringify(receivedContent)}\n`);
 	console.log('收到的内容：');
-	console.log("realip:", req.ip);
+	console.log("realip:", req.Rip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(receivedContent.type == "get-username"){
@@ -1004,7 +1003,7 @@ app.post('/api/', (req, res) => {
 		}
 		const chat = {username:req.session.username, info:receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd(),ip:receivedContent.ip, type:"text"};
 		data[0].chats.push(chat);
-		data[1].chats.push(req.ip);
+		data[1].chats.push(req.Rip);
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		broadcastChat(chat);
 		res.json({ message: 'success' });
@@ -1028,7 +1027,7 @@ app.post('/api/', (req, res) => {
 			}
 		}
 		data[0].chats.push(js);
-		data[1].chats.push(req.ip);
+		data[1].chats.push(req.Rip);
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		broadcastChat(js);
 		res.json({ message: 'success' });
@@ -1072,20 +1071,20 @@ function readFirst(filename) {
 
 app.post('/cpp-run', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=maskIp(req.ip);
+	var ip=maskIp(req.Rip);
 	const now = Date.now();
-	if(ban_list.some(user => user == req.ip) || ban_list2.some(user => user == req.ip)){
+	if(ban_list.some(user => user == req.Rip) || ban_list2.some(user => user == req.Rip)){
 		return res.status(403).end();
 	}
-	fs.appendFileSync("log/ip.log", `${req.ip} ${now} ${(new Date()).toString()} cpp.run\n`);
+	fs.appendFileSync("log/ip.log", `${req.Rip} ${now} ${(new Date()).toString()} cpp.run\n`);
 	if(req.session.cppRunning){
 		res.json({ message: 'faild', stdout: "ERROR", stderr: "you cannot run more than one codes at the same time"});
-		fs.appendFileSync("log/run.log", `${req.ip} ${now} ${(new Date()).toString()} too many codes\n`);
+		fs.appendFileSync("log/run.log", `${req.Rip} ${now} ${(new Date()).toString()} too many codes\n`);
 		return;
 	}
-	fs.appendFileSync("log/run.log", `${req.ip} ${now} start\n${receivedContent.code}\n`);
+	fs.appendFileSync("log/run.log", `${req.Rip} ${now} start\n${receivedContent.code}\n`);
 	console.log('收到的内容：');
-	console.log("realip:", req.ip);
+	console.log("realip:", req.Rip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(!isValidUsername(req.session.username)){
@@ -1224,15 +1223,15 @@ setInterval(cleanOldCode, 10 * 60 * 1000);
 
 app.post('/cpp-save', (req, res) => {
 	const receivedContent = req.body.content || {};
-	var ip=maskIp(req.ip);
-	if(ban_list.some(user => user == req.ip) || ban_list2.some(user => user == req.ip)){
+	var ip=maskIp(req.Rip);
+	if(ban_list.some(user => user == req.Rip) || ban_list2.some(user => user == req.Rip)){
 		return res.status(403).end();
 	}
 	const now = Date.now();
-	fs.appendFileSync("log/ip.log", `${req.ip} ${now} ${(new Date()).toString()} cpp.save\n`);
-	fs.appendFileSync("log/save.log", `${req.ip} ${now} ${(new Date()).toString()} ${receivedContent.code}\n`);
+	fs.appendFileSync("log/ip.log", `${req.Rip} ${now} ${(new Date()).toString()} cpp.save\n`);
+	fs.appendFileSync("log/save.log", `${req.Rip} ${now} ${(new Date()).toString()} ${receivedContent.code}\n`);
 	console.log('收到的内容：');
-	console.log("realip:", req.ip);
+	console.log("realip:", req.Rip);
 	receivedContent.ip=ip;
 	console.log(receivedContent);
 	if(!isValidUsername(req.session.username)){
@@ -1615,18 +1614,18 @@ const upload = multer({
 app.post('/upload', upload.single('file'), (req, res) => {
 	// 如果文件上传成功，multer 会将文件信息保存在 req.file 中
 	const receivedContent = JSON.parse(req.body.content);
-	var ip=maskIp(req.ip);
-	if(ban_list.some(user => user == req.ip) || ban_list2.some(user => user == req.ip)){
+	var ip=maskIp(req.Rip);
+	if(ban_list.some(user => user == req.Rip) || ban_list2.some(user => user == req.Rip)){
 		return res.status(403).end();
 	}
 	const now = Date.now();
-	fs.appendFileSync("log/ip.log", `${req.ip} ${now} ${(new Date()).toString()} server.upload\n`);
-	fs.appendFileSync("log/upload.log", `${req.ip} ${now} ${(new Date()).toString()}\n`);
+	fs.appendFileSync("log/ip.log", `${req.Rip} ${now} ${(new Date()).toString()} server.upload\n`);
+	fs.appendFileSync("log/upload.log", `${req.Rip} ${now} ${(new Date()).toString()}\n`);
 	if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}else if (req.file) {
-		console.log(req.ip);
+		console.log(req.Rip);
 		console.log('收到的内容：');
 		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
 		receivedContent.filename = req.file.originalname;
@@ -1637,7 +1636,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
 		receivedContent.ip = ip;
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		data[0].chats.push(receivedContent);
-		data[1].chats.push(req.ip);
+		data[1].chats.push(req.Rip);
 		broadcastChat(receivedContent);
 		res.send({message: 'success'});
 	} else {
@@ -1685,20 +1684,20 @@ const uploadImg = multer({
 app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 	// 如果文件上传成功，multer 会将文件信息保存在 req.file 中
 	const receivedContent = JSON.parse(req.body.content);
-	var ip=maskIp(req.ip);
-	if(ban_list.some(user => user == req.ip) || ban_list2.some(user => user == req.ip)){
+	var ip=maskIp(req.Rip);
+	if(ban_list.some(user => user == req.Rip) || ban_list2.some(user => user == req.Rip)){
 		return res.status(403).end();
 	}
 	const now = Date.now();
-	fs.appendFileSync("log/ip.log", `${req.ip} ${now} ${(new Date()).toString()} server.upload\n`);
-	fs.appendFileSync("log/upload-image.log", `${req.ip} ${now} ${(new Date()).toString()}\n`);
+	fs.appendFileSync("log/ip.log", `${req.Rip} ${now} ${(new Date()).toString()} server.upload\n`);
+	fs.appendFileSync("log/upload-image.log", `${req.Rip} ${now} ${(new Date()).toString()}\n`);
 	if(!isValidUsername(req.session.username)){
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}
 	console.log(receivedContent);
 	if (req.file) {
-		console.log(req.ip);
+		console.log(req.Rip);
 		console.log('收到的内容：');
 		req.file.originalname = Buffer.from(req.file.originalname, "base64").toString("utf-8");
 		receivedContent.filename = req.file.originalname;
@@ -1710,7 +1709,7 @@ app.post('/uploadimg', uploadImg.single('image'), (req, res) => {
 		receivedContent.ip = ip;
 		fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 		data[0].chats.push(receivedContent);
-		data[1].chats.push(req.ip);
+		data[1].chats.push(req.Rip);
 		broadcastChat(receivedContent);
 		res.send({message: 'success'});
 	} else {
