@@ -86,7 +86,7 @@ app.use((req, res, next) => {
 		(ALLOW_PROXY && ALLOW_PROXY !== '0' && ALLOW_PROXY !== 'false' && req.headers['x-forwarded-for']?.split(',')[0])
 		|| req.headers['cf-connecting-ip']
 		|| req.socket.remoteAddress || ''
-	).replace(/^::ffff:/, '');
+	).replace("::ffff:", '');
 	next();
 });
 function banIp(ip) {
