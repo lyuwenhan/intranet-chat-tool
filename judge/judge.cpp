@@ -107,7 +107,7 @@ std::string run_code(const std::string &exe_path, const std::string &input_file,
     if (!CreateProcessA(exe_path.c_str(), NULL, NULL, NULL, TRUE,
         CREATE_SUSPENDED, NULL, NULL, &si, &pi)) {
         return "Execution Failed";
-    }std::cout << "Child PID: " << pi.dwProcessId << std::endl;
+    }
 
 
     if (!restrict_process(pi.hProcess, memory_limit_mb, time_limit_ms)) {
@@ -197,7 +197,6 @@ std::string run_code(const std::string &exe_path, const std::string &input_file,
 #endif
 
 int main(int argc, char *argv[]) {
-    std::cout << "My PID: " << GetCurrentProcessId() << std::endl;
     if (argc < 10) {
         std::cerr << "Usage: judge[.exe] <cpp_file> <input_file> <output_file> <error_file> <exe_file> <time_limit_ms> <memory_limit_mb> <max_output_bytes> [-O2]\n";
         return 1;
