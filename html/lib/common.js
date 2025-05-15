@@ -90,11 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
 			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
 		}
 		alert_ok.innerText = okMSG || "OK";
-		alert_ele.hidden = alert_ok.hidden = false;
+		alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = false;
 		const pro = new Promise((resolve) => {
 			confirmResolve = () => {
 				alert_msgbox.innerText = alert_ok.innerText = "";
-				alert_ele.hidden = alert_ok.hidden = true;
+				alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = true;
 				resolve();
 			};
 		});
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}else{
 			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
 		}
-		alert_submit.innerText = okMSG || "OK";
+		alert_submit.innerText = okMSG || "Submit";
 		alert_cancel.innerText = cancelMSG || "Cancel";
 		alert_ele.hidden = alert_submit.hidden = alert_input.hidden = alert_cancel.hidden = false;
 		const pro = new Promise((resolve) => {
