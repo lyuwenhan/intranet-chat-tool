@@ -215,17 +215,11 @@ int main(int argc, char *argv[]) {
 
     if (!compile_code(cpp_file, exe_file, use_O2)) {
         std::cout << "Compilation Failed\n";
-        remove(cpp_file.c_str());
-        remove(input_file.c_str());
         return 1;
     }
 
     std::cout << "Compilation Success\n";
     std::string result = run_code(exe_file, input_file, output_file, error_file, time_limit_ms, memory_limit_mb, max_output_bytes);
-
-    remove(exe_file.c_str());
-    remove(cpp_file.c_str());
-    remove(input_file.c_str());
 
     if (result != "Execution Success") std::cerr << result << std::endl;
     else std::cout << result << std::endl;

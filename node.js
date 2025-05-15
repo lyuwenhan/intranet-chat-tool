@@ -417,15 +417,11 @@ RSA + SHA
 remove trash
 */
 fs.rmSync("./uploads/iofiles", { recursive: true, force: true });
-fs.rmSync("./judge/codes", { recursive: true, force: true });
-fs.rmSync("./judge/exefiles", { recursive: true, force: true });
-fs.rmSync("./judge/inputfiles", { recursive: true, force: true });
+fs.rmSync("./judge/code", { recursive: true, force: true });
 fs.mkdirSync("./uploads/iofiles", { recursive: true });
 fs.mkdirSync("./uploads/img", { recursive: true });
 fs.mkdirSync("./uploads/download", { recursive: true });
-fs.mkdirSync("./judge/codes", { recursive: true });
-fs.mkdirSync("./judge/exefiles", { recursive: true });
-fs.mkdirSync("./judge/inputfiles", { recursive: true });
+fs.mkdirSync("./judge/code", { recursive: true });
 fs.mkdirSync("./log", { recursive: true });
 /*
 remove trash
@@ -1040,17 +1036,11 @@ app.post('/api/', (req, res) => {
 			data = [{ "chats": [] }, { "chats": [] }];
 			fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 			fs.rmSync("./uploads", { recursive: true, force: true });
-			fs.rmSync("./judge/codes", { recursive: true, force: true });
-			fs.rmSync("./judge/exefiles", { recursive: true, force: true });
-			fs.rmSync("./judge/inputfiles", { recursive: true, force: true });
 			fs.rmSync("./data/gat_cnt.json", { recursive: true, force: true });
 			fs.rmSync("./log", { recursive: true, force: true });
 			fs.mkdirSync("./uploads/iofiles", { recursive: true });
 			fs.mkdirSync("./uploads/img", { recursive: true });
 			fs.mkdirSync("./uploads/download", { recursive: true });
-			fs.mkdirSync("./judge/codes", { recursive: true });
-			fs.mkdirSync("./judge/exefiles", { recursive: true });
-			fs.mkdirSync("./judge/inputfiles", { recursive: true });
 			fs.mkdirSync("./log", { recursive: true });
 			res.json({ message: 'success', chats: data[0].chats });
 		}else{
@@ -1098,17 +1088,9 @@ app.post('/cpp-run', (req, res) => {
 		req.session.cppRunning = true;
 		req.session.save(err=>{});
 		const filename = uuidv4() + "";
-		const cpp = "judge/codes/" + filename + ".cpp";
-		const input = "judge/inputfiles/" + filename + ".in";
 		const output = "iofiles/" + filename + ".out";
 		const errfile = "iofiles/" + filename + ".err";
-		const exefile = "judge/exefiles/" + filename + ".exe";
-		fs.writeFileSync(cpp, receivedContent.code || "");
-		fs.writeFileSync(input, (receivedContent.input ? receivedContent.input : ""));
-		runcpp(`judge${isWin ? '\\' : '/'}judge`, [cpp, input, "uploads/" + output, "uploads/" + errfile, exefile, String(timeout), "128", "1048576", "-O2"], (stdout, stderr) => {
-			fs.rm(cpp, (err)=>{});
-			fs.rm(input, (err)=>{});
-			fs.rm(exefile, (err)=>{});
+		runcpp(`judge/judge${isWin ? '.exe' : '.out'}`, receivedContent.code || "", receivedContent.input || "", output, errfile, (stdout, stderr) => {
 			if (stderr) {
 				res.json({ message: 'faild', stdout, stderr});
 				req.session.cppRunning = null;
@@ -1127,6 +1109,7 @@ app.post('/cpp-run', (req, res) => {
 			req.session.cppRunning = null;
 			req.session.save(err=>{});
 			fs.appendFileSync("log/run.log", `${ip} ${now} ${(new Date()).toString()} end\n`);
+			console.log({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
 			res.json({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
 		}, receivedContent.token);
 		return;
@@ -2055,7 +2038,7 @@ function sendFinalResult(token, result){
 	}
 }
 
-function runcpp(command, args, callback, token){
+function runcpp(command, cpp, input, output, errfile, callback, token){
 	if(!isValidUUIDv4(token || '')){
 		return;
 	}
@@ -2077,8 +2060,17 @@ function runcpp(command, args, callback, token){
 			return;
 		}
 		notifyStatus(token, 'Running');
-		const result = await start_runcpp(command, args);
+		fs.writeFileSync("judge/code/user.cpp", cpp);
+		fs.writeFileSync("judge/code/user.in", input);
+		const result = await start_runcpp(command, ["judge/code/user.cpp", "judge/code/user.in", "uploads/" + output, "uploads/" + errfile, "judge/code/user.exe", String(timeout), "128", "1048576", "-O2"]);
 		callback(result.stdout, result.stderr);
+		try{
+			fs.rmSync("judge/code/user.cpp");
+			fs.rmSync("judge/code/user.in");
+			fs.rmSync("judge/code/user.exe");
+		}catch(e){
+			console.log(e);
+		}
 		const idx = cppQueue.indexOf(token);
 		if(idx !== -1){
 			cppQueue.splice(idx, 1);
