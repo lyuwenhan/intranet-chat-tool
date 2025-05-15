@@ -30,97 +30,137 @@ function isValidUUIDv4(uuid) {
 document.addEventListener('DOMContentLoaded', () => {
 	let confirmResolve = null;
 	let alert_chain = Promise.resolve();
-	const alert_ele = document.querySelector(".alert-transmit"), alert_ok = document.querySelector(".alert-ok"), alert_cancel = document.querySelector('.alert-cancel'), alert_msgbox = document.querySelector(".alert-msgbox"), alert_submit = document.querySelector(".alert-submit"), alert_input = document.querySelector(".alert-input");
+	const alert_ele = document.querySelector(".alert-transmit"), alert_ok = document.querySelector(".alert-ok"), alert_cancel = document.querySelector('.alert-cancel'), alert_msgbox = document.querySelector(".alert-msgbox"), alert_input = document.querySelector(".alert-input");
 	const mask = document.querySelector('.alert_ele-transblack');
+	let alertMode = null;
 	if(mask){
 		mask.addEventListener('wheel', (e) => {e.preventDefault();}, { passive: false });
 		mask.addEventListener('click', (e) => {e.preventDefault();}, { passive: false });
 		mask.addEventListener('mousedown', (e) => {e.preventDefault();}, { passive: false });
 		mask.addEventListener('mouseup', (e) => {e.preventDefault();}, { passive: false });
-		mask.addEventListener('mouseleave', (e) => {e.preventDefault();}, { passive: false });
 	}
-	alert_ok.addEventListener('click', function(){
-		if(confirmResolve){
-			const c = confirmResolve;
-			confirmResolve = null;
-			c(true);
+
+	function Resolve(value) {
+		if(!confirmResolve || !alertMode || (!value && alertMode == 1)){
+			return;
+		}
+		const c = confirmResolve;
+		confirmResolve = null;
+		alertMode = null;
+		alert_input.value = "";
+		alert_msgbox.innerText = alert_ok.innerText = alert_cancel.innerText = "";
+		alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = alert_input.hidden = true;
+		c(value);
+	}
+
+	window.addEventListener("keydown", (e) => {
+		if(!confirmResolve)return;
+		if(e.key === "Enter" && alertMode){
+			e.preventDefault();
+			e.stopPropagation();
+			if(alertMode == 3){
+				Resolve(alert_input.value);
+			}else{
+				Resolve(true);
+			}
+		}else if(e.key === "Escape" && alertMode > 1){
+			e.preventDefault();
+			e.stopPropagation();
+			Resolve(false);
+		}
+	}, true);
+
+	alert_ok.addEventListener('click', function(e){
+		if(confirmResolve && alertMode){
+			if(alertMode == 3){
+				Resolve(alert_input.value);
+			}else{
+				Resolve(true);
+			}
+			e.preventDefault();
+			e.stopPropagation();
 		}
 	});
-	alert_cancel.addEventListener('click', function(){
-		if(confirmResolve){
-			const c = confirmResolve;
-			c(false);
-			confirmResolve = null;
-		}
-	});
-	alert_submit.addEventListener('click', function(){
-		if(confirmResolve){
-			const c = confirmResolve;
-			confirmResolve = null;
-			c(alert_input.value);
+	alert_cancel.addEventListener('click', function(e){
+		if(confirmResolve && alertMode > 1){
+			Resolve(false);
+			e.preventDefault();
+			e.stopPropagation();
 		}
 	});
 
-	window.confirm = function confirm(message, okMSG = "OK", cancelMSG = "Cancel"){
-		if(message){
-			alert_msgbox.innerText = message;
-		}else{
-			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
-		}
-		alert_ok.innerText = okMSG || "OK";
-		alert_cancel.innerText = cancelMSG || "Cancel";
-		alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = false;
-		const pro = new Promise((resolve) => {
-			confirmResolve = (result) => {
-				if(result === true || result === false){
-					alert_msgbox.innerText = alert_ok.innerText = alert_cancel.innerText = "";
-					alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = true;
-					resolve(result);
-				}
-			};
+	function delay(time, ret){
+		return new Promise(resolve => {
+			setTimeout(()=>{resolve(ret)}, time);
 		});
-		alert_chain = alert_chain.then(()=>pro).catch(()=>{});
-		return pro;
+	}
+
+	window.confirm = function confirm(message, okMSG = "OK", cancelMSG = "Cancel"){
+		return alert_chain = alert_chain.then(()=>{
+			return new Promise((resolve) => {
+				alertMode = 2;
+				if(message){
+					alert_msgbox.innerText = message;
+				}else{
+					alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
+				}
+				alert_ok.innerText = okMSG || "OK";
+				alert_cancel.innerText = cancelMSG || "Cancel";
+				alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = false;
+				confirmResolve = (result) => {
+					if(result === true || result === false){
+						alertMode = null;
+						alert_msgbox.innerText = alert_ok.innerText = alert_cancel.innerText = "";
+						alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = true;
+						resolve(result);
+					}
+				}
+			}
+		)}).then((r)=>delay(100,r)).catch(()=>{});
 	}
 
 	window.alert = function alert(message, okMSG = "OK"){
-		if(message){
-			alert_msgbox.innerText = message;
-		}else{
-			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
-		}
-		alert_ok.innerText = okMSG || "OK";
-		alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = false;
-		const pro = new Promise((resolve) => {
-			confirmResolve = () => {
-				alert_msgbox.innerText = alert_ok.innerText = "";
-				alert_ele.hidden = alert_ok.hidden = alert_cancel.hidden = true;
-				resolve();
-			};
-		});
-		alert_chain = alert_chain.then(()=>pro).catch(()=>{});
-		return pro;
+		return alert_chain = alert_chain.then(()=>{
+			return new Promise((resolve) => {
+				alertMode = 1;
+				if(message){
+					alert_msgbox.innerText = message;
+				}else{
+					alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
+				}
+				alert_ok.innerText = okMSG || "OK";
+				alert_ele.hidden = alert_ok.hidden = false;
+				confirmResolve = () => {
+					alertMode = null;
+					alert_msgbox.innerText = alert_ok.innerText = "";
+					alert_ele.hidden = alert_ok.hidden = true;
+					resolve();
+				}
+			}
+		)}).then((r)=>delay(100,r)).catch(()=>{});
 	}
 
 	window.prompt = function prompt(message, okMSG = "OK", cancelMSG = "Cancel"){
-		if(message){
-			alert_msgbox.innerText = message;
-		}else{
-			alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
-		}
-		alert_submit.innerText = okMSG || "Submit";
-		alert_cancel.innerText = cancelMSG || "Cancel";
-		alert_ele.hidden = alert_submit.hidden = alert_input.hidden = alert_cancel.hidden = false;
-		const pro = new Promise((resolve) => {
-			confirmResolve = (result) => {
-				alert_msgbox.innerText = alert_submit.innerText = alert_cancel.innerText = "";
-				alert_ele.hidden = alert_submit.hidden = alert_input.hidden = alert_cancel.hidden = true;
-				alert_input.value = "";
-				resolve(result);
-			};
-		});
-		alert_chain = alert_chain.then(()=>pro).catch(()=>{});
-		return pro;
+		return alert_chain = alert_chain.then(()=>{
+			return new Promise((resolve) => {
+				alertMode = 3;
+				if(message){
+					alert_msgbox.innerText = message;
+				}else{
+					alert_msgbox.innerHTML = "<span class='nimportant'>Here is no message.</span>";
+				}
+				alert_ok.innerText = okMSG || "Submit";
+				alert_cancel.innerText = cancelMSG || "Cancel";
+				alert_ele.hidden = alert_ok.hidden = alert_input.hidden = alert_cancel.hidden = false;
+				confirmResolve = (result) => {
+					alertMode = null;
+					alert_msgbox.innerText = alert_ok.innerText = alert_cancel.innerText = "";
+					alert_ele.hidden = alert_ok.hidden = alert_input.hidden = alert_cancel.hidden = true;
+					alert_input.value = "";
+					resolve(result);
+				};
+			}
+		)}).then((r)=>delay(100,r)).catch(()=>{});
 	}
 });
 
