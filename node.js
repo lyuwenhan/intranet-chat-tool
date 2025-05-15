@@ -215,8 +215,9 @@ function make128(){
 const private_pwd = make128();
 const session_pwd = process.env.SESSION_PWD;
 const allow_register = process.env.ALLOW_REGISTER === 'true';
-// const host = "0.0.0.0";
-const host = "::";
+const os = require('os');
+const hasIPv6 = Object.values(os.networkInterfaces()).some(list => list.some(i => i.family === 'IPv6'));
+const host = hasIPv6 ? '::' : '0.0.0.0';
 const { v4: uuidv4 } = require('uuid');
 const { exec, spawn } = require('child_process');
 
@@ -2062,7 +2063,7 @@ function runcpp(command, cpp, input, output, errfile, callback, token){
 		notifyStatus(token, 'Running');
 		fs.writeFileSync("judge/code/user.cpp", cpp);
 		fs.writeFileSync("judge/code/user.in", input);
-		const result = await start_runcpp(command, ["judge/code/user.cpp", "judge/code/user.in", "uploads/" + output, "uploads/" + errfile, "judge/code/user.exe", String(timeout), "128", "1048576", "-O2"]);
+		const result = await start_runcpp(command, ["docker", "run", "--rm", "-v", "\"judge/data:/app/data\"", "judge-runner", "judge/code/user.in", "uploads/" + output, "uploads/" + errfile, "judge/code/user.exe", String(timeout), "128", "1048576", "-O2"]);
 		callback(result.stdout, result.stderr);
 		try{
 			fs.rmSync("judge/code/user.cpp");
