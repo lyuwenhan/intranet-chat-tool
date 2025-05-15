@@ -97,40 +97,15 @@ g++ judge/judge.cpp -o judge/judge.out -O2
 
 ## 2. Add .env configuration / 添加环境配置
 
-*You can copy the template below into a file named ".env"*
-*你可以将下方内容复制为 ".env" 文件*
+*You can generate the `.env` file by running the interactive script:*
+*🛠️ *你可以运行交互式脚本来生成 `.env` 文件:*
+
 ```bash
-# demo
-
-# You need to write another password
-SESSION_PWD=Your_Password
-
-# Please only choose one of those three.
-
-# If you only want to have a https server
-PORT=443
-PORT_HTTP=close
-
-# If you only want to have a http server
-# **Use this only if your proxy handles HTTPS**
-# PORT=80
-# PORT_HTTP=only
-
-# If you want to have a https server
-# And a redirect http server
-# PORT=80
-# PORT_HTTP=80
-
-# This allows you to register a new account
-ALLOW_REGISTER=true
-
-# If you have a proxy, write the proxy number. (or 0 for no proxy)
-ALLOW_PROXY=0
-
-# If you have a https server, write the path of the cert and key.
-CERT_PATH=keys/cert.pem
-KEY_PATH=keys/key.pem
+node create-env.js
 ```
+
+*Or copy the template `demo.env` into a file named `.env`:*
+*或者将 `demo.env` 复制为 `.env` 文件使用:*
 
 # 3. Run the server / 启动后端服务
 
