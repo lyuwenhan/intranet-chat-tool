@@ -418,7 +418,7 @@ RSA + SHA
 remove trash
 */
 const userFileDir = "judge/code";
-const userFileDirInDocker = "/app/data/code";
+const userFileDirInDocker = "/app/data";
 fs.rmSync("./uploads/iofiles", { recursive: true, force: true });
 fs.rmSync(`./${userFileDir}`, { recursive: true, force: true });
 fs.mkdirSync("./uploads/iofiles", { recursive: true });
