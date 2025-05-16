@@ -1,13 +1,13 @@
 FROM gcc:13.3.0-bookworm
 
-# 创建工作目录
+RUN useradd -m -u 1000 judgeuser
+
 WORKDIR /app
+RUN mkdir -p /app && chown judgeuser:judgeuser /app
 
-# 拷贝评测主程序（judge.out 或 judge.cpp）
 COPY judge.run /app/judge.run
+RUN chmod +x /app/judge.run && chown judgeuser:judgeuser /app/judge.run
 
-# 授予执行权限
-RUN chmod +x /app/judge.run
+USER judgeuser
 
-# 默认执行命令（实际运行时会被 override）
 ENTRYPOINT ["/app/judge.run"]
