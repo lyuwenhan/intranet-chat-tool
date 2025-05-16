@@ -12,8 +12,8 @@ if ! git diff --quiet HEAD origin/main; then
     git pull --rebase --autostash origin main
     echo "[Git] Running npm install..."
     npm install --no-audit --no-fund --prefer-offline
-    chmod u+x *.sh
-    chmod g+x *.sh
+    chmod u+x ./*.sh
+    chmod g+x ./*.sh
     g++ judge/judge.cpp -o judge/judge.out -O2
     exit 0
 else
