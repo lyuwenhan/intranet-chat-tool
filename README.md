@@ -82,7 +82,10 @@ node.js             → Main backend server
 
 ## Installation / 安装与运行
 
-## 1. Configure the initial environment/ 配置初始环境
+## 1. Configure the initial environment / 配置初始环境
+
+Please make sure your system has `node.js` (preferably version `v22.14.0`) and `g++` installed.
+请确认系统已安装 `node.js`（推荐使用 `v22.14.0` 版本）和 `g++`。
 
 ```bash
 # 1. Install Node dependencies / 安装依赖
