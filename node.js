@@ -1092,7 +1092,7 @@ app.post('/cpp-run', (req, res) => {
 		const filename = uuidv4() + "";
 		const output = "uploads/iofiles/" + filename + ".out";
 		const errfile = "uploads/iofiles/" + filename + ".err";
-		runcpp(`judge/judge${isWin ? '.exe' : '.out'}`, receivedContent.code || "", receivedContent.input || "", output, errfile, (stdout, stderr) => {
+		runcpp(`docker`, receivedContent.code || "", receivedContent.input || "", output, errfile, (stdout, stderr) => {
 			if (stderr) {
 				res.json({ message: 'faild', stdout, stderr});
 				req.session.cppRunning = null;
@@ -2076,7 +2076,7 @@ function runcpp(command, cpp, input, output, errfile, callback, token){
 		fs.writeFileSync(`${userFileDir}/user.in`, input);
 		let result;
 		try{
-			result = await start_runcpp(command, ["docker", "run", "--rm", "--network", "none", "--read-only", "--pids-limit=64", "--cpus=0.5", "--memory=130m", "--cap-drop=ALL", "--security-opt", "no-new-privileges", "-v", "judge/data:/app/data", "judge-runner", `${userFileDir}/user.cpp`, `${userFileDir}/user.in`, `${userFileDir}/user.out`, `${userFileDir}/user.err`, `${userFileDir}/user.run`, String(timeout), "128", "1048576", "-O2"]);
+			result = await start_runcpp(command, ["run", "--rm", "--network", "none", "--read-only", "--pids-limit=64", "--cpus=0.5", "--memory=130m", "--cap-drop=ALL", "--security-opt", "no-new-privileges", "-v", "judge/data:/app/data", "judge-runner", `${userFileDir}/user.cpp`, `${userFileDir}/user.in`, `${userFileDir}/user.out`, `${userFileDir}/user.err`, `${userFileDir}/user.run`, String(timeout), "128", "1048576", "-O2"]);
 		}finally{
 			try{
 				if(fs.existsSync(`${userFileDir}/user.out`)){

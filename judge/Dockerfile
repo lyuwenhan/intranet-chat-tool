@@ -10,4 +10,4 @@ COPY judge.out /app/judge.out
 RUN chmod +x /app/judge.out
 
 # 默认执行命令（实际运行时会被 override）
-ENTRYPOINT ["/app/judge.out"]
+ENTRYPOINT ["/app/judge.run"]
