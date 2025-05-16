@@ -2076,7 +2076,7 @@ function runcpp(command, cpp, input, output, errfile, callback, token){
 		fs.writeFileSync(`${userFileDir}/user.in`, input);
 		let result;
 		try{
-			result = await start_runcpp(command, ["run", "--rm", "--network", "none", "--read-only", "--pids-limit=64", "--cpus=0.5", "--memory=130m", "--cap-drop=ALL", "--security-opt", "no-new-privileges", "-v", "judge/data:/app/data", "judge-runner", `${userFileDir}/user.cpp`, `${userFileDir}/user.in`, `${userFileDir}/user.out`, `${userFileDir}/user.err`, `${userFileDir}/user.run`, String(timeout), "128", "1048576", "-O2"]);
+			result = await start_runcpp(command, ["run", "--rm", "--network", "none", "--read-only", "--pids-limit=64", "--cpus=0.5", "--memory=130m", "--cap-drop=ALL", "--security-opt", "no-new-privileges", "-v", `${path.resolve(userFileDir)}:/app/data`, "judge-runner", `${userFileDir}/user.cpp`, `${userFileDir}/user.in`, `${userFileDir}/user.out`, `${userFileDir}/user.err`, `${userFileDir}/user.run`, String(timeout), "128", "1048576", "-O2"]);
 		}finally{
 			try{
 				if(fs.existsSync(`${userFileDir}/user.out`)){
