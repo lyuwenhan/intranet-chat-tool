@@ -417,12 +417,13 @@ RSA + SHA
 /*
 remove trash
 */
+const userFileDir = "judge/code";
 fs.rmSync("./uploads/iofiles", { recursive: true, force: true });
-fs.rmSync("./judge/code", { recursive: true, force: true });
+fs.rmSync(`./${userFileDir}`, { recursive: true, force: true });
 fs.mkdirSync("./uploads/iofiles", { recursive: true });
 fs.mkdirSync("./uploads/img", { recursive: true });
 fs.mkdirSync("./uploads/download", { recursive: true });
-fs.mkdirSync("./judge/code", { recursive: true });
+fs.mkdirSync(`./${userFileDir}`, { recursive: true });
 fs.mkdirSync("./log", { recursive: true });
 /*
 remove trash
@@ -1089,8 +1090,8 @@ app.post('/cpp-run', (req, res) => {
 		req.session.cppRunning = true;
 		req.session.save(err=>{});
 		const filename = uuidv4() + "";
-		const output = "iofiles/" + filename + ".out";
-		const errfile = "iofiles/" + filename + ".err";
+		const output = "uploads/iofiles/" + filename + ".out";
+		const errfile = "uploads/iofiles/" + filename + ".err";
 		runcpp(`judge/judge${isWin ? '.exe' : '.out'}`, receivedContent.code || "", receivedContent.input || "", output, errfile, (stdout, stderr) => {
 			if (stderr) {
 				res.json({ message: 'faild', stdout, stderr});
@@ -2047,7 +2048,10 @@ function runcpp(command, cpp, input, output, errfile, callback, token){
 	const ws = wsTokenMap.get(token);
 	if (!ws || ws.readyState !== WebSocket.OPEN) {
 		console.warn(`Token ${token} is no longer connected. Skipping.`);
-		cppQueue.splice(cppQueue.indexOf(token), 1);
+		const idx = cppQueue.indexOf(token);
+		if(idx != -1){
+			cppQueue.splice(idx, 1);
+		}
 		return;
 	}
 	cppQueue.push(token);
@@ -2055,25 +2059,48 @@ function runcpp(command, cpp, input, output, errfile, callback, token){
 	notifyStatus(token, `Queued (${position} ahead)`);
 	cpp_runlist = cpp_runlist.then(async () => {
 		running_token = token;
-		if(!ws || ws.readyState !== WebSocket.OPEN){
+		const cws = wsTokenMap.get(token);
+		if(!cws || cws.readyState !== WebSocket.OPEN){
 			console.warn(`Token ${token} is no longer connected. Skipping.`);
-			cppQueue.splice(cppQueue.indexOf(token), 1);
+			const idx = cppQueue.indexOf(token);
+			if(idx != -1){
+				cppQueue.splice(idx, 1);
+			}
 			return;
 		}
 		notifyStatus(token, 'Running');
-		fs.writeFileSync("judge/code/user.cpp", cpp);
-		fs.writeFileSync("judge/code/user.in", input);
-		const result = await start_runcpp(command, ["docker", "run", "--rm", "-v", "\"judge/data:/app/data\"", "judge-runner", "judge/code/user.in", "uploads/" + output, "uploads/" + errfile, "judge/code/user.exe", String(timeout), "128", "1048576", "-O2"]);
-		callback(result.stdout, result.stderr);
-		try{
-			fs.rmSync("judge/code/user.cpp");
-			fs.rmSync("judge/code/user.in");
-			fs.rmSync("judge/code/user.exe");
-		}catch(e){
-			console.log(e);
+		if(!fs.existsSync(userFileDir)){
+			fs.mkdirSync(userFileDir, { recursive: true });
 		}
+		fs.writeFileSync(`${userFileDir}/user.cpp`, cpp);
+		fs.writeFileSync(`${userFileDir}/user.in`, input);
+		let result;
+		try{
+			result = await start_runcpp(command, ["docker", "run", "--rm", "--network", "none", "--read-only", "--pids-limit=64", "--cpus=0.5", "--memory=130m", "--cap-drop=ALL", "--security-opt", "no-new-privileges", "-v", "judge/data:/app/data", "judge-runner", `${userFileDir}/user.cpp`, `${userFileDir}/user.out`, `${userFileDir}/user.err`, `${userFileDir}/user.run`, String(timeout), "128", "1048576", "-O2"]);
+		}finally{
+			try{
+				if(fs.existsSync(`${userFileDir}/user.out`)){
+					fs.copyFileSync(`${userFileDir}/user.out`, output);
+				}
+			}catch(e){
+				console.log(e);
+			}
+			try{
+				if(fs.existsSync(`${userFileDir}/user.err`)){
+					fs.copyFileSync(`${userFileDir}/user.err`, errfile);
+				}
+			}catch(e){
+				console.log(e);
+			}
+			try{
+				fs.rmSync(userFileDir, { recursive: true, force: true });
+			}catch(e){
+				console.log(e);
+			}
+		}
+		callback(result.stdout, result.stderr);
 		const idx = cppQueue.indexOf(token);
-		if(idx !== -1){
+		if(idx != -1){
 			cppQueue.splice(idx, 1);
 		}
 		for(let i = 0; i < cppQueue.length; i++){
