@@ -3,6 +3,9 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 if [[ " $* " == *" -f "* ]]; then
+    git fetch origin
+    git reset --hard origin/main
+else
     echo "[Git] Checking for updates at $(date)"
     git fetch origin main
     if ! git diff --quiet HEAD origin/main; then
@@ -13,9 +16,6 @@ if [[ " $* " == *" -f "* ]]; then
         echo "[Git] Already up-to-date."
         exit 1
     fi
-else
-    git fetch origin
-    git reset --hard origin/main
 fi
 echo "[Git] Running npm install..."
 npm install --no-audit --no-fund --prefer-offline
