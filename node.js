@@ -1093,7 +1093,8 @@ app.post('/cpp-run', (req, res) => {
 		const filename = uuidv4() + "";
 		const output = "uploads/iofiles/" + filename + ".out";
 		const errfile = "uploads/iofiles/" + filename + ".err";
-		runcpp(`docker`, receivedContent.code || "", receivedContent.input || "", output, errfile, (stdout, stderr) => {
+		// runcpp(`docker`, receivedContent.code || "", receivedContent.input || "", output, errfile, (stdout, stderr) => {
+		runcpp(`judge/judge.run`, receivedContent.code || "", receivedContent.input || "", output, errfile, (stdout, stderr) => {
 			if (stderr) {
 				res.json({ message: 'faild', stdout, stderr});
 				req.session.cppRunning = null;
@@ -2077,7 +2078,8 @@ function runcpp(command, cpp, input, output, errfile, callback, token){
 		fs.writeFileSync(`${userFileDir}/user.in`, input);
 		let result;
 		try{
-			result = await start_runcpp(command, ["run", "--rm", "--network", "none", "--pids-limit=64", "--cpus=0.5", "--memory=130m", "--cap-drop=ALL", "--security-opt", "no-new-privileges", "--tmpfs", "/tmp", "-v", `${path.resolve(userFileDir)}:${userFileDirInDocker}:rw`, "judge-runner", `${userFileDirInDocker}/user.cpp`, `${userFileDirInDocker}/user.in`, `${userFileDirInDocker}/user.out`, `${userFileDirInDocker}/user.err`, `${userFileDirInDocker}/user.run`, String(timeout), "128", "1048576", "-O2"]);
+			// result = await start_runcpp(command, ["run", "--rm", "--network", "none", "--read-only", "--pids-limit=64", "--cpus=0.5", "--memory=130m", "--cap-drop=ALL", "--security-opt", "no-new-privileges", "--tmpfs", "/tmp", "-v", `${path.resolve(userFileDir)}:${userFileDirInDocker}:rw`, "judge-runner", `${userFileDirInDocker}/user.cpp`, `${userFileDirInDocker}/user.in`, `${userFileDirInDocker}/user.out`, `${userFileDirInDocker}/user.err`, `${userFileDirInDocker}/user.run`, String(timeout), "128", "1048576", "-O2"]);
+			result = await start_runcpp(command, [`${userFileDirInDocker}/user.cpp`, `${userFileDirInDocker}/user.in`, `${userFileDirInDocker}/user.out`, `${userFileDirInDocker}/user.err`, `${userFileDirInDocker}/user.run`, String(timeout), "128", "1048576", "-O2"]);
 		}finally{
 			try{
 				if(fs.existsSync(`${userFileDir}/user.out`)){
