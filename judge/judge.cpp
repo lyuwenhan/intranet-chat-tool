@@ -140,10 +140,8 @@ std::string run_code(const std::string &exe_path, const std::string &input_file,
 
 #else // Linux
 
-void set_limits(int time_limit_sec, int memory_limit_mb, int output_limit_bytes) {
+void set_limits(int memory_limit_mb, int output_limit_bytes) {
     struct rlimit r;
-    r.rlim_cur = r.rlim_max = time_limit_sec;
-    setrlimit(RLIMIT_CPU, &r);
     r.rlim_cur = r.rlim_max = memory_limit_mb * 1024ULL * 1024;
     setrlimit(RLIMIT_AS, &r);
     r.rlim_cur = r.rlim_max = output_limit_bytes;
@@ -163,7 +161,7 @@ std::string run_code(const std::string &exe_path, const std::string &input_file,
         if (in_fd < 0 || out_fd < 0 || err_fd < 0) exit(101);
         dup2(in_fd, 0); dup2(out_fd, 1); dup2(err_fd, 2);
         close(in_fd); close(out_fd); close(err_fd);
-        set_limits((time_limit_ms + 999) / 1000, memory_limit_mb, max_output_bytes);
+        set_limits(memory_limit_mb, max_output_bytes);
         execl(exe_path.c_str(), exe_path.c_str(), nullptr);
         exit(102);
     }
