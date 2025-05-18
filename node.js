@@ -1102,19 +1102,19 @@ app.post('/cpp-run', (req, res) => {
 				return;
 			}
 			var outsize, errsize;
-			if(!fs.existsSync("uploads/" + output)){
-				fs.writeFileSync("uploads/" + output, "");
+			if(!fs.existsSync(output)){
+				fs.writeFileSync(output, "");
 			}
-			if(!fs.existsSync("uploads/" + errfile)){
-				fs.writeFileSync("uploads/" + errfile, "");
+			if(!fs.existsSync(errfile)){
+				fs.writeFileSync(errfile, "");
 			}
-			outsize = fs.statSync("uploads/" + output).size;
-			errsize = fs.statSync("uploads/" + errfile).size;
+			outsize = fs.statSync(output).size;
+			errsize = fs.statSync(errfile).size;
 			req.session.cppRunning = null;
 			req.session.save(err=>{});
 			fs.appendFileSync("log/run.log", `${ip} ${now} ${(new Date()).toString()} end\n`);
-			console.log({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
-			res.json({ message: 'success', outsize, stdoutfile: output, stdout: readFirst("uploads/" + output), errsize, stderrfile: errfile, stderr: readFirst("uploads/" + errfile)});
+			console.log({ message: 'success', outsize, stdoutfile: output, stdout: readFirst(output), errsize, stderrfile: errfile, stderr: readFirst(errfile)});
+			res.json({ message: 'success', outsize, stdoutfile: output, stdout: readFirst(output), errsize, stderrfile: errfile, stderr: readFirst(errfile)});
 		}, receivedContent.token);
 		return;
 	}
