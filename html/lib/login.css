@@ -27,9 +27,6 @@
 	margin: 10px;
 	border-radius: 10px;
 }
-.main{
-	padding: 10px;
-}
 .show0:hover .show1{
 	display: unset;
 }

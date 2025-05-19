@@ -218,6 +218,10 @@ body{
 	margin: 0;
 	font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
 }
+.main{
+	overflow-x: auto;
+	padding: 10px;
+}
 html{
 	tab-size: 4;
 }
