@@ -1766,8 +1766,21 @@ async function requestHandler(req, res) {
 				"Referrer-Policy": "no-referrer",
 			}).end(svgContent);
 		}
+		// 解析 URL 并获取安全路径
+		let safePath = getSafePath(req.url);
+
+		if (!safePath) {
+			res.writeHead(403, { "Content-Type": "text/plain" });
+			return res.end("403 Forbidden");
+		}
+
+		// 获取文件的 Content-Type
+		let contentType = mime.lookup(safePath) || "application/octet-stream";
+		if (!contentType || contentType === "application/octet-stream") {
+			contentType = "text/html"; // 强制设为 HTML 以防止下载
+		}
 		const R404 = async()=>{
-			let fileContent = await readFileAsync('html\\404.html');
+			let fileContent = await readFileAsync(safePath);
 			return res.writeHead(404, {
 				'Content-Type': 'text/html; charset=utf-8',
 				'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -1783,19 +1796,6 @@ async function requestHandler(req, res) {
 		};
 		if (req.url === '/404' || req.url === '/404.html') {
 			return await R404();
-		}
-		// 解析 URL 并获取安全路径
-		let safePath = getSafePath(req.url);
-
-		if (!safePath) {
-			res.writeHead(403, { "Content-Type": "text/plain" });
-			return res.end("403 Forbidden");
-		}
-
-		// 获取文件的 Content-Type
-		let contentType = mime.lookup(safePath) || "application/octet-stream";
-		if (!contentType || contentType === "application/octet-stream") {
-			contentType = "text/html"; // 强制设为 HTML 以防止下载
 		}
 		try {
 			// 读取请求的文件
