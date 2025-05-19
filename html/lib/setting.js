@@ -17,66 +17,7 @@
  */
 
 'use strict';
-var username;
-function get_key() {
-	var ret = null;
-	var inputContent = { type: "get-key" };
-	safeFetch(`/api`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(async(blob)=>JSON.parse(await blob.text()))
-	.then(data => {
-		publicKey = data;
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-}
-var publicKey;
-async function encryptWithOAEP(plainText, publicKeyPem) {
-	const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-	const encrypted = publicKey.encrypt(forge.util.encodeUtf8(plainText), "RSA-OAEP", {
-		md: forge.md.sha256.create()
-	});
-	return forge.util.encode64(encrypted);
-}
-const error_messageele = document.getElementById("error-message");
-document.getElementById('login-form').addEventListener('submit', async function(e) {
-	e.preventDefault();
-	error_messageele.innerHTML = "";
-	const username = e.target[0].value;
-	const password = e.target[1].value;
-	const encrypted = await encryptWithOAEP(password, publicKey);
-	var inputContent = { type: "login", username, pwd: encrypted };
-	safeFetch(`/api/login`, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({ content: inputContent })
-	})
-	.then(async(blob)=>JSON.parse(await blob.text()))
-	.then(data => {
-		console.log('服务器返回的数据:', data)
-		if(data.message == "success"){
-			if(window.name === 'from-open'){
-				window.close();
-			}else{
-				location.href='/';
-			}
-		}else{
-			error_messageele.innerText = data.info;
-		}
-	})
-	.catch(error => {
-		console.error('错误:', error);
-	});
-});
-
+var username = "";
 var role = 'user';
 document.addEventListener("DOMContentLoaded", () => {
 	let inputContent = { type: "get-role" };
@@ -105,16 +46,11 @@ document.addEventListener("DOMContentLoaded", () => {
 		.then(data => {
 			document.getElementById("username").innerText = username = data;
 			if(data){
-				if(window.name === 'from-open'){
-					window.close();
-				}else{
-					location.href='/';
-				}
 				document.querySelectorAll(".gout").forEach(e=>{e.hidden = false});
 			}else{
 				document.querySelectorAll(".gin").forEach(e=>{e.hidden = false});
+				jump();
 			}
-			get_key();
 		})
 		.catch(error => {
 			console.error('错误:', error);

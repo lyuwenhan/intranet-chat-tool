@@ -135,11 +135,9 @@ document.addEventListener("DOMContentLoaded", () => {
 		.then(data => {
 			document.getElementById("username").innerText = username = data;
 			if(data){
-				document.getElementById("logout").hidden = false;
-				document.getElementById("changePwd").hidden = false;
+				document.querySelectorAll(".gout").forEach(e=>{e.hidden = false});
 			}else{
-				document.getElementById("login").hidden = false;
-				document.getElementById("sign_up").hidden = false;
+				document.querySelectorAll(".gin").forEach(e=>{e.hidden = false});
 				if(window.name === 'from-open'){
 					window.close();
 				}else{

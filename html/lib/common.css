@@ -29,7 +29,7 @@
 .bt-grey:active,.bt-white:active{
 	opacity: 0.8;
 }
-.can-click,.bt-grey,.bt-white {
+.can-click,.bt-grey,.bt-white,label.cb {
 	cursor: pointer;
 }
 .bt-grey-text{
@@ -92,6 +92,17 @@
 	position: fixed;
 	z-index: 22;
 }
+label.cb{
+	display: flex;
+    justify-content: flex-start;
+    align-items: center;
+	line-height: 1.2em;
+	font-size: 1em;
+}
+label.cb>input[type="checkbox"]{
+	height: 1.2em;
+	margin: 0;
+}
 .nimportant{
 	font-style: italic;
 	color: grey;
@@ -139,7 +150,7 @@ nav {
 	justify-content: flex-start;
 	padding: 0px 50px;
 }
-nav li>span {
+nav li>span,nav li>a>span {
 	display: block;
 	color: white;
 	text-decoration: none;
@@ -147,19 +158,15 @@ nav li>span {
 	line-height: 52px;
 	height: calc(100% - 8px);
 }
-nav li>span:hover{
+nav li>span:hover,nav li>a>span:hover{
 	background-color: #2060a9;
 }
-nav li>a>span {
+nav li>span>a{
 	display: block;
-	color: white;
-	text-decoration: none;
+	width: 100%;
+	height: 100%;
+	margin: -4px -10px;
 	padding: 4px 10px;
-	line-height: 52px;
-	height: calc(100% - 8px);
-}
-nav li>a>span:hover{
-	background-color: #2060a9;
 }
 nav ul {
 	height: 100%;
@@ -198,14 +205,11 @@ nav>ul>li>ul>li>span:hover,nav>ul>li>ul>li>a>span:hover{
 [hidden]{
 	display: none !important;
 }
-.show1{
+.show1,.mob-only{
 	display: none;
 }
 .show0:hover>.show1{
 	display: block;
-}
-.mob-only{
-	display: none;
 }
 a{
 	text-decoration: none;
@@ -217,7 +221,7 @@ body{
 html{
 	tab-size: 4;
 }
-img,br,button,[for=auto-fresh],.lang > a,.no-select{
+img,br,button,[for=auto-fresh],.lang > a,.no-select,label.cb{
 	user-select: none;
 	-webkit-user-select: none;
 	-moz-user-select: none;
