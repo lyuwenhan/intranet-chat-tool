@@ -1429,7 +1429,7 @@ async function requestHandler2(req, res) {
 					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
 					'Cross-Origin-Resource-Policy': 'same-origin',
 					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-				}).end("")
+				}).end("");
 			}
 		}else if (safePath.startsWith('uploads\\img\\')) {
 			// 是以 /img/ 开头的路径
@@ -1455,7 +1455,7 @@ async function requestHandler2(req, res) {
 					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
 					'Cross-Origin-Resource-Policy': 'same-origin',
 					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-				}).end("")
+				}).end("");
 			}
 		}else if (safePath.startsWith('uploads\\download\\')){
 			try {
@@ -1480,7 +1480,7 @@ async function requestHandler2(req, res) {
 					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
 					'Cross-Origin-Resource-Policy': 'same-origin',
 					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-				}).end("")
+				}).end("");
 			}
 		}else if (safePath.startsWith('uploads\\iofiles\\')){
 			try {
@@ -1505,7 +1505,7 @@ async function requestHandler2(req, res) {
 					'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
 					'Cross-Origin-Resource-Policy': 'same-origin',
 					"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-				}).end("")
+				}).end("");
 			}
 		}else{
 			// try {
@@ -1530,7 +1530,7 @@ async function requestHandler2(req, res) {
 				'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
 				'Cross-Origin-Resource-Policy': 'same-origin',
 				"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-			}).end("")
+			}).end("");
 			// }
 		}
 	} catch (err) {
@@ -1743,7 +1743,7 @@ async function requestHandler(req, res) {
 				'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
 				'Cross-Origin-Resource-Policy': 'same-origin',
 				"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-			}).end("")
+			}).end("");
 		}
 		if (req.url === '/get.svg') {
 			const svgContent = `
@@ -1754,7 +1754,7 @@ async function requestHandler(req, res) {
 				<text x="86" y="14" style="text-anchor:start;font-size:12px;fill:white;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji;">${incrementCounter()}</text>
 			</svg>`;
 			fs.appendFileSync("log/get-svg.log", `${req.socket.remoteAddress.replace("::ffff:", "")} ${Date.now()} ${(new Date()).toString()}\n`);
-			res.writeHead(200, {
+			return res.writeHead(200, {
 				"Content-Type": "image/svg+xml; charset=utf-8",
 				"Cache-Control": "no-store, no-cache, must-revalidate",
 				"Pragma": "no-cache",
@@ -1764,8 +1764,25 @@ async function requestHandler(req, res) {
 				"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
 				"Cross-Origin-Resource-Policy": "same-origin",
 				"Referrer-Policy": "no-referrer",
-			});
-			return res.end(svgContent);
+			}).end(svgContent);
+		}
+		const R404 = async()=>{
+			let fileContent = await readFileAsync('html\\404.html');
+			return res.writeHead(404, {
+				'Content-Type': 'text/html; charset=utf-8',
+				'Cache-Control': 'no-cache, no-store, must-revalidate',
+				"Content-Disposition": "inline",
+				"Cross-Origin-Resource-Policy": "same-origin",
+				"X-Frame-Options": "DENY",
+				"Content-Security-Policy": "frame-ancestors 'none'",
+				"X-Content-Type-Options": "nosniff",
+				"X-XSS-Protection": "1; mode=block",
+				"Referrer-Policy": "no-referrer",
+				"Permissions-Policy": "geolocation=(), camera=(), microphone=()"
+			}).end(fileContent);
+		};
+		if (req.url === '/404' || req.url === '/404.html') {
+			return await R404();
 		}
 		// 解析 URL 并获取安全路径
 		let safePath = getSafePath(req.url);
@@ -1783,7 +1800,7 @@ async function requestHandler(req, res) {
 		try {
 			// 读取请求的文件
 			let fileContent = await readFileAsync(safePath);
-			res.writeHead(200, {
+			return res.writeHead(200, {
 				"Content-Type": contentType,
 				"Cache-Control": "public, max-age=3600",
 				"Content-Disposition": "inline",
@@ -1794,13 +1811,12 @@ async function requestHandler(req, res) {
 				"X-XSS-Protection": "1; mode=block",
 				"Referrer-Policy": "no-referrer",
 				"Permissions-Policy": "geolocation=(), camera=(), microphone=()"
-			});
-			return res.end(fileContent);
+			}).end(fileContent);
 		} catch (err) {
 			try {
 				// 读取请求的文件
 				let fileContent = await readFileAsync(safePath + '.html');
-				res.writeHead(200, {
+				return res.writeHead(200, {
 					"Content-Type": contentType,
 					"Cache-Control": "public, max-age=3600",
 					"Content-Disposition": "inline",
@@ -1811,13 +1827,12 @@ async function requestHandler(req, res) {
 					"X-XSS-Protection": "1; mode=block",
 					"Referrer-Policy": "no-referrer",
 					"Permissions-Policy": "geolocation=(), camera=(), microphone=()"
-				});
-				return res.end(fileContent);
+				}).end(fileContent);
 			} catch (err) {
 				try {
 					// 读取请求的文件
 					let fileContent = await readFileAsync(safePath + '/index.html');
-					res.writeHead(200, {
+					return res.writeHead(200, {
 						"Content-Type": contentType,
 						"Cache-Control": "public, max-age=3600",
 						"Content-Disposition": "inline",
@@ -1828,25 +1843,40 @@ async function requestHandler(req, res) {
 						"X-XSS-Protection": "1; mode=block",
 						"Referrer-Policy": "no-referrer",
 						"Permissions-Policy": "geolocation=(), camera=(), microphone=()"
-					});
-					return res.end(fileContent);
+					}).end(fileContent);
 				} catch (err) {
-					return res.writeHead(404, {
-						'Content-Type': 'text/plain; charset=utf-8',
-						'Cache-Control': 'no-cache, no-store, must-revalidate',
-						'X-Content-Type-Options': 'nosniff',
-						'X-Frame-Options': 'DENY',
-						'Referrer-Policy': 'no-referrer',
-						'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
-						'Cross-Origin-Resource-Policy': 'same-origin',
-						"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-					}).end("")
+					try{
+						if (req.url.startsWith('/lib/') || req.url == '/lib') {
+							return res.writeHead(404, {
+								'Content-Type': 'text/plain; charset=utf-8',
+								'Cache-Control': 'no-cache, no-store, must-revalidate',
+								'X-Content-Type-Options': 'nosniff',
+								'X-Frame-Options': 'DENY',
+								'Referrer-Policy': 'no-referrer',
+								'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+								'Cross-Origin-Resource-Policy': 'same-origin',
+								"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+							}).end('//This file is not avalable.');
+						}else{
+							return await R404();
+						}
+					} catch(err) {
+						return res.writeHead(404, {
+							'Content-Type': 'text/plain; charset=utf-8',
+							'Cache-Control': 'no-cache, no-store, must-revalidate',
+							'X-Content-Type-Options': 'nosniff',
+							'X-Frame-Options': 'DENY',
+							'Referrer-Policy': 'no-referrer',
+							'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
+							'Cross-Origin-Resource-Policy': 'same-origin',
+							"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
+						}).end('');
+					}
 				}
 			}
 		}
 	} catch (err) {
-		res.writeHead(500, { "Content-Type": "text/plain" });
-		res.end("500 Internal Server Error");
+		res.writeHead(500, { "Content-Type": "text/plain" }).end("500 Internal Server Error");
 	}
 }
 
@@ -1875,7 +1905,7 @@ app.use(async (req, res, next) => {
 			'Permissions-Policy': 'geolocation=(), camera=(), microphone=()',
 			'Cross-Origin-Resource-Policy': 'same-origin',
 			"Content-Security-Policy": "sandbox; default-src 'none'; script-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'",
-		}).end("")
+		}).end("");
 	}
 	await requestHandler(req, res);
 });
