@@ -1,0 +1,98 @@
+<!--
+  Project: Intranet Chat Tool
+  Copyright (C) 2025 lyuwenhan
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>404 not found</title>
+	<link rel="stylesheet" href="/lib/codemirror.css">
+	<script src="/lib/codemirror.js"></script>
+	<script src="/lib/forge.js"></script>
+	<script src="/lib/uuid.js"></script>
+	<script src="/lib/common.js" defer></script>
+	<link rel="stylesheet" href="/lib/common.css">
+	<link rel="stylesheet" href="/lib/mobile.css" media="only screen and (max-width: 768px)">
+</head>
+
+<body>
+	<div class="nav">
+		<nav class="no-select show0-mb" style="font-size: medium;">
+			<span class="unshow1-mb" style="line-height: 1em;font-size: 0; display: flex;">
+				<svg class="mob-only" style="width:52px; height: 52px; padding: 4px;" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="#B9F3FB">
+					<rect x="20" y="25" width="60" height="8" rx="4"/>
+					<rect x="20" y="46" width="60" height="8" rx="4"/>
+					<rect x="20" y="67" width="60" height="8" rx="4"/>
+				</svg>
+			</span>
+			<a class="show1-mb mob-only" style="line-height: 1em;font-size: 0;"><img src="favicon.png" style="width:52px; height: 52px; padding: 4px;"></a>
+			<a class="unshow-mb" href="/" style="line-height: 1em;font-size: 0;"><img src="favicon.png" style="width:52px; height: 52px; padding: 4px;"></a>
+			<ul class="show1-mb">
+				<li><a href="/"><span>Home</span></a></li>
+				<li><a href="/fileManage"><span>Files</span></a></li>
+				<li><a href="/manage" id="bt-manage" hidden><span>Manage</span></a></li>
+			</ul>
+			<ul class="pos-right show1-mb">
+				<li>
+					<span>
+						username:&nbsp;<span id="username"></span>
+					</span>
+					<ul>
+						<li id="login" class="gin" hidden>
+							<span class="can-click"><a class="bt-white" href="/login">Login</a></span>
+						</li>
+						<li id="sign_up" class="gin" hidden>
+							<span class="can-click"><a class="bt-white" href="/register">Sign up</a></span>
+						</li>
+						<li id="setting" class="gout" hidden>
+							<span class="can-click"><a class="bt-white" href="/setting">Setting</a></span>
+						</li>
+						<li id="logout" class="gout" hidden>
+							<span class="can-click" onclick="logout()"><a class="bt-white">Logout</a></span>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</nav>
+	</div>
+	<div class="mobtop"></div>
+	<div class="moball"></div>
+	<div class="blurele"></div>
+	<div class="alert-transmit" hidden>
+		<div class="alert-transblack"></div>
+		<div class="alert-well">
+			<div class="alert-trans">
+				<h2>This webpage wants to display:</h2>
+				<span class="alert-msgbox"></span>
+				<br>
+				<br>
+				<input type="text" placeholder="Enter content" class="alert-input" hidden>
+			</div>
+			<button class="alert-submit" hidden></button>
+			<button class="alert-ok" hidden></button>
+			<button class="alert-cancel" hidden></button>
+		</div>
+	</div>
+	<div class="main">
+		<h2>404 not found</h2>
+		<a href="/" class="bt-grey">Back to home page.</a>
+	</div>
+</body>
+</html>
