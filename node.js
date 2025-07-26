@@ -15,7 +15,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 console.log("Starting...");
 const fs = require('fs');
-const isWin = process.platform == 'win32';
 fs.mkdirSync("./error/critical", { recursive: true });
 fs.mkdirSync("./error/normal", { recursive: true });
 
