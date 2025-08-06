@@ -273,29 +273,29 @@ function generateKeyPairRSA(modulusLength = 2048, passphrase = '') {
 	const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
 		modulusLength,
 		publicKeyEncoding: {
-		type: 'pkcs1',
-		format: 'pem'
+			type: 'pkcs1',
+			format: 'pem'
 		},
 		privateKeyEncoding: {
-		type: 'pkcs8',
-		format: 'pem',
-		...(passphrase
-			? { cipher: 'aes-256-cbc', passphrase }
-			: {}
-		)
+			type: 'pkcs8',
+			format: 'pem',
+			...(passphrase
+				? { cipher: 'aes-256-cbc', passphrase }
+				: {}
+			)
 		}
 	});
 
 	return { publicKey, privateKey };
-	}
+}
 
-	/**
-	 * 使用 RSA 公钥 (RSA-OAEP + SHA-256) 加密
-	 * @param {string|Buffer} plaintext - 原始明文
-	 * @param {string} publicKey - PEM 格式公钥
-	 * @returns {string} - Base64 编码的密文
-	 */
-	function encryptRSA(plaintext, publicKey) {
+/**
+ * 使用 RSA 公钥 (RSA-OAEP + SHA-256) 加密
+ * @param {string|Buffer} plaintext - 原始明文
+ * @param {string} publicKey - PEM 格式公钥
+ * @returns {string} - Base64 编码的密文
+ */
+function encryptRSA(plaintext, publicKey) {
 	// 1. 准备明文二进制数据
 	const buffer = Buffer.isBuffer(plaintext)
 		? plaintext
@@ -304,24 +304,24 @@ function generateKeyPairRSA(modulusLength = 2048, passphrase = '') {
 	// 2. 使用 RSA 公钥进行加密 (RSA-OAEP 填充 + SHA-256)
 	const encrypted = crypto.publicEncrypt(
 		{
-		key: publicKey,
-		padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-		oaepHash: 'sha256'
+			key: publicKey,
+			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+			oaepHash: 'sha256'
 		},
 		buffer
 	);
 
 	// 3. 返回 Base64 编码结果
 	return encrypted.toString('base64');
-	}
+}
 
-	/**
-	 * 使用 RSA 私钥 (RSA-OAEP + SHA-256) 解密
-	 * @param {string} ciphertextBase64 - Base64 编码的密文
-	 * @param {string} privateKey - PEM 格式私钥
-	 * @param {string} [passphrase=''] - 如果私钥加了口令，需要传入同样的口令
-	 * @returns {string} - 解密后明文（UTF-8）
-	 */
+/**
+ * 使用 RSA 私钥 (RSA-OAEP + SHA-256) 解密
+ * @param {string} ciphertextBase64 - Base64 编码的密文
+ * @param {string} privateKey - PEM 格式私钥
+ * @param {string} [passphrase=''] - 如果私钥加了口令，需要传入同样的口令
+ * @returns {string} - 解密后明文（UTF-8）
+ */
 function decryptRSA(ciphertextBase64, privateKey, passphrase = '') {
 	// 1. Base64 转 Buffer
 	const buffer = Buffer.from(ciphertextBase64, 'base64');
@@ -330,22 +330,22 @@ function decryptRSA(ciphertextBase64, privateKey, passphrase = '') {
 	// 2. 区分是否有私钥口令
 	if (passphrase) {
 		decrypted = crypto.privateDecrypt(
-		{
-			key: privateKey,
-			passphrase,
-			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-			oaepHash: 'sha256'
-		},
-		buffer
+			{
+				key: privateKey,
+				passphrase,
+				padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+				oaepHash: 'sha256'
+			},
+			buffer
 		);
 	} else {
 		decrypted = crypto.privateDecrypt(
-		{
-			key: privateKey,
-			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-			oaepHash: 'sha256'
-		},
-		buffer
+			{
+				key: privateKey,
+				padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+				oaepHash: 'sha256'
+			},
+			buffer
 		);
 	}
 
@@ -353,14 +353,14 @@ function decryptRSA(ciphertextBase64, privateKey, passphrase = '') {
 	return decrypted.toString('utf8');
 }
 
-	/**
-	 * 判断是否是可解密的合法密文 (RSA-OAEP + SHA-256)
-	 * @param {string} ciphertextBase64 - Base64 编码的密文
-	 * @param {string} privateKey - PEM 格式私钥
-	 * @param {string} [passphrase=''] - 如果私钥加了口令，需要传入同样的口令
-	 * @returns {boolean} - 解密成功且明文非空返回true，否则返回false
-	 */
-	function isValidCiphertext(ciphertextBase64, privateKey, passphrase = '') {
+/**
+ * 判断是否是可解密的合法密文 (RSA-OAEP + SHA-256)
+ * @param {string} ciphertextBase64 - Base64 编码的密文
+ * @param {string} privateKey - PEM 格式私钥
+ * @param {string} [passphrase=''] - 如果私钥加了口令，需要传入同样的口令
+ * @returns {boolean} - 解密成功且明文非空返回true，否则返回false
+ */
+function isValidCiphertext(ciphertextBase64, privateKey, passphrase = '') {
 	try {
 		// 1. Base64 解码
 		const buffer = Buffer.from(ciphertextBase64, 'base64');
@@ -368,31 +368,31 @@ function decryptRSA(ciphertextBase64, privateKey, passphrase = '') {
 		// 2. 使用私钥尝试解密 (同上，加 RSA-OAEP + SHA-256)
 		let decrypted;
 		if (passphrase) {
-		decrypted = crypto.privateDecrypt({
-			key: privateKey,
-			passphrase,
-			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-			oaepHash: 'sha256'
-		}, buffer);
+			decrypted = crypto.privateDecrypt({
+				key: privateKey,
+				passphrase,
+				padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+				oaepHash: 'sha256'
+			}, buffer);
 		} else {
-		decrypted = crypto.privateDecrypt({
-			key: privateKey,
-			padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-			oaepHash: 'sha256'
-		}, buffer);
+			decrypted = crypto.privateDecrypt({
+				key: privateKey,
+				padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
+				oaepHash: 'sha256'
+			}, buffer);
 		}
 
 		// 3. 解密成功后转换为字符串，做简单校验
 		const plaintext = decrypted.toString('utf8');
 		if (!plaintext || plaintext.trim().length === 0) {
-		return false;
+			return false;
 		}
 		return true; // 解密成功且非空
 	} catch (err) {
 		// 解密出错 => 认为密文不合法
 		return false;
 	}
-	}
+}
 
 
 function sha256(data) {
