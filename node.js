@@ -94,6 +94,9 @@ function banIp(ip) {
 		fs.appendFileSync('log/ban.log', `${ip} 被自动封禁 ${new Date().toString()}\n`);
 	}
 }
+function isString(value) {
+  	return typeof value === 'string';
+}
 
 const baseWindow = 60 * 1000; // 60 秒
 const windowScale = { s: 1, m: 5, l: 60 };
@@ -192,10 +195,10 @@ renderer.code = function(code) {
 	if(!code.lang){
 		code.lang = "none";
 	}
-	if(code.lang == 'c++'){
+	if(code.lang == 'cpp' || code.lang == 'c++'){
 		code.lang = "cpp";
 	}
-	if(code.lang == 'cpp' || code.lang == 'c'){
+	if(code.lang == 'c'){
 		code.lang = "clike" + code.lang;
 	}
 	return `<pre class="line-numbers language-${code.lang}"><code class="language-${code.lang}">${escapeHtml(code.text)}</code></pre>`;
@@ -581,7 +584,6 @@ var waiting_clear=false;
 var waiting=null;
 const ban_list = [];
 var ban_list2 = to_json(banFilePath);
-const ban_name = ["sb", "shabi", "dashabi", "shab", "shb", "sabi", "sab", "hundan"];
 var data = [{chats : []}, {chats : []}];
 const cleartime = 1000 * 60 * 60 * 24 * 14;
 let cpp_runlist = Promise.resolve();
@@ -718,7 +720,7 @@ async function start_clear(){
 }
 
 function isValidUsername(username){
-	return username && username.length <= 20 && !ban_name.some(user => user == username) && /^\w+$/.test(username);
+	return username && isString(username) && username.length <= 20 && /^\w+$/.test(username);
 }
 function encodeRSA(pwd){
 	if(pwd && isValidCiphertext(pwd, privateKey, private_pwd)){
@@ -767,7 +769,7 @@ app.post('/api/login/', (req, res) => {
 		receivedContent.username = receivedContent.username.toLowerCase();
 		const pwd = encodeRSA(receivedContent.pwd);
 		const userinfo = findUser(receivedContent.username);
-		if((userinfo && pwd && sha256(pwd + userinfo.salt) === userinfo.hash)){
+		if((userinfo && pwd && isString(pwd) && sha256(pwd + userinfo.salt) === userinfo.hash)){
 			req.session.username = userinfo.username;
 			req.session.role = userinfo.role;
 			res.json({ message: 'success' });
@@ -797,6 +799,10 @@ app.post('/api/login/', (req, res) => {
 		const pwd = encodeRSA(receivedContent.pwd);
 		if(!pwd){
 			res.json({ message: 'refuse', info:'Password cannot be empty'});
+			return;
+		}
+		if(!isString(pwd)){
+			res.json({ message: 'refuse', info:'Invalid password'});
 			return;
 		}
 		if(pwd.length < 8){
@@ -844,12 +850,20 @@ app.post('/api/login/', (req, res) => {
 			res.json({ message: 'refuse', info:'Password cannot be empty'});
 			return;
 		}
+		if(!isString(pwd)){
+			res.json({ message: 'refuse', info:'Invalid password'});
+			return;
+		}
 		if(sha256(pwd + userinfo.salt) !== userinfo.hash){
 			res.json({ message: 'refuse', info:'Username or password is incorrect'});
 		}
 		const npwd = encodeRSA(receivedContent.npwd);
 		if(!npwd){
 			res.json({ message: 'refuse', info:'New password cannot be empty'});
+			return;
+		}
+		if(!isString(npwd)){
+			res.json({ message: 'refuse', info:'Invalid password'});
 			return;
 		}
 		if(npwd.length < 8){
@@ -992,7 +1006,7 @@ app.post('/api/', (req, res) => {
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}else if(receivedContent.type == "send"){
-		if(!receivedContent.info || receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd() == ""){
+		if(!receivedContent.info || !isString(receivedContent.info) || receivedContent.info.replace(/\n+/g, "\n").trimStart().trimEnd() == ""){
 			res.json({ message: 'faild' });
 			return;
 		}
@@ -1007,7 +1021,7 @@ app.post('/api/', (req, res) => {
 		res.json({ message: 'success' });
 		return;
 	}else if(receivedContent.type == "send-code"){
-		if(!receivedContent.info || receivedContent.info.replace(/\n+/g, "\n").trimEnd() == ""){
+		if(!receivedContent.info || !isString(receivedContent.info) || receivedContent.info.replace(/\n+/g, "\n").trimEnd() == ""){
 			res.json({ message: 'faild' });
 			return;
 		}
@@ -1083,7 +1097,7 @@ app.post('/cpp-run', (req, res) => {
 		res.status(401).json({ error: 'Unauthorized' });
 		return;
 	}else if(receivedContent.type == "run-code" || isValidUUIDv4(receivedContent.token || '')){
-		if(!receivedContent.code || receivedContent.code.replace(/\n+/g, "\n").trimStart().trimEnd() == "" || req.session.cppRunning){
+		if(!receivedContent.code || !isString(receivedContent.code) || !isString(receivedContent.input) || receivedContent.code.replace(/\n+/g, "\n").trimStart().trimEnd() == "" || req.session.cppRunning){
 			res.json({ message: 'faild' });
 			return;
 		}
