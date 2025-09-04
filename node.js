@@ -1068,11 +1068,15 @@ app.post('/api/', (req, res) => {
 });
 
 function readFirst(filename) {
-	const buffer = Buffer.alloc(1024); // 预分配 1KB 缓冲区
-	const fd = fs.openSync(filename, 'r'); // 以只读方式打开文件
-	const bytesRead = fs.readSync(fd, buffer, 0, 1024, 0); // 从偏移量 0 读取 1024 字节
-	fs.closeSync(fd); // 关闭文件
-	return buffer.toString('utf-8', 0, bytesRead); // 转换为字符串
+	const buffer = Buffer.alloc(1025); // 预分配 1KB 缓冲区 
+	const fd = fs.openSync(filename, 'r'); // 以只读方式打开文件 
+	const bytesRead = fs.readSync(fd, buffer, 0, 1025, 0); // 从偏移量 0 读取 1024 字节 
+	fs.closeSync(fd); // 关闭文件 
+	let ret = buffer.toString('utf-8', 0, bytesRead); // 转换为字符串
+	if(ret.length > 1024){
+		ret = ret.slice(0, -1) + "\nThis only shows the first 1024 Byte, to read more, you need to download the file";
+	}
+	return ret; 
 }
 
 app.post('/cpp-run', (req, res) => {
