@@ -2085,7 +2085,7 @@ function sendFinalResult(token, result){
 	}
 }
 
-function runcpp(command, cpp, input, output, errfile, callback, token){
+function runcpp(cpp, input, output, errfile, callback, token){
 	if(!isValidUUIDv4(token || '')){
 		return;
 	}
