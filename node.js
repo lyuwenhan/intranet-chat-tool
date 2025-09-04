@@ -1074,7 +1074,7 @@ function readFirst(filename) {
 	fs.closeSync(fd); // 关闭文件 
 	let ret = buffer.toString('utf-8', 0, bytesRead); // 转换为字符串
 	if(ret.length > 1024){
-		ret = ret.slice(0, -1) + "\nThis only shows the first 1024 Byte, to read more, you need to download the file";
+		ret = ret.slice(0, -1) + "...\nThis only shows the first 1024 Byte, to read more, you need to download the file";
 	}
 	return ret; 
 }
