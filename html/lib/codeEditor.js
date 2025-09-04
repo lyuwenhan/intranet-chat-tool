@@ -673,7 +673,9 @@ document.addEventListener("DOMContentLoaded", () => {
 			const msg = JSON.parse(event.data);
 			switch (msg.type) {
 				case 'status':
-					show(msg.message);
+					if(running){
+						show(msg.message);
+					}
 					console.log("状态更新:", msg.message);
 					break;
 				case 'result':
