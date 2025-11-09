@@ -577,7 +577,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	if(!isMob){
 		window.editor = CodeMirror.fromTextArea(document.getElementById("code"), tomode(edtlang));
 		function ed_init(){
-			editor.setOption("extraKeys", {"Ctrl-Enter": () => submitCode()});
+			editor.setOption("extraKeys", {"Ctrl-Enter": submitCode});
 			editor.getWrapperElement().classList.add("code-cm");
 			editor.setSize("auto", `calc(${editor.lineCount() * 1.3 + 2.6}em + 8px)`);
 			editor.on("change", function (cm) {
