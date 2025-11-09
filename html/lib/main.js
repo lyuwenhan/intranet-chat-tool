@@ -166,7 +166,7 @@ function submitCode() {
 	if(!inputContent.info.replace(/\n+/g, "\n").trimEnd()){
 		return;
 	}
-	var lang = document.querySelector("#code-language");
+	var lang = document.getElementById("code-language");
 	if(lang && lang.value){
 		inputContent.language = lang.value.replace(/\n+/g, "\n").trimStart().trimEnd();
 	}
@@ -572,7 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	connectWS();
 	
-	var edtlang = languageModes[document.querySelector("#code-language").value || "plain text"][0];
+	var edtlang = languageModes[document.getElementById("code-language").value || "plain text"][0];
 	const runele = document.querySelector(".runele");
 	if(!isMob){
 		window.editor = CodeMirror.fromTextArea(document.getElementById("code"), tomode(edtlang));
