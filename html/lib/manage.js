@@ -732,7 +732,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	connectWS();
-	
+
 	var edtlang = languageModes[document.querySelector("#code-language").value || "plain text"][0];
 	const runele = document.querySelector(".runele");
 	if(!isMob){

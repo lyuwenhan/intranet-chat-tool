@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/platform-intranet-lightgrey?style=flat-square)](#)
 [![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)](#)
 
-A secure, extensible chat and code execution tool designed for internal networks.  
+A secure, extensible chat and code execution tool designed for internal networks.
 一个为内网设计的安全、可扩展的聊天与代码执行系统。
 
 ---
@@ -41,11 +41,11 @@ This tool is a lightweight, extensible intranet communication platform featuring
 
 ## Features / 功能特色
 
-- ✔️ Secure HTTPS with custom keys / 自定义 HTTPS 证书保障传输安全  
-- ✔️ Session-based authentication / 会话认证机制  
-- ✔️ Code execution logs / 运行与访问日志记录  
-- ✔️ Modular front-end with CodeMirror / 模块化前端，集成 CodeMirror 编辑器  
-- ✔️ Easy integration & local deployment / 易集成，可内网部署  
+- ✔️ Secure HTTPS with custom keys / 自定义 HTTPS 证书保障传输安全
+- ✔️ Session-based authentication / 会话认证机制
+- ✔️ Code execution logs / 运行与访问日志记录
+- ✔️ Modular front-end with CodeMirror / 模块化前端，集成 CodeMirror 编辑器
+- ✔️ Easy integration & local deployment / 易集成，可内网部署
 
 ---
 
@@ -68,7 +68,7 @@ node.js             → Main backend server
 
 ## Required Files / 必备文件
 
-> These files are required to run the system.  
+> These files are required to run the system.
 > 以下文件为运行本系统的必要条件：
 
 - `html/` - All front-end pages and libraries / 所有前端资源
@@ -137,15 +137,15 @@ chmod u+x update.sh
 
 ## License / 授权协议
 
-This project is licensed under the **GNU General Public License v3.0**  
+This project is licensed under the **GNU General Public License v3.0**
 本项目采用 **GNU 通用公共许可证 第三版（GPL v3）** 授权。
 
-> You are free to use, modify, and distribute this software under the terms of the GPL.  
+> You are free to use, modify, and distribute this software under the terms of the GPL.
 > 你可以在 GPL 协议条款下自由使用、修改和传播本软件。
 
-By using or distributing this software, you agree to:  
-- Provide access to source code when distributing;  
-- License your modifications under the same GPL license;  
+By using or distributing this software, you agree to:
+- Provide access to source code when distributing;
+- License your modifications under the same GPL license;
 - Retain copyright and license notices.
 
 通过使用或分发本软件，你同意：
@@ -153,7 +153,7 @@ By using or distributing this software, you agree to:
 - 派生作品也需遵守 GPL 协议；
 - 保留原始的版权与许可证信息。
 
-📄 See [LICENSE](./LICENSE) for the full legal text.  
+📄 See [LICENSE](./LICENSE) for the full legal text.
 📄 完整协议条款请见 [LICENSE](./LICENSE) 文件。
 
 ---

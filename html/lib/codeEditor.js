@@ -513,7 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				e.preventDefault();
 				submitCode();
 			}
-			
+
 			if(save_unsave){
 				clearTimeout(save_unsave);
 			}
@@ -547,7 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				});
 			},200);
 		});
-		
+
 		var save_unsave = null, la_unsavecode = null;
 		window.edi_input = document.getElementById("input");
 		window.edi_output = document.getElementById("output");

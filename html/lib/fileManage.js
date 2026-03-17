@@ -84,7 +84,7 @@ function getCodeList() {
 			nele.appendChild(nele2);
 			row.appendChild(nele);
 			row.insertAdjacentHTML(
-				"beforeend", 
+				"beforeend",
 				`<td>${updated}</td><td><button onclick="renameCode('${code.uuid}')" class="bt-red">Rename</button>&nbsp;<button onclick="deleteCode('${code.filename}', '${code.uuid}')" class="bt-red">Delete</button></td>`
 			);
 			tableBody.appendChild(row);
